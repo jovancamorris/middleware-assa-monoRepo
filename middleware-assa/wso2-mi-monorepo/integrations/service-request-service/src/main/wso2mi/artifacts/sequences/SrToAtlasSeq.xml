@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="SrToAtlasSeq" onError="SrAtlasErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Service Request Branch 1: API ATLAS                               -->
+    <!-- Referensi: GUIDE_SR.md (Target 1)                                 -->
+    <!-- Catatan: Kontrak ATLAS dalam pengembangan. Default toggle: false   -->
+    <!-- ================================================================= -->
+
+    <!-- 1. Check Toggle: sr.target.atlas.enabled (Default: false) -->
+    <property name="atlasEnabled" expression="get-property('env', 'SR_TARGET_ATLAS_ENABLED')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasEnabled) = 0">
+        <then>
+            <property name="atlasEnabled" expression="get-property('system', 'sr.target.atlas.enabled')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasEnabled) = 0">
+        <then>
+            <property name="atlasEnabled" expression="get-property('file', 'sr.target.atlas.enabled')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasEnabled) = 0">
+        <then>
+            <property name="atlasEnabled" value="false" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="$ctx:atlasEnabled = 'false'">
+        <then>
+            <log level="custom">
+                <property name="ATLAS_BRANCH" value="Target API ATLAS disabled via toggle (sr.target.atlas.enabled=false). Skipping."/>
+            </log>
+            <payloadFactory media-type="xml">
+                <format>
+                    <srResult xmlns="">
+                        <target>atlas</target>
+                        <status>SKIPPED</status>
+                        <httpStatus>200</httpStatus>
+                        <detail>Target API ATLAS disabled via toggle</detail>
+                    </srResult>
+                </format>
+            </payloadFactory>
+        </then>
+        <else>
+            <!-- 2. Resolve Base URL & Endpoint Path -->
+            <property name="atlasBaseUrl" expression="get-property('env', 'SR_TARGET_ATLAS_BASE_URL')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+                <then>
+                    <property name="atlasBaseUrl" expression="get-property('system', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+                <then>
+                    <property name="atlasBaseUrl" expression="get-property('file', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+                <then>
+                    <property name="atlasBaseUrl" value="https://atlas-api.assa.id/dev" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <property name="atlasPath" expression="get-property('file', 'sr.target.atlas.path')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasPath) = 0">
+                <then>
+                    <property name="atlasPath" expression="get-property('system', 'sr.target.atlas.path')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasPath) = 0">
+                <then>
+                    <property name="atlasPath" value="/service-request" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <!-- 3. Resolve API Key / Credentials -->
+            <property name="atlasApiKey" expression="get-property('env', 'SR_TARGET_ATLAS_APIKEY')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasApiKey) = 0">
+                <then>
+                    <property name="atlasApiKey" expression="get-property('system', 'sr.target.atlas.apikey')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasApiKey) = 0">
+                <then>
+                    <property name="atlasApiKey" expression="get-property('file', 'sr.target.atlas.apikey')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <property name="uri.var.atlasBackendUrl" expression="fn:concat($ctx:atlasBaseUrl, $ctx:atlasPath)" scope="default" type="STRING"/>
+            <property name="api.endpoint" expression="$ctx:uri.var.atlasBackendUrl" scope="default" type="STRING"/>
+            <property name="api.params" expression="$ctx:originalRequestJson" scope="default" type="STRING"/>
+            <property name="currentAttempt" value="1" scope="default" type="STRING"/>
+
+            <!-- 4. Format Body as JSON (Placeholder: forward incoming JSON body) -->
+            <!-- TODO: Sesuaikan dengan kontrak ATLAS final saat spesifikasi tersedia -->
+            <payloadFactory media-type="json">
+                <format>$1</format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:originalRequestJson"/>
+                </args>
+            </payloadFactory>
+
+            <!-- 5. Set Transport Headers -->
+            <header name="Authorization" action="remove" scope="transport"/>
+            <filter xpath="string-length($ctx:atlasApiKey) &gt; 0 and $ctx:atlasApiKey != '__USE_SECURE_VAULT__'">
+                <then>
+                    <header name="x-api-key" expression="$ctx:atlasApiKey" scope="transport"/>
+                </then>
+            </filter>
+            <header name="Content-Type" value="application/json" scope="transport"/>
+            <property name="messageType" value="application/json" scope="axis2"/>
+            <property name="ContentType" value="application/json" scope="axis2"/>
+            <property name="HTTP_METHOD" value="POST" scope="axis2"/>
+            <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+
+            <!-- 6. Call ATLAS with Call Mediator -->
+            <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+            <call>
+                <endpoint key="AtlasPostEndpoint"/>
+            </call>
+
+            <!-- 7. Record Attempt Latency & Status -->
+            <property name="callEndTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+            <property name="rawDurationMs" expression="number($ctx:callEndTime) - number($ctx:callStartTime)" scope="default" type="STRING"/>
+            <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0">
+                <then>
+                    <property name="durationMs" value="0" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <property name="responseStatus" expression="$axis2:HTTP_SC" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:responseStatus) = 0">
+                <then>
+                    <property name="responseStatus" value="200" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+            <property name="errorMessage" value="None" scope="default" type="STRING"/>
+
+            <!-- Record Attempt to api_transaction_log -->
+            <sequence key="DbRecordAttemptLogSeq"/>
+
+            <!-- 8. Format Result XML for Aggregator -->
+            <filter xpath="number($ctx:responseStatus) &gt;= 200 and number($ctx:responseStatus) &lt; 300">
+                <then>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <srResult xmlns="">
+                                <target>atlas</target>
+                                <status>SUCCESS</status>
+                                <httpStatus>$1</httpStatus>
+                                <detail>Success forwarded to API ATLAS</detail>
+                            </srResult>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:responseStatus"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <srResult xmlns="">
+                                <target>atlas</target>
+                                <status>FAILED</status>
+                                <httpStatus>$1</httpStatus>
+                                <detail>Forward to API ATLAS returned error status</detail>
+                            </srResult>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:responseStatus"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+        </else>
+    </filter>
+</sequence>

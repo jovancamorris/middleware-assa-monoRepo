@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="DbRecordTransactionSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Update Main Transaction Record in api_transaction                -->
+    <!-- ================================================================= -->
+    <property name="cleanCurrentAttempt" expression="fn:substring-before(fn:concat($ctx:currentAttempt, '.'), '.')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:cleanCurrentAttempt) = 0">
+        <then>
+            <property name="cleanCurrentAttempt" value="1" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="cleanRetryIntervalSec" expression="fn:substring-before(fn:concat($ctx:retryIntervalSec, '.'), '.')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:cleanRetryIntervalSec) = 0">
+        <then>
+            <property name="cleanRetryIntervalSec" value="60" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="$ctx:trxStatus = 'SUCCESS'">
+        <then>
+            <dbreport>
+                <connection>
+                    <pool>
+                        <driver>org.mariadb.jdbc.Driver</driver>
+                        <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
+                        <user>root</user>
+                        <password/>
+                    </pool>
+                </connection>
+                <statement>
+                    <sql>UPDATE api_transaction SET status = 'SUCCESS', attempt_count = ?, response_payload = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                    <parameter expression="$ctx:cleanCurrentAttempt" type="INTEGER"/>
+                    <parameter expression="$ctx:responsePayload" type="VARCHAR"/>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+        </then>
+        <else>
+            <filter xpath="$ctx:trxStatus = 'FAILED' or $ctx:trxStatus = 'RETRY'">
+                <then>
+                    <dbreport>
+                        <connection>
+                            <pool>
+                                <driver>org.mariadb.jdbc.Driver</driver>
+                                <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
+                                <user>root</user>
+                                <password/>
+                            </pool>
+                        </connection>
+                        <statement>
+                            <sql>UPDATE api_transaction SET status = 'FAILED', attempt_count = ?, next_retry_at = DATE_ADD(NOW(), INTERVAL ? SECOND), updated_at = NOW() WHERE transaction_id = ?</sql>
+                            <parameter expression="$ctx:cleanCurrentAttempt" type="INTEGER"/>
+                            <parameter expression="$ctx:cleanRetryIntervalSec" type="INTEGER"/>
+                            <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                        </statement>
+                    </dbreport>
+                </then>
+                <else>
+                    <dbreport>
+                        <connection>
+                            <pool>
+                                <driver>org.mariadb.jdbc.Driver</driver>
+                                <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
+                                <user>root</user>
+                                <password/>
+                            </pool>
+                        </connection>
+                        <statement>
+                            <sql>UPDATE api_transaction SET status = ?, attempt_count = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                            <parameter expression="$ctx:trxStatus" type="VARCHAR"/>
+                            <parameter expression="$ctx:cleanCurrentAttempt" type="INTEGER"/>
+                            <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                        </statement>
+                    </dbreport>
+                </else>
+            </filter>
+        </else>
+    </filter>
+</sequence>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/branches" name="BranchAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Branch Domain API (ASSA Core SAP Integration)                     -->
+    <!-- Sesuai CLEAN_ARCHITECTURE.md Bagian 4.1                           -->
+    <!-- ================================================================= -->
+    <resource methods="GET" uri-template="/getByCreateDate">
+        <inSequence>
+            <!-- 1. Mandatory Token Authentication (Auth Guard) -->
+            <property name="requiredScope" value="branches" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+
+            <!-- 2. Orchestration Sequence -->
+            <sequence key="BranchGetByCreateDateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+</api>

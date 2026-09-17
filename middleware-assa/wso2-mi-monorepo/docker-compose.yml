@@ -1,0 +1,150 @@
+# ==============================================================================
+# WSO2 MI Monorepo — Local Orchestration (SEMUA service sekaligus)
+# Setiap service integrasi punya image & container sendiri, berbagi 1 MariaDB.
+# Jalankan: docker compose up --build
+# ==============================================================================
+services:
+
+  # ---- Shared Database ----
+  mariadb:
+    image: ${DB_IMAGE:-mariadb:11}
+    container_name: mi-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "yes"
+      MARIADB_DATABASE: assa_middleware_db
+    ports:
+      - "${COMPOSE_DB_PORT:-3308}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./scripts/db/init_mariadb_schema.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "healthcheck.sh --connect --innodb_initialized || mariadb-admin ping -h localhost --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---- Integration Service: Branch ----
+  branch-service:
+    build:
+      context: .
+      dockerfile: integrations/branch-service/Dockerfile
+    image: assa/branch-service:1.0.0
+    container_name: branch-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8290:8290"
+    environment: &common-env
+      DB_HOST: mariadb
+      DB_PORT: "3306"
+      SAP_CORE_BASE_URL: ${SAP_CORE_BASE_URL:-https://devsapcoreapi.assa.id}
+      SAP_CORE_CUSTOMER_BASE_URL: ${SAP_CORE_CUSTOMER_BASE_URL:-https://sapcoreapi.assa.id}
+      ASSA_EXT_BASE_URL: ${ASSA_EXT_BASE_URL:-https://devfmsapi.assa.id}
+      AUTH_APP_A_TOKEN: ${AUTH_APP_A_TOKEN:-}
+      AUTH_APP_B_TOKEN: ${AUTH_APP_B_TOKEN:-}
+      AUTH_APP_QA_TOKEN: ${AUTH_APP_QA_TOKEN:-}
+      AUTH_APP_ATLAS_TOKEN: ${AUTH_APP_ATLAS_TOKEN:-}
+      AUTH_APP_OMNICHANNEL_TOKEN: ${AUTH_APP_OMNICHANNEL_TOKEN:-}
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8290 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---- Integration Service: Customer ----
+  customer-service:
+    build:
+      context: .
+      dockerfile: integrations/customer-service/Dockerfile
+    image: assa/customer-service:1.0.0
+    container_name: customer-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8291:8290"
+    environment: *common-env
+
+  # ---- Integration Service: Vehicle ----
+  vehicle-service:
+    build:
+      context: .
+      dockerfile: integrations/vehicle-service/Dockerfile
+    image: assa/vehicle-service:1.0.0
+    container_name: vehicle-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8292:8290"
+    environment:
+      <<: *common-env
+      ASSA_EXT_VEHICLE_APIKEY: ${ASSA_EXT_VEHICLE_APIKEY:-}
+
+  # ---- Integration Service: Vendor (VMD → FTP) ----
+  vendor-service:
+    build:
+      context: .
+      dockerfile: integrations/vendor-service/Dockerfile
+    image: assa/vendor-service:1.0.0
+    container_name: vendor-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8293:8290"
+    environment:
+      <<: *common-env
+      FTP_SAP_HOST: ${FTP_SAP_HOST:-devqaxmlpool.assa.id}
+      FTP_SAP_PORT: ${FTP_SAP_PORT:-21}
+      FTP_SAP_TARGET: ${FTP_SAP_TARGET:-/vmd}
+      FTP_SAP_USERNAME: ${FTP_SAP_USERNAME:-middlewaredev}
+      FTP_SAP_PASSWORD: ${FTP_SAP_PASSWORD:-}
+
+  # ---- Integration Service: SPK Duelist (→ FTP) ----
+  spk-service:
+    build:
+      context: .
+      dockerfile: integrations/spk-service/Dockerfile
+    image: assa/spk-service:1.0.0
+    container_name: spk-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8294:8290"
+    environment:
+      <<: *common-env
+      FTP_SPK_HOST: ${FTP_SPK_HOST:-devqaxmlpool.assa.id}
+      FTP_SPK_PORT: ${FTP_SPK_PORT:-21}
+      FTP_SPK_TARGET: ${FTP_SPK_TARGET:-/duelist}
+      FTP_SPK_USERNAME: ${FTP_SPK_USERNAME:-middlewaredev}
+      FTP_SPK_PASSWORD: ${FTP_SPK_PASSWORD:-}
+
+  # ---- Integration Service: Service Request (fan-out ATLAS + Ext) ----
+  service-request-service:
+    build:
+      context: .
+      dockerfile: integrations/service-request-service/Dockerfile
+    image: assa/service-request-service:1.0.0
+    container_name: service-request-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8295:8290"
+    environment:
+      <<: *common-env
+      ASSA_EXT_SR_BASE_URL: ${ASSA_EXT_SR_BASE_URL:-https://assa-ext-services.assa.id/dev}
+      ASSA_EXT_SR_APIKEY: ${ASSA_EXT_SR_APIKEY:-}
+      SR_TARGET_ATLAS_ENABLED: ${SR_TARGET_ATLAS_ENABLED:-false}
+      SR_TARGET_ATLAS_BASE_URL: ${SR_TARGET_ATLAS_BASE_URL:-https://atlas-api.assa.id/dev}
+      SR_TARGET_ATLAS_APIKEY: ${SR_TARGET_ATLAS_APIKEY:-}
+      SR_TARGET_EXTSERVICE_ENABLED: ${SR_TARGET_EXTSERVICE_ENABLED:-true}
+
+volumes:
+  mariadb_data:

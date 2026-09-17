@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ================================================================= -->
+<!-- Shared generic fault handler.                                     -->
+<!-- Dipakai sebagai faultSequence default di service yang belum       -->
+<!-- memiliki penanganan khusus. Mendelegasikan ke ErrorResponseSeq    -->
+<!-- agar format error tetap seragam (JSON standar ASSA).              -->
+<!-- ================================================================= -->
+<sequence name="FaultHandlerSequence" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <log level="custom">
+        <property name="FAULT" expression="fn:concat('Unhandled fault. code=', get-property('ERROR_CODE'), ' msg=', get-property('ERROR_MESSAGE'), ' detail=', get-property('ERROR_DETAIL'))"/>
+    </log>
+    <sequence key="ErrorResponseSeq"/>
+</sequence>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="LogRequestSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Structured Access Logging in JSON Format                          -->
+    <!-- Sesuai KONSEP_MONITORING.md Bagian 6                              -->
+    <!-- ================================================================= -->
+    <property name="logTimestamp" expression="fn:concat(get-property('SYSTEM_DATE', 'yyyy-MM-dd'), 'T', get-property('SYSTEM_DATE', 'HH:mm:ss'))" scope="default" type="STRING"/>
+
+    <log level="custom">
+        <property name="structured_log" expression="fn:concat(
+            '{ &quot;timestamp&quot;: &quot;', get-property('logTimestamp'), 
+            '&quot;, &quot;correlationId&quot;: &quot;', get-property('correlationId'), 
+            '&quot;, &quot;appId&quot;: &quot;', get-property('appId'), 
+            '&quot;, &quot;endpoint&quot;: &quot;', get-property('api.endpoint'), 
+            '&quot;, &quot;params&quot;: &quot;', get-property('api.params'), 
+            '&quot; }'
+        )"/>
+    </log>
+</sequence>

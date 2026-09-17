@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="SrToExtServiceSeq" onError="SrExtServiceErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Service Request Branch 2: ASSA External Services                  -->
+    <!-- POST https://assa-ext-services.assa.id/dev/service/input_service_request -->
+    <!-- Referensi: GUIDE_SR.md (Target 2)                                 -->
+    <!-- ================================================================= -->
+
+    <!-- 1. Check Toggle: sr.target.extservice.enabled -->
+    <property name="extEnabled" expression="get-property('file', 'sr.target.extservice.enabled')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:extEnabled) = 0">
+        <then>
+            <property name="extEnabled" expression="get-property('system', 'sr.target.extservice.enabled')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:extEnabled) = 0">
+        <then>
+            <property name="extEnabled" value="true" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="$ctx:extEnabled = 'false'">
+        <then>
+            <payloadFactory media-type="xml">
+                <format>
+                    <srResult xmlns="">
+                        <target>extService</target>
+                        <status>SKIPPED</status>
+                        <httpStatus>200</httpStatus>
+                        <detail>Target ASSA External Service disabled via toggle</detail>
+                    </srResult>
+                </format>
+            </payloadFactory>
+        </then>
+        <else>
+            <!-- 2. Resolve Base URL & Endpoint Path -->
+            <property name="srResolvedBaseUrl" expression="get-property('env', 'ASSA_EXT_SR_BASE_URL')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:srResolvedBaseUrl) = 0">
+                <then>
+                    <property name="srResolvedBaseUrl" expression="get-property('system', 'assa.ext.sr.base.url')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:srResolvedBaseUrl) = 0">
+                <then>
+                    <property name="srResolvedBaseUrl" expression="get-property('file', 'assa.ext.sr.base.url')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:srResolvedBaseUrl) = 0">
+                <then>
+                    <property name="srResolvedBaseUrl" expression="get-property('system', 'assa.ext.base.url.dev')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:srResolvedBaseUrl) = 0">
+                <then>
+                    <property name="srResolvedBaseUrl" expression="get-property('file', 'assa.ext.base.url.dev')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:srResolvedBaseUrl) = 0">
+                <then>
+                    <property name="srResolvedBaseUrl" value="https://assa-ext-services.assa.id/dev" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <property name="srPath" expression="get-property('file', 'assa.api.path.service_request')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:srPath) = 0">
+                <then>
+                    <property name="srPath" expression="get-property('system', 'assa.api.path.service_request')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:srPath) = 0">
+                <then>
+                    <property name="srPath" value="/service/input_service_request" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <!-- 3. Resolve API Key -->
+            <property name="srApiKey" expression="get-property('env', 'ASSA_EXT_SR_APIKEY')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:srApiKey) = 0">
+                <then>
+                    <property name="srApiKey" expression="get-property('system', 'assa.ext.sr.apikey')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:srApiKey) = 0">
+                <then>
+                    <property name="srApiKey" expression="get-property('file', 'assa.ext.sr.apikey')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <property name="uri.var.extBackendUrl" expression="fn:concat($ctx:srResolvedBaseUrl, $ctx:srPath)" scope="default" type="STRING"/>
+            <property name="api.endpoint" expression="$ctx:uri.var.extBackendUrl" scope="default" type="STRING"/>
+            <property name="api.params" value="service_request_urlencoded" scope="default" type="STRING"/>
+            <property name="currentAttempt" value="1" scope="default" type="STRING"/>
+
+            <!-- 4. Format XML Root for XFormURLEncodedFormatter serialization (30 Fields) -->
+            <payloadFactory media-type="xml">
+                <format>
+                    <root xmlns="">
+                        <app_id>$1</app_id>
+                        <reff_number>$2</reff_number>
+                        <branch_code>$3</branch_code>
+                        <equipment_number>$4</equipment_number>
+                        <license_plate>$5</license_plate>
+                        <customer_code>$6</customer_code>
+                        <customer_name>$7</customer_name>
+                        <channel>$8</channel>
+                        <cp_title>$9</cp_title>
+                        <cp_name>$10</cp_name>
+                        <cp_phone>$11</cp_phone>
+                        <cp_email>$12</cp_email>
+                        <cp_address>$13</cp_address>
+                        <km>$14</km>
+                        <description>$15</description>
+                        <service_datetime>$16</service_datetime>
+                        <service_location>$17</service_location>
+                        <jenis_permintaan>$18</jenis_permintaan>
+                        <incident_datetime>$19</incident_datetime>
+                        <tipe_tiket>$20</tipe_tiket>
+                        <judul>$21</judul>
+                        <nama_kunjungan>$22</nama_kunjungan>
+                        <telepon_kunjungan>$23</telepon_kunjungan>
+                        <alamat_kunjungan>$24</alamat_kunjungan>
+                        <pool_name>$25</pool_name>
+                        <area_bengkel>$26</area_bengkel>
+                        <task>$27</task>
+                        <created_datetime>$28</created_datetime>
+                        <created_by>$29</created_by>
+                        <ticket_no>$30</ticket_no>
+                    </root>
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:sr_app_id"/>
+                    <arg evaluator="xml" expression="$ctx:sr_reff_number"/>
+                    <arg evaluator="xml" expression="$ctx:sr_branch_code"/>
+                    <arg evaluator="xml" expression="$ctx:sr_equipment_number"/>
+                    <arg evaluator="xml" expression="$ctx:sr_license_plate"/>
+                    <arg evaluator="xml" expression="$ctx:sr_customer_code"/>
+                    <arg evaluator="xml" expression="$ctx:sr_customer_name"/>
+                    <arg evaluator="xml" expression="$ctx:sr_channel"/>
+                    <arg evaluator="xml" expression="$ctx:sr_cp_title"/>
+                    <arg evaluator="xml" expression="$ctx:sr_cp_name"/>
+                    <arg evaluator="xml" expression="$ctx:sr_cp_phone"/>
+                    <arg evaluator="xml" expression="$ctx:sr_cp_email"/>
+                    <arg evaluator="xml" expression="$ctx:sr_cp_address"/>
+                    <arg evaluator="xml" expression="$ctx:sr_km"/>
+                    <arg evaluator="xml" expression="$ctx:sr_description"/>
+                    <arg evaluator="xml" expression="$ctx:sr_service_datetime"/>
+                    <arg evaluator="xml" expression="$ctx:sr_service_location"/>
+                    <arg evaluator="xml" expression="$ctx:sr_jenis_permintaan"/>
+                    <arg evaluator="xml" expression="$ctx:sr_incident_datetime"/>
+                    <arg evaluator="xml" expression="$ctx:sr_tipe_tiket"/>
+                    <arg evaluator="xml" expression="$ctx:sr_judul"/>
+                    <arg evaluator="xml" expression="$ctx:sr_nama_kunjungan"/>
+                    <arg evaluator="xml" expression="$ctx:sr_telepon_kunjungan"/>
+                    <arg evaluator="xml" expression="$ctx:sr_alamat_kunjungan"/>
+                    <arg evaluator="xml" expression="$ctx:sr_pool_name"/>
+                    <arg evaluator="xml" expression="$ctx:sr_area_bengkel"/>
+                    <arg evaluator="xml" expression="$ctx:sr_task"/>
+                    <arg evaluator="xml" expression="$ctx:sr_created_datetime"/>
+                    <arg evaluator="xml" expression="$ctx:sr_created_by"/>
+                    <arg evaluator="xml" expression="$ctx:sr_ticket_no"/>
+                </args>
+            </payloadFactory>
+
+            <!-- 5. Set Transport Headers for application/x-www-form-urlencoded -->
+            <header name="Authorization" action="remove" scope="transport"/>
+            <header name="x-api-key" expression="$ctx:srApiKey" scope="transport"/>
+            <header name="Content-Type" value="application/x-www-form-urlencoded" scope="transport"/>
+            <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+            <property name="ContentType" value="application/x-www-form-urlencoded" scope="axis2"/>
+            <property name="HTTP_METHOD" value="POST" scope="axis2"/>
+            <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+
+            <!-- 6. Call Backend with Call Mediator -->
+            <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+            <call>
+                <endpoint key="ExtServicePostEndpoint"/>
+            </call>
+
+            <!-- 7. Record Attempt Latency & Status -->
+            <property name="callEndTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+            <property name="rawDurationMs" expression="number($ctx:callEndTime) - number($ctx:callStartTime)" scope="default" type="STRING"/>
+            <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0">
+                <then>
+                    <property name="durationMs" value="0" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <property name="responseStatus" expression="$axis2:HTTP_SC" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:responseStatus) = 0">
+                <then>
+                    <property name="responseStatus" value="200" scope="default" type="STRING"/>
+                </then>
+            </filter>
+
+            <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+            <property name="errorMessage" value="None" scope="default" type="STRING"/>
+            
+            <!-- Record Attempt to api_transaction_log -->
+            <sequence key="DbRecordAttemptLogSeq"/>
+
+            <!-- 8. Format Result XML for Aggregator -->
+            <filter xpath="number($ctx:responseStatus) &gt;= 200 and number($ctx:responseStatus) &lt; 300">
+                <then>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <srResult xmlns="">
+                                <target>extService</target>
+                                <status>SUCCESS</status>
+                                <httpStatus>$1</httpStatus>
+                                <detail>Success forwarded to ASSA External Services</detail>
+                            </srResult>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:responseStatus"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <payloadFactory media-type="xml">
+                        <format>
+                            <srResult xmlns="">
+                                <target>extService</target>
+                                <status>FAILED</status>
+                                <httpStatus>$1</httpStatus>
+                                <detail>Forward to ASSA External Services returned error status</detail>
+                            </srResult>
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:responseStatus"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+        </else>
+    </filter>
+</sequence>

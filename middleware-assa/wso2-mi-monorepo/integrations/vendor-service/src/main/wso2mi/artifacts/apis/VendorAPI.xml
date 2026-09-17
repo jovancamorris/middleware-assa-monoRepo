@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/vendors" name="VendorAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Vendor Domain API (File-based FTP Interface - V2 ATLAS)        -->
+    <!-- Referensi: GUIDE_VENDOR_CREATE_XML_FTP_V2.md                      -->
+    <!-- ================================================================= -->
+    <resource methods="POST" uri-template="/create">
+        <inSequence>
+            <!-- 1. Mandatory Token Authentication (Auth Guard with scope: vendors) -->
+            <property name="requiredScope" value="vendors" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+
+            <!-- 2. Domain Orchestration Sequence -->
+            <sequence key="VendorCreateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+
+</api>

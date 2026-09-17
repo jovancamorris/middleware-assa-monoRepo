@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="SrAggregateResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Aggregate Fan-Out Responses for Service Request                   -->
+    <!-- Referensi: GUIDE_SR.md (Bagian 6 & Bagian 7)                      -->
+    <!-- ================================================================= -->
+
+    <!-- 1. Extract status from aggregated XML body -->
+    <property name="extStatus" expression="//srResult[target='extService']/status/text()" scope="default" type="STRING"/>
+    <property name="extHttpStatus" expression="//srResult[target='extService']/httpStatus/text()" scope="default" type="STRING"/>
+    <property name="extDetail" expression="//srResult[target='extService']/detail/text()" scope="default" type="STRING"/>
+
+    <property name="atlasStatus" expression="//srResult[target='atlas']/status/text()" scope="default" type="STRING"/>
+    <property name="atlasHttpStatus" expression="//srResult[target='atlas']/httpStatus/text()" scope="default" type="STRING"/>
+    <property name="atlasDetail" expression="//srResult[target='atlas']/detail/text()" scope="default" type="STRING"/>
+
+    <!-- Defaults if any branch didn't return -->
+    <filter xpath="string-length($ctx:extStatus) = 0">
+        <then>
+            <property name="extStatus" value="FAILED" scope="default" type="STRING"/>
+            <property name="extHttpStatus" value="502" scope="default" type="STRING"/>
+            <property name="extDetail" value="No response from ASSA External Services" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasStatus) = 0">
+        <then>
+            <property name="atlasStatus" value="SKIPPED" scope="default" type="STRING"/>
+            <property name="atlasHttpStatus" value="200" scope="default" type="STRING"/>
+            <property name="atlasDetail" value="API ATLAS disabled or no response" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="string-length($ctx:sr_ticket_no) = 0">
+        <then>
+            <property name="sr_ticket_no" value="" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- 2. Evaluate Overall HTTP Status & Payload Format -->
+    <!-- Scenario A: Both targets failed -> 502 Bad Gateway -->
+    <filter xpath="$ctx:extStatus = 'FAILED' and $ctx:atlasStatus = 'FAILED'">
+        <then>
+            <property name="overallHttpCode" value="502" scope="default" type="STRING"/>
+            <property name="trxStatus" value="FAILED" scope="default" type="STRING"/>
+            <payloadFactory media-type="json">
+                <format>
+                    {
+                        "error": true,
+                        "message": "Bad Gateway",
+                        "detail": "Semua target SR gagal setelah retry",
+                        "transactionId": "$1",
+                        "ticket_no": "$2",
+                        "targets": {
+                            "atlas": { "status": "$3", "httpStatus": $4, "detail": "$5" },
+                            "extService": { "status": "$6", "httpStatus": $7, "detail": "$8" }
+                        }
+                    }
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:transactionId"/>
+                    <arg evaluator="xml" expression="$ctx:sr_ticket_no"/>
+                    <arg evaluator="xml" expression="$ctx:atlasStatus"/>
+                    <arg evaluator="xml" expression="$ctx:atlasHttpStatus"/>
+                    <arg evaluator="xml" expression="$ctx:atlasDetail"/>
+                    <arg evaluator="xml" expression="$ctx:extStatus"/>
+                    <arg evaluator="xml" expression="$ctx:extHttpStatus"/>
+                    <arg evaluator="xml" expression="$ctx:extDetail"/>
+                </args>
+            </payloadFactory>
+        </then>
+        <else>
+            <!-- Scenario B: Partial success -> 207 Multi-Status -->
+            <filter xpath="($ctx:extStatus = 'FAILED' and $ctx:atlasStatus != 'FAILED') or ($ctx:extStatus != 'FAILED' and $ctx:atlasStatus = 'FAILED')">
+                <then>
+                    <property name="overallHttpCode" value="207" scope="default" type="STRING"/>
+                    <property name="trxStatus" value="FAILED" scope="default" type="STRING"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "success": false,
+                                "message": "Sebagian target gagal",
+                                "transactionId": "$1",
+                                "ticket_no": "$2",
+                                "targets": {
+                                    "atlas": { "status": "$3", "httpStatus": $4, "detail": "$5" },
+                                    "extService": { "status": "$6", "httpStatus": $7, "detail": "$8" }
+                                }
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:transactionId"/>
+                            <arg evaluator="xml" expression="$ctx:sr_ticket_no"/>
+                            <arg evaluator="xml" expression="$ctx:atlasStatus"/>
+                            <arg evaluator="xml" expression="$ctx:atlasHttpStatus"/>
+                            <arg evaluator="xml" expression="$ctx:atlasDetail"/>
+                            <arg evaluator="xml" expression="$ctx:extStatus"/>
+                            <arg evaluator="xml" expression="$ctx:extHttpStatus"/>
+                            <arg evaluator="xml" expression="$ctx:extDetail"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <!-- Scenario C: All success / skipped -> 200 OK -->
+                    <property name="overallHttpCode" value="200" scope="default" type="STRING"/>
+                    <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "success": true,
+                                "message": "Service request diteruskan ke semua target",
+                                "transactionId": "$1",
+                                "ticket_no": "$2",
+                                "targets": {
+                                    "atlas": { "status": "$3", "httpStatus": $4, "detail": "$5" },
+                                    "extService": { "status": "$6", "httpStatus": $7, "detail": "$8" }
+                                }
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:transactionId"/>
+                            <arg evaluator="xml" expression="$ctx:sr_ticket_no"/>
+                            <arg evaluator="xml" expression="$ctx:atlasStatus"/>
+                            <arg evaluator="xml" expression="$ctx:atlasHttpStatus"/>
+                            <arg evaluator="xml" expression="$ctx:atlasDetail"/>
+                            <arg evaluator="xml" expression="$ctx:extStatus"/>
+                            <arg evaluator="xml" expression="$ctx:extHttpStatus"/>
+                            <arg evaluator="xml" expression="$ctx:extDetail"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+        </else>
+    </filter>
+
+    <!-- 3. Update Transaction in MariaDB -->
+    <property name="responsePayload" expression="json-eval($)" scope="default" type="STRING"/>
+    <sequence key="DbRecordTransactionSeq"/>
+
+    <!-- 4. Send Response to Omnichannel Client -->
+    <property name="HTTP_SC" expression="$ctx:overallHttpCode" scope="axis2"/>
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+    <header name="X-Transaction-Id" expression="$ctx:transactionId" scope="transport"/>
+    <filter xpath="string-length($ctx:correlationId) &gt; 0">
+        <then>
+            <header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/>
+        </then>
+    </filter>
+
+    <respond/>
+</sequence>

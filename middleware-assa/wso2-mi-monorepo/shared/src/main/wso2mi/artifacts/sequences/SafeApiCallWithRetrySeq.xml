@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="SafeApiCallWithRetrySeq" onError="ApiCallErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Safe API Call with Automatic 3x Retry and Database Auditing       -->
+    <!-- ================================================================= -->
+    <filter xpath="string-length($ctx:currentAttempt) = 0">
+        <then>
+            <property name="currentAttempt" value="1" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="string-length($ctx:maxAttempts) = 0">
+        <then>
+            <property name="maxAttempts" value="3" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="string-length($ctx:retryIntervalSec) = 0">
+        <then>
+            <property name="retryIntervalSec" value="60" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Support runtime override of retry interval for automated testing -->
+    <property name="customRetryInterval" expression="$trp:X-Retry-Interval-Seconds" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:customRetryInterval) &gt; 0">
+        <then>
+            <property name="retryIntervalSec" expression="$ctx:customRetryInterval" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Clean transport properties & set method depending on endpoint type -->
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint'">
+        <then>
+            <header name="To" expression="$ctx:ftpTargetUrl" scope="default"/>
+            <property name="transport.vfs.ReplyFileName" expression="$ctx:fileName" scope="transport"/>
+            <property name="OUT_ONLY" value="true" scope="default"/>
+            <property name="messageType" value="application/xml" scope="axis2"/>
+            <property name="ContentType" value="application/xml" scope="axis2"/>
+            <property name="NO_SOAP_ENVELOPE" value="true" scope="axis2"/>
+        </then>
+        <else>
+            <header name="To" action="remove"/>
+            <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+            <property name="HTTP_METHOD" value="GET" scope="axis2"/>
+        </else>
+    </filter>
+
+    <!-- Set Call Start Time -->
+    <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+
+    <!-- Dynamic Endpoint Invocation -->
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint'">
+        <then>
+            <filter xpath="$ctx:targetEndpointKey = 'SpkFtpEndpoint'">
+                <then><call><endpoint key="SpkFtpEndpoint"/></call></then>
+                <else><call><endpoint key="VendorFtpEndpoint"/></call></else>
+            </filter>
+        </then>
+        <else>
+            <filter xpath="$ctx:targetEndpointKey = 'ExtServiceDynamicEndpoint'">
+                <then>
+                    <call>
+                        <endpoint key="ExtServiceDynamicEndpoint"/>
+                    </call>
+                </then>
+                <else>
+                    <call>
+                        <endpoint key="SapCoreDynamicEndpoint"/>
+                    </call>
+                </else>
+            </filter>
+        </else>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- On Success Flow (HTTP 2xx or FTP Accepted)                        -->
+    <!-- ================================================================= -->
+    <property name="callEndTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+    <property name="rawDurationMs" expression="number($ctx:callEndTime) - number($ctx:callStartTime)" scope="default" type="STRING"/>
+    <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0">
+        <then>
+            <property name="durationMs" value="0" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint'">
+        <then>
+            <property name="responseStatus" value="201" scope="default" type="STRING"/>
+            <property name="errorMessage" value="None" scope="default" type="STRING"/>
+
+            <filter xpath="$ctx:targetEndpointKey = 'SpkFtpEndpoint'">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "success": true,
+                                "message": "SPK Duelist accepted and delivered to FTP",
+                                "transactionId": "$1",
+                                "fileName": "$2",
+                                "documentNumber": "$3"
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:transactionId"/>
+                            <arg evaluator="xml" expression="$ctx:fileName"/>
+                            <arg evaluator="xml" expression="$ctx:responseDocumentNumber"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <!-- Build Standard ASSA Vendor 201 Created Response -->
+                    <filter xpath="string-length($ctx:documentNumber) &gt; 0">
+                        <then>
+                            <!-- VMD (Vendor Create V2) format per GUIDE_VENDOR_CREATE_XML_FTP_V2.md -->
+                            <payloadFactory media-type="json">
+                                <format>
+                                    {
+                                        "success": true,
+                                        "message": "Vendor (VMD) accepted and delivered to FTP",
+                                        "transactionId": "$1",
+                                        "fileName": "$2",
+                                        "documentNumber": "$3"
+                                    }
+                                </format>
+                                <args>
+                                    <arg evaluator="xml" expression="$ctx:transactionId"/>
+                                    <arg evaluator="xml" expression="$ctx:fileName"/>
+                                    <arg evaluator="xml" expression="$ctx:documentNumber"/>
+                                </args>
+                            </payloadFactory>
+                        </then>
+                        <else>
+                            <!-- Default Vendor FTP format (e.g. Vendor Invoice) -->
+                            <payloadFactory media-type="json">
+                                <format>
+                                    {
+                                        "success": true,
+                                        "message": "Vendor payload accepted and delivered to FTP",
+                                        "transactionId": "$1",
+                                        "fileName": "$2",
+                                        "correlationId": "$3"
+                                    }
+                                </format>
+                                <args>
+                                    <arg evaluator="xml" expression="$ctx:transactionId"/>
+                                    <arg evaluator="xml" expression="$ctx:fileName"/>
+                                    <arg evaluator="xml" expression="$ctx:correlationId"/>
+                                </args>
+                            </payloadFactory>
+                        </else>
+                    </filter>
+                </else>
+            </filter>
+            <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+
+            <!-- 1. Log Success Attempt to api_transaction_log -->
+            <sequence key="DbRecordAttemptLogSeq"/>
+
+            <!-- 2. Update api_transaction Status to SUCCESS -->
+            <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>
+            <property name="responsePayload" expression="$ctx:responseBody" scope="default" type="STRING"/>
+            <sequence key="DbRecordTransactionSeq"/>
+
+            <!-- 3. Return 201 Created to Client -->
+            <property name="OUT_ONLY" value="false" scope="default"/>
+            <property name="SC_ACCEPTED" value="false" scope="axis2"/>
+            <property name="HTTP_SC" value="201" scope="axis2"/>
+            <property name="messageType" value="application/json" scope="axis2"/>
+            <property name="ContentType" value="application/json" scope="axis2"/>
+            <respond/>
+        </then>
+        <else>
+            <property name="responseStatus" value="200" scope="default" type="STRING"/>
+            <property name="errorMessage" value="None" scope="default" type="STRING"/>
+            <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+
+            <!-- 1. Log Success Attempt to api_transaction_log -->
+            <sequence key="DbRecordAttemptLogSeq"/>
+
+            <!-- 2. Update api_transaction Status to SUCCESS -->
+            <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>
+            <property name="responsePayload" expression="$ctx:responseBody" scope="default" type="STRING"/>
+            <sequence key="DbRecordTransactionSeq"/>
+
+            <!-- 3. Return Standard Client Response -->
+            <sequence key="GenericPaginationSeq"/>
+        </else>
+    </filter>
+</sequence>

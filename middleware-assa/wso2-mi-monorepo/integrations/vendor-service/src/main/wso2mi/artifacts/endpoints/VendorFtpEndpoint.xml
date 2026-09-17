@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoint name="VendorFtpEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Dynamic VFS FTP Endpoint for Vendor XML File Delivery             -->
+    <!-- Destination is dynamically driven by message 'To' header          -->
+    <!-- ================================================================= -->
+    <default format="pox">
+        <suspendOnFailure>
+            <initialDuration>0</initialDuration>
+            <progressionFactor>1.0</progressionFactor>
+            <maximumDuration>0</maximumDuration>
+        </suspendOnFailure>
+        <markForSuspension>
+            <retriesBeforeSuspension>0</retriesBeforeSuspension>
+            <retryDelay>0</retryDelay>
+        </markForSuspension>
+        <timeout>
+            <duration>30000</duration>
+            <responseAction>fault</responseAction>
+        </timeout>
+    </default>
+</endpoint>

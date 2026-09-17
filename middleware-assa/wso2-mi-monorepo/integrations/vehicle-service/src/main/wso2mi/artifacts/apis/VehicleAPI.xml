@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/vehicles" name="VehicleAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Vehicle / Operations Domain API (Vehicle Atlas Integration)       -->
+    <!-- Referensi: panduan-get-vehicleatlas-ver1.md                       -->
+    <!-- ================================================================= -->
+    <!-- Legacy / Convenient Endpoint -->
+    <resource methods="GET" uri-template="/getByLicensePlate">
+        <inSequence>
+            <!-- 1. Mandatory Token Authentication (Auth Guard) -->
+            <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+
+            <!-- 2. Orchestration Sequence -->
+            <sequence key="VehicleGetByLicensePlateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+
+    <!-- Standard Vehicle Atlas Endpoint -->
+    <resource methods="GET" uri-template="/vehicleatlas">
+        <inSequence>
+            <!-- 1. Mandatory Token Authentication (Auth Guard) -->
+            <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+
+            <!-- 2. Orchestration Sequence -->
+            <sequence key="VehicleGetByLicensePlateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+</api>

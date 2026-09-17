@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="VendorCreateSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- 1. Extract JSON Payload & Save Original Copy                      -->
+    <!-- Referensi: GUIDE_VENDOR_CREATE_XML_FTP_V2.md                      -->
+    <!-- ================================================================= -->
+    <property name="originalPayload" expression="json-eval($)" scope="default" type="STRING"/>
+
+    <!-- Field extractions V2 -->
+    <property name="companyTitle" expression="json-eval($.companyTitle)" scope="default" type="STRING"/>
+    <property name="companyName" expression="json-eval($.companyName)" scope="default" type="STRING"/>
+    <property name="otv" expression="json-eval($.otv)" scope="default" type="STRING"/>
+    <property name="paymentCycle" expression="json-eval($.paymentCycle)" scope="default" type="STRING"/>
+    <property name="accountNumber" expression="json-eval($.accountNumber)" scope="default" type="STRING"/>
+    <property name="accountName" expression="json-eval($.accountName)" scope="default" type="STRING"/>
+    <property name="bankName" expression="json-eval($.bankName)" scope="default" type="STRING"/>
+    <property name="hoEmail" expression="json-eval($.hoEmail)" scope="default" type="STRING"/>
+    <property name="hoPhone" expression="json-eval($.hoPhone)" scope="default" type="STRING"/>
+    <property name="hoAddress" expression="json-eval($.hoAddress)" scope="default" type="STRING"/>
+    <property name="contactName" expression="json-eval($.contactName)" scope="default" type="STRING"/>
+    <property name="contactPhone" expression="json-eval($.contactPhone)" scope="default" type="STRING"/>
+    <property name="npwp" expression="json-eval($.npwp)" scope="default" type="STRING"/>
+    <property name="accountGroup" expression="json-eval($.accountGroup)" scope="default" type="STRING"/>
+    <property name="top" expression="json-eval($.top)" scope="default" type="STRING"/>
+    <property name="glAccount" expression="json-eval($.glAccount)" scope="default" type="STRING"/>
+    <property name="documentNumber" expression="json-eval($.documentNumber)" scope="default" type="STRING"/>
+
+    <!-- Client IP Extraction (X-Forwarded-For -> X-Real-IP -> default 127.0.0.1) -->
+    <property name="clientIp" expression="$trp:X-Forwarded-For" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:clientIp) = 0">
+        <then>
+            <property name="clientIp" expression="$trp:X-Real-IP" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:clientIp) = 0">
+        <then>
+            <property name="clientIp" value="127.0.0.1" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="fn:contains($ctx:clientIp, ',')">
+        <then>
+            <property name="clientIp" expression="fn:normalize-space(fn:substring-before($ctx:clientIp, ','))" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 2. Specifications & Field Validations (GUIDE V2 Bagian 4)         -->
+    <!-- ================================================================= -->
+    <!-- Field 1: companyTitle (Enum: PT, CV) -->
+    <filter xpath="not($ctx:companyTitle = 'PT' or $ctx:companyTitle = 'CV')">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'companyTitle' wajib diisi dengan nilai 'PT' atau 'CV'" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 2: companyName (String, max 80 char, wajib) -->
+    <filter xpath="string-length($ctx:companyName) = 0 or string-length($ctx:companyName) &gt; 80">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'companyName' wajib diisi dan maksimal 80 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 3: otv (Enum: Yes, No, wajib) -->
+    <filter xpath="not($ctx:otv = 'Yes' or $ctx:otv = 'No')">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'otv' harus 'Yes' atau 'No'" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 4: paymentCycle (Enum: Daily, Weekly, Monthly, wajib) -->
+    <filter xpath="not($ctx:paymentCycle = 'Daily' or $ctx:paymentCycle = 'Weekly' or $ctx:paymentCycle = 'Monthly')">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'paymentCycle' wajib bernilai 'Daily', 'Weekly', atau 'Monthly'" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 5-7: Bank Details Conditional Check based on otv -->
+    <filter xpath="$ctx:otv = 'No'">
+        <then>
+            <filter xpath="string-length($ctx:accountNumber) = 0 or string-length($ctx:accountNumber) &gt; 18 or string-length($ctx:accountName) = 0 or string-length($ctx:accountName) &gt; 60 or string-length($ctx:bankName) = 0 or string-length($ctx:bankName) &gt; 40">
+                <then>
+                    <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+                    <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" value="Bila otv bernilai 'No', field 'accountNumber' (max 18), 'accountName' (max 60), dan 'bankName' (max 40) wajib diisi" scope="default" type="STRING"/>
+                    <sequence key="ErrorResponseSeq"/>
+                    <drop/>
+                </then>
+            </filter>
+        </then>
+        <else>
+            <filter xpath="string-length($ctx:accountNumber) &gt; 18 or string-length($ctx:accountName) &gt; 60 or string-length($ctx:bankName) &gt; 40">
+                <then>
+                    <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+                    <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" value="Field accountNumber (max 18), accountName (max 60), atau bankName (max 40) melebihi batas karakter" scope="default" type="STRING"/>
+                    <sequence key="ErrorResponseSeq"/>
+                    <drop/>
+                </then>
+            </filter>
+        </else>
+    </filter>
+
+    <!-- Field 8: hoEmail (Email valid, max 241 char, wajib) -->
+    <filter xpath="string-length($ctx:hoEmail) = 0 or string-length($ctx:hoEmail) &gt; 241 or not(fn:contains($ctx:hoEmail, '@')) or not(fn:contains($ctx:hoEmail, '.'))">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'hoEmail' wajib diisi dengan format email valid dan maksimal 241 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 9: hoPhone (String, max 30 char, wajib) -->
+    <filter xpath="string-length($ctx:hoPhone) = 0 or string-length($ctx:hoPhone) &gt; 30">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'hoPhone' wajib diisi dan maksimal 30 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 10: hoAddress (String, max 241 char, wajib) -->
+    <filter xpath="string-length($ctx:hoAddress) = 0 or string-length($ctx:hoAddress) &gt; 241">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'hoAddress' wajib diisi dan maksimal 241 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 11-12: Contact Details (Opsional: contactName max 35, contactPhone max 16) -->
+    <filter xpath="string-length($ctx:contactName) &gt; 35 or string-length($ctx:contactPhone) &gt; 16">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field contactName (max 35) atau contactPhone (max 16) melebihi batas karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 13: npwp (String, max 20 char, wajib) -->
+    <filter xpath="string-length($ctx:npwp) = 0 or string-length($ctx:npwp) &gt; 20">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'npwp' wajib diisi dan maksimal 20 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 14: accountGroup (Enum: V010, V020, V030, wajib) -->
+    <filter xpath="not($ctx:accountGroup = 'V010' or $ctx:accountGroup = 'V020' or $ctx:accountGroup = 'V030')">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'accountGroup' wajib diisi dengan kode valid (V010, V020, V030)" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 15: top (Payment Terms, wajib) -->
+    <filter xpath="string-length($ctx:top) = 0">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'top' wajib diisi dengan kode payment terms valid (mis. T014)" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 16: glAccount (GL Account SAP, wajib) -->
+    <filter xpath="string-length($ctx:glAccount) = 0 or string-length($ctx:glAccount) &gt; 20">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'glAccount' wajib diisi dengan kode GL account valid" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 17: documentNumber (Vendor ID ATLAS, wajib) -->
+    <filter xpath="string-length($ctx:documentNumber) = 0 or string-length($ctx:documentNumber) &gt; 50">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'documentNumber' wajib diisi" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 3. Observability Logging & Idempotency Guard                      -->
+    <!-- ================================================================= -->
+    <property name="api.endpoint" value="/api/vendors/create" scope="default" type="STRING"/>
+    <property name="api.params" expression="$ctx:originalPayload" scope="default" type="STRING"/>
+    <sequence key="LogRequestSeq"/>
+    <sequence key="IdempotencyGuardSeq"/>
+
+    <!-- ================================================================= -->
+    <!-- 4. Format TOP, Header Constants, and Build XML Payload            -->
+    <!-- ================================================================= -->
+    <!-- Format Payment Terms (top): {kode} - {deskripsi} -->
+    <filter xpath="fn:contains($ctx:top, ' - ')">
+        <then>
+            <property name="topFormatted" expression="$ctx:top" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="topFormatted" expression="$ctx:top" scope="default" type="STRING"/>
+            <filter xpath="$ctx:top = 'T000'"><then><property name="topFormatted" value="T000 - 0 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T003'"><then><property name="topFormatted" value="T003 - 3 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T007'"><then><property name="topFormatted" value="T007 - 7 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T014'"><then><property name="topFormatted" value="T014 - 14 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T021'"><then><property name="topFormatted" value="T021 - 21 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T030'"><then><property name="topFormatted" value="T030 - 30 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T045'"><then><property name="topFormatted" value="T045 - 45 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T060'"><then><property name="topFormatted" value="T060 - 60 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T075'"><then><property name="topFormatted" value="T075 - 75 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T090'"><then><property name="topFormatted" value="T090 - 90 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T105'"><then><property name="topFormatted" value="T105 - 105 Hari" scope="default" type="STRING"/></then></filter>
+            <filter xpath="$ctx:top = 'T120'"><then><property name="topFormatted" value="T120 - 120 Hari" scope="default" type="STRING"/></then></filter>
+        </else>
+    </filter>
+
+    <!-- Resolve ATLAS Header Constants from config.properties with standard defaults -->
+    <property name="atlasHeaderId" expression="get-property('file', 'atlas.header.id')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasHeaderId) = 0">
+        <then>
+            <property name="atlasHeaderId" value="ATLAS" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="atlasDestUser" expression="get-property('file', 'atlas.header.destinationUser')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasDestUser) = 0">
+        <then>
+            <property name="atlasDestUser" value="SAP" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="atlasKey1" expression="get-property('file', 'atlas.header.key1')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasKey1) = 0">
+        <then>
+            <property name="atlasKey1" value="ATLAS" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="atlasKey2" expression="get-property('file', 'atlas.header.key2.vmd')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasKey2) = 0">
+        <then>
+            <property name="atlasKey2" value="VMD" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Generate TransGuID: yyyy-MM-dd HH:mm:ss-VMD -->
+    <property name="transGuId" expression="fn:concat(get-property('SYSTEM_DATE', 'yyyy-MM-dd HH:mm:ss'), '-VMD')" scope="default" type="STRING"/>
+
+    <!-- File Name Resolution: Allow X-File-Name header override or default VMD_{yyyyMMddHHmmss}_{transactionId}.xml -->
+    <property name="customFileName" expression="$trp:X-File-Name" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:customFileName) &gt; 0">
+        <then>
+            <property name="fileName" expression="$ctx:customFileName" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
+            <property name="fileName" expression="fn:concat('VMD_', $ctx:fileTimestamp, '_', $ctx:transactionId, '.xml')" scope="default" type="STRING"/>
+        </else>
+    </filter>
+
+    <!-- Build XML Target conforming strictly to ATLAS VMD schema via payloadFactory -->
+    <payloadFactory media-type="xml">
+        <format>
+            <Transaction xmlns="">
+                <Header>
+                    <ID>$1</ID>
+                    <TransGuID>$2</TransGuID>
+                    <DocumentNumber>$3</DocumentNumber>
+                    <FileType>XML</FileType>
+                    <IPAddress>$4</IPAddress>
+                    <DestinationUser>$5</DestinationUser>
+                    <Key1>$6</Key1>
+                    <Key2>$7</Key2>
+                    <DataLength>1</DataLength>
+                </Header>
+                <TransactionDatas>
+                    <TransactionData>
+                        <Company_title>$8</Company_title>
+                        <Company_Name>$9</Company_Name>
+                        <OTV>$10</OTV>
+                        <Account_Number>$11</Account_Number>
+                        <Account_Name>$12</Account_Name>
+                        <Bank_Name>$13</Bank_Name>
+                        <HO_Email>$14</HO_Email>
+                        <HO_Phone>$15</HO_Phone>
+                        <HO_Address>$16</HO_Address>
+                        <Contact_Name>$17</Contact_Name>
+                        <Contact_Phone>$18</Contact_Phone>
+                        <NPWP>$19</NPWP>
+                        <TOP>$20</TOP>
+                        <Account_Group>$21</Account_Group>
+                        <GL_Account>$22</GL_Account>
+                    </TransactionData>
+                </TransactionDatas>
+            </Transaction>
+        </format>
+        <args>
+            <arg evaluator="xml" expression="$ctx:atlasHeaderId"/>
+            <arg evaluator="xml" expression="$ctx:transGuId"/>
+            <arg evaluator="xml" expression="$ctx:documentNumber"/>
+            <arg evaluator="xml" expression="$ctx:clientIp"/>
+            <arg evaluator="xml" expression="$ctx:atlasDestUser"/>
+            <arg evaluator="xml" expression="$ctx:atlasKey1"/>
+            <arg evaluator="xml" expression="$ctx:atlasKey2"/>
+            <arg evaluator="xml" expression="$ctx:companyTitle"/>
+            <arg evaluator="xml" expression="$ctx:companyName"/>
+            <arg evaluator="xml" expression="$ctx:otv"/>
+            <arg evaluator="xml" expression="$ctx:accountNumber"/>
+            <arg evaluator="xml" expression="$ctx:accountName"/>
+            <arg evaluator="xml" expression="$ctx:bankName"/>
+            <arg evaluator="xml" expression="$ctx:hoEmail"/>
+            <arg evaluator="xml" expression="$ctx:hoPhone"/>
+            <arg evaluator="xml" expression="$ctx:hoAddress"/>
+            <arg evaluator="xml" expression="$ctx:contactName"/>
+            <arg evaluator="xml" expression="$ctx:contactPhone"/>
+            <arg evaluator="xml" expression="$ctx:npwp"/>
+            <arg evaluator="xml" expression="$ctx:topFormatted"/>
+            <arg evaluator="xml" expression="$ctx:accountGroup"/>
+            <arg evaluator="xml" expression="$ctx:glAccount"/>
+        </args>
+    </payloadFactory>
+
+    <!-- Pretty-print XML structure with indentations & newlines for human readability & WinSCP -->
+    <xslt key="XmlPrettyPrintXslt"/>
+
+    <!-- ================================================================= -->
+    <!-- 5. Resolve Dynamic VFS FTP Destination (4-Layer Chain)            -->
+    <!-- ================================================================= -->
+    <!-- Layer 1: ENV -->
+    <property name="ftpHost" expression="get-property('env', 'FTP_SAP_HOST')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then>
+            <!-- Layer 2: System -->
+            <property name="ftpHost" expression="get-property('system', 'ftp.vendor.host')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then>
+            <!-- Layer 3: File -->
+            <property name="ftpHost" expression="get-property('file', 'ftp.vendor.host')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then>
+            <!-- Layer 4: Fallback -->
+            <property name="ftpHost" value="devqaxmlpool.assa.id" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="ftpPort" expression="get-property('env', 'FTP_SAP_PORT')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then>
+            <property name="ftpPort" expression="get-property('system', 'ftp.vendor.port')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then>
+            <property name="ftpPort" expression="get-property('file', 'ftp.vendor.port')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then>
+            <property name="ftpPort" value="21" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="ftpUsername" expression="get-property('env', 'FTP_SAP_USERNAME')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then>
+            <property name="ftpUsername" expression="get-property('system', 'ftp.vendor.username')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then>
+            <property name="ftpUsername" expression="get-property('file', 'ftp.vendor.username')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then>
+            <property name="ftpUsername" value="middlewaredev" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="ftpPassword" expression="get-property('env', 'FTP_SAP_PASSWORD')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then>
+            <property name="ftpPassword" expression="get-property('system', 'ftp.vendor.password')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then>
+            <property name="ftpPassword" expression="get-property('file', 'ftp.vendor.password')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Priority resolution for directory: ENV -> VMD remote dir -> vendor remote dir -> fallback /vmd -->
+    <property name="ftpTargetDir" expression="get-property('env', 'FTP_SAP_TARGET')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ftpTargetDir" expression="get-property('system', 'ftp.vendor.vmd.remote.dir')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ftpTargetDir" expression="get-property('file', 'ftp.vendor.vmd.remote.dir')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ftpTargetDir" expression="get-property('system', 'ftp.vendor.remote.dir')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ftpTargetDir" expression="get-property('file', 'ftp.vendor.remote.dir')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ftpTargetDir" value="/vmd" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Clean leading slash from ftpTargetDir if necessary -->
+    <filter xpath="fn:starts-with($ctx:ftpTargetDir, '/')">
+        <then>
+            <property name="cleanFtpDir" expression="fn:substring($ctx:ftpTargetDir, 2)" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="cleanFtpDir" expression="$ctx:ftpTargetDir" scope="default" type="STRING"/>
+        </else>
+    </filter>
+
+    <!-- URL-encode password character '#' to '%23' for standard RFC URI parsing -->
+    <filter xpath="fn:contains($ctx:ftpPassword, '#')">
+        <then>
+            <property name="ftpPasswordEncoded" expression="fn:concat(fn:substring-before($ctx:ftpPassword, '#'), '%23', fn:substring-after($ctx:ftpPassword, '#'))" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="ftpPasswordEncoded" expression="$ctx:ftpPassword" scope="default" type="STRING"/>
+        </else>
+    </filter>
+
+    <!-- Construct final VFS URI: vfs:ftp://user:pass@host:port/dir?vfs.passive=true -->
+    <property name="ftpTargetUrl" expression="fn:concat('vfs:ftp://', $ctx:ftpUsername, ':', $ctx:ftpPasswordEncoded, '@', $ctx:ftpHost, ':', $ctx:ftpPort, '/', $ctx:cleanFtpDir, '?vfs.passive=true')" scope="default" type="STRING"/>
+
+    <!-- Set VFS Transport Parameters -->
+    <header name="To" expression="$ctx:ftpTargetUrl" scope="default"/>
+    <property name="transport.vfs.ReplyFileName" expression="$ctx:fileName" scope="transport"/>
+    <property name="OUT_ONLY" value="true" scope="default"/>
+    <property name="messageType" value="application/xml" scope="axis2"/>
+    <property name="ContentType" value="application/xml" scope="axis2"/>
+    <property name="NO_SOAP_ENVELOPE" value="true" scope="axis2"/>
+
+    <!-- ================================================================= -->
+    <!-- 6. Invoke SafeApiCallWithRetrySeq with VendorFtpEndpoint          -->
+    <!-- ================================================================= -->
+    <property name="targetEndpointKey" value="VendorFtpEndpoint" scope="default" type="STRING"/>
+    <sequence key="SafeApiCallWithRetrySeq"/>
+</sequence>

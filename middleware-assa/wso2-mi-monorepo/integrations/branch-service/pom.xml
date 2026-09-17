@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>id.assa.middleware</groupId>
+        <artifactId>wso2-mi-monorepo</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <!-- Branch Domain Integration Service (SAP Core) -->
+    <artifactId>branch-service</artifactId>
+    <packaging>pom</packaging>
+    <name>branch-service</name>
+
+    <properties>
+        <projectType>integration-project</projectType>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-dependencies</goal></goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/deployment/libs</outputDirectory>
+                            <excludeTransitive>true</excludeTransitive>
+                            <excludeGroupIds>org.apache.synapse,org.apache.axis2</excludeGroupIds>
+                            <excludeTypes>zip,car</excludeTypes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.wso2.maven</groupId>
+                <artifactId>vscode-car-plugin</artifactId>
+                <version>${car.plugin.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals><goal>car</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- ============================================================= -->
+    <!-- Catatan: shared-artifacts TIDAK dideklarasikan sebagai        -->
+    <!-- dependency Maven. Sequence reusable (Auth, Logging, dll)      -->
+    <!-- di-resolve WSO2 MI saat RUNTIME via <sequence key="..."/>,    -->
+    <!-- selama shared CAR ikut dideploy di server yang sama.          -->
+    <!-- Dockerfile & docker-compose sudah menyalin shared/target/*.car-->
+    <!-- ke image tiap service.                                        -->
+    <!-- ============================================================= -->
+    <dependencies>
+        <dependency>
+            <groupId>org.wso2.integration.connector</groupId>
+            <artifactId>mi-connector-http</artifactId>
+            <version>${http.connector.version}</version>
+            <type>zip</type>
+            <exclusions>
+                <exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>${mariadb.driver.version}</version>
+        </dependency>
+    </dependencies>
+</project>

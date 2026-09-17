@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="AuthGuardSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- 1. Correlation ID Management (Traceability)                       -->
+    <!-- ================================================================= -->
+    <property name="correlationId" expression="$trp:X-Correlation-Id" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:correlationId) = 0">
+        <then>
+            <property name="correlationId" expression="fn:concat('corr-', get-property('SYSTEM_DATE', 'yyyyMMddHHmmssSSS'))" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <!-- Echo correlationId to outgoing transport headers -->
+    <header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/>
+
+    <!-- ================================================================= -->
+    <!-- 2. Read Authorization Header                                      -->
+    <!-- ================================================================= -->
+    <property name="authHeader" expression="$trp:Authorization" scope="default" type="STRING"/>
+
+    <filter xpath="string-length($ctx:authHeader) = 0 or not(fn:starts-with($ctx:authHeader, 'Bearer '))">
+        <then>
+            <property name="ERROR_CODE" value="401" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Unauthorized" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Header Authorization wajib disertakan dengan format 'Bearer &lt;token&gt;'." scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Extract Bearer Token -->
+    <property name="bearerToken" expression="fn:normalize-space(fn:substring-after($ctx:authHeader, 'Bearer '))" scope="default" type="STRING"/>
+
+    <!-- ================================================================= -->
+    <!-- ================================================================= -->
+    <!-- 3. Validate Token Against App Registry (KONSEP.md)                -->
+    <!-- Resolution Order: ENV -> System Parameter -> Config File          -->
+    <!-- ================================================================= -->
+    <!-- Token App A -->
+    <property name="tokenAppA" expression="get-property('env', 'AUTH_APP_A_TOKEN')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:tokenAppA) = 0">
+        <then>
+            <property name="tokenAppA" expression="get-property('system', 'auth.app.app_a.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:tokenAppA) = 0">
+        <then>
+            <property name="tokenAppA" expression="get-property('file', 'auth.app.app_a.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Token App B -->
+    <property name="tokenAppB" expression="get-property('env', 'AUTH_APP_B_TOKEN')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:tokenAppB) = 0">
+        <then>
+            <property name="tokenAppB" expression="get-property('system', 'auth.app.app_b.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:tokenAppB) = 0">
+        <then>
+            <property name="tokenAppB" expression="get-property('file', 'auth.app.app_b.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Token App QA -->
+    <property name="tokenAppQA" expression="get-property('env', 'AUTH_APP_QA_TOKEN')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:tokenAppQA) = 0">
+        <then>
+            <property name="tokenAppQA" expression="get-property('system', 'auth.app.app_qa.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:tokenAppQA) = 0">
+        <then>
+            <property name="tokenAppQA" expression="get-property('file', 'auth.app.app_qa.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Token App Atlas -->
+    <property name="tokenAppAtlas" expression="get-property('env', 'AUTH_APP_ATLAS_TOKEN')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:tokenAppAtlas) = 0">
+        <then>
+            <property name="tokenAppAtlas" expression="get-property('system', 'auth.app.app_atlas.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:tokenAppAtlas) = 0">
+        <then>
+            <property name="tokenAppAtlas" expression="get-property('file', 'auth.app.app_atlas.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Token App Omnichannel -->
+    <property name="tokenAppOmnichannel" expression="get-property('env', 'AUTH_APP_OMNICHANNEL_TOKEN')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:tokenAppOmnichannel) = 0">
+        <then>
+            <property name="tokenAppOmnichannel" expression="get-property('system', 'auth.app.app_omnichannel.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:tokenAppOmnichannel) = 0">
+        <then>
+            <property name="tokenAppOmnichannel" expression="get-property('file', 'auth.app.app_omnichannel.token')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="string-length($ctx:tokenAppA) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppA">
+        <then>
+            <property name="appId" value="app_a" scope="default" type="STRING"/>
+            <property name="appScopes" expression="get-property('file', 'auth.app.app_a.scopes')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:appScopes) = 0">
+                <then>
+                    <property name="appScopes" expression="get-property('system', 'auth.app.app_a.scopes')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:appScopes) = 0">
+                <then>
+                    <property name="appScopes" value="branches,customers,vehicles,vendors,service_requests,spk" scope="default" type="STRING"/>
+                </then>
+            </filter>
+        </then>
+        <else>
+            <filter xpath="string-length($ctx:tokenAppB) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppB">
+                <then>
+                    <property name="appId" value="app_b" scope="default" type="STRING"/>
+                    <property name="appScopes" expression="get-property('file', 'auth.app.app_b.scopes')" scope="default" type="STRING"/>
+                    <filter xpath="string-length($ctx:appScopes) = 0">
+                        <then>
+                            <property name="appScopes" expression="get-property('system', 'auth.app.app_b.scopes')" scope="default" type="STRING"/>
+                        </then>
+                    </filter>
+                    <filter xpath="string-length($ctx:appScopes) = 0">
+                        <then>
+                            <property name="appScopes" value="vehicles" scope="default" type="STRING"/>
+                        </then>
+                    </filter>
+                </then>
+                <else>
+                    <filter xpath="string-length($ctx:tokenAppQA) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppQA">
+                        <then>
+                            <property name="appId" value="app_qa" scope="default" type="STRING"/>
+                            <property name="appScopes" expression="get-property('file', 'auth.app.app_qa.scopes')" scope="default" type="STRING"/>
+                            <filter xpath="string-length($ctx:appScopes) = 0">
+                                <then>
+                                    <property name="appScopes" expression="get-property('system', 'auth.app.app_qa.scopes')" scope="default" type="STRING"/>
+                                </then>
+                            </filter>
+                            <filter xpath="string-length($ctx:appScopes) = 0">
+                                <then>
+                                    <property name="appScopes" value="branches,customers,vehicles,vendors,service_requests,spk" scope="default" type="STRING"/>
+                                </then>
+                            </filter>
+                        </then>
+                        <else>
+                            <filter xpath="string-length($ctx:tokenAppAtlas) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppAtlas">
+                                <then>
+                                    <property name="appId" value="app_atlas" scope="default" type="STRING"/>
+                                    <property name="appScopes" expression="get-property('file', 'auth.app.app_atlas.scopes')" scope="default" type="STRING"/>
+                                    <filter xpath="string-length($ctx:appScopes) = 0">
+                                        <then>
+                                            <property name="appScopes" expression="get-property('system', 'auth.app.app_atlas.scopes')" scope="default" type="STRING"/>
+                                        </then>
+                                    </filter>
+                                    <filter xpath="string-length($ctx:appScopes) = 0">
+                                        <then>
+                                            <property name="appScopes" value="vendors" scope="default" type="STRING"/>
+                                        </then>
+                                    </filter>
+                                </then>
+                                <else>
+                                    <filter xpath="string-length($ctx:tokenAppOmnichannel) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppOmnichannel">
+                                        <then>
+                                            <property name="appId" value="app_omnichannel" scope="default" type="STRING"/>
+                                            <property name="appScopes" expression="get-property('file', 'auth.app.app_omnichannel.scopes')" scope="default" type="STRING"/>
+                                            <filter xpath="string-length($ctx:appScopes) = 0">
+                                                <then>
+                                                    <property name="appScopes" expression="get-property('system', 'auth.app.app_omnichannel.scopes')" scope="default" type="STRING"/>
+                                                </then>
+                                            </filter>
+                                            <filter xpath="string-length($ctx:appScopes) = 0">
+                                                <then>
+                                                    <property name="appScopes" value="service_requests" scope="default" type="STRING"/>
+                                                </then>
+                                            </filter>
+                                        </then>
+                                        <else>
+                                            <property name="ERROR_CODE" value="401" scope="default" type="STRING"/>
+                                            <property name="ERROR_MESSAGE" value="Unauthorized" scope="default" type="STRING"/>
+                                            <property name="ERROR_DETAIL" value="Token tidak valid, tidak dikenal, atau telah dicabut." scope="default" type="STRING"/>
+                                            <sequence key="ErrorResponseSeq"/>
+                                            <drop/>
+                                        </else>
+                                    </filter>
+                                </else>
+                            </filter>
+                        </else>
+                    </filter>
+                </else>
+            </filter>
+        </else>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 4. Scope-based Access Control (Optional check per resource)      -->
+    <!-- ================================================================= -->
+    <filter xpath="boolean($ctx:requiredScope)">
+        <then>
+            <filter xpath="not(fn:contains($ctx:appScopes, $ctx:requiredScope)) and not(fn:contains($ctx:appScopes, '*'))">
+                <then>
+                    <property name="ERROR_CODE" value="403" scope="default" type="STRING"/>
+                    <property name="ERROR_MESSAGE" value="Forbidden" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" expression="fn:concat('Aplikasi (', $ctx:appId, ') tidak memiliki izin untuk scope: ', $ctx:requiredScope)" scope="default" type="STRING"/>
+                    <sequence key="ErrorResponseSeq"/>
+                    <drop/>
+                </then>
+            </filter>
+        </then>
+    </filter>
+</sequence>

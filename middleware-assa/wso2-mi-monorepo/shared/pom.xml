@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>id.assa.middleware</groupId>
+        <artifactId>wso2-mi-monorepo</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <!-- ============================================================= -->
+    <!-- Shared Artifacts — Reusable Sequences (Auth, Logging, Error,  -->
+    <!-- Idempotency, Retry, DB, Pagination, Health, Worker)           -->
+    <!-- Di-package sebagai CAR agar bisa dideploy sekali & dipakai    -->
+    <!-- lintas service via <sequence key="..."/>.                     -->
+    <!-- ============================================================= -->
+    <artifactId>shared-artifacts</artifactId>
+    <packaging>pom</packaging>
+    <name>shared-artifacts</name>
+
+    <properties>
+        <projectType>integration-project</projectType>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.wso2.maven</groupId>
+                <artifactId>vscode-car-plugin</artifactId>
+                <version>${car.plugin.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>car</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

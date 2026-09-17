@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="DbRecordAttemptLogSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Record Each Call Attempt in api_transaction_log                   -->
+    <!-- ================================================================= -->
+    <property name="cleanDurationMs" expression="fn:substring-before(fn:concat($ctx:durationMs, '.'), '.')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:cleanDurationMs) = 0">
+        <then>
+            <property name="cleanDurationMs" value="0" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="cleanResponseStatus" expression="fn:substring-before(fn:concat($ctx:responseStatus, '.'), '.')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:cleanResponseStatus) = 0">
+        <then>
+            <property name="cleanResponseStatus" value="500" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="cleanCurrentAttempt" expression="fn:substring-before(fn:concat($ctx:currentAttempt, '.'), '.')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:cleanCurrentAttempt) = 0">
+        <then>
+            <property name="cleanCurrentAttempt" value="1" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="string-length($ctx:errorMessage) = 0">
+        <then>
+            <property name="errorMessage" value="None" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <filter xpath="string-length($ctx:responseBody) = 0">
+        <then>
+            <property name="responseBody" value="" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <dbreport>
+        <connection>
+            <pool>
+                <driver>org.mariadb.jdbc.Driver</driver>
+                <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
+                <user>root</user>
+                <password/>
+            </pool>
+        </connection>
+        <statement>
+            <sql>INSERT INTO api_transaction_log (transaction_id, attempt_number, endpoint, request_payload, response_status, response_body, error_message, duration_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())</sql>
+            <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+            <parameter expression="$ctx:cleanCurrentAttempt" type="INTEGER"/>
+            <parameter expression="$ctx:api.endpoint" type="VARCHAR"/>
+            <parameter expression="$ctx:api.params" type="VARCHAR"/>
+            <parameter expression="$ctx:cleanResponseStatus" type="INTEGER"/>
+            <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+            <parameter expression="$ctx:errorMessage" type="VARCHAR"/>
+            <parameter expression="$ctx:cleanDurationMs" type="INTEGER"/>
+        </statement>
+    </dbreport>
+</sequence>

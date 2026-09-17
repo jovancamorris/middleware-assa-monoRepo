@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="GenericPaginationSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Generic Response & Pagination Formatter                           -->
+    <!-- Sesuai CLEAN_ARCHITECTURE.md Bagian 6                             -->
+    <!-- ================================================================= -->
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+
+    <!-- Echo Correlation ID in response header -->
+    <filter xpath="boolean($ctx:correlationId)">
+        <then>
+            <header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/>
+        </then>
+    </filter>
+
+    <respond/>
+</sequence>

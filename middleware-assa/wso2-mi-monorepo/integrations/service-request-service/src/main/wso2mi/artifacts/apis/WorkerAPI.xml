@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/worker" name="WorkerAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- Trigger Background Worker Manually or via External Scheduler -->
+    <resource methods="POST GET" uri-template="/retry">
+        <inSequence>
+            <sequence key="RetryWorkerSeq"/>
+            <property name="HTTP_SC" value="200" scope="axis2" type="STRING"/>
+            <property name="messageType" value="application/json" scope="axis2"/>
+            <property name="ContentType" value="application/json" scope="axis2"/>
+            <payloadFactory media-type="json">
+                <format>
+                    {
+                        "worker": "RetryWorker",
+                        "status": "COMPLETED",
+                        "timestamp": "$1",
+                        "message": "Background retry worker executed successfully."
+                    }
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="fn:concat(get-property('SYSTEM_DATE', 'yyyy-MM-dd'), 'T', get-property('SYSTEM_DATE', 'HH:mm:ss'))"/>
+                </args>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+</api>

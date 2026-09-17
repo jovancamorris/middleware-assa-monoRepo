@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="SpkDuelistSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <property name="originalPayload" expression="json-eval($)" scope="default" type="STRING"/>
+    <property name="noSpk" expression="json-eval($.noSpk)" scope="default" type="STRING"/>
+    <property name="type" expression="json-eval($.type)" scope="default" type="STRING"/>
+    <property name="noPolisi" expression="json-eval($.noPolisi)" scope="default" type="STRING"/>
+    <property name="category" expression="json-eval($.category)" scope="default" type="STRING"/>
+    <property name="subCategory" expression="json-eval($.subCategory)" scope="default" type="STRING"/>
+    <property name="vendorReferensi" expression="json-eval($.vendorReferensi)" scope="default" type="STRING"/>
+    <property name="totalPrice" expression="json-eval($.totalPrice)" scope="default" type="STRING"/>
+    <property name="createdAt" expression="json-eval($.createdAt)" scope="default" type="STRING"/>
+    <property name="createdBy" expression="json-eval($.createdBy)" scope="default" type="STRING"/>
+    <property name="details" expression="json-eval($.details)" scope="default" type="STRING"/>
+    <property name="invoiceNumber" expression="json-eval($.invoiceNumber)" scope="default" type="STRING"/>
+    <property name="invoiceDate" expression="json-eval($.invoiceDate)" scope="default" type="STRING"/>
+    <property name="invoiceAmount" expression="json-eval($.invoiceAmount)" scope="default" type="STRING"/>
+    <property name="taxInvoiceNumber" expression="json-eval($.taxInvoiceNumber)" scope="default" type="STRING"/>
+    <property name="taxInvoiceDate" expression="json-eval($.taxInvoiceDate)" scope="default" type="STRING"/>
+
+    <property name="validateTotal" expression="$trp:X-Validate-Total" scope="default" type="STRING"/>
+    <property name="ipAddress" expression="$trp:X-Forwarded-For" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ipAddress) = 0">
+        <then><property name="ipAddress" expression="$axis2:REMOTE_ADDR" scope="default" type="STRING"/></then>
+    </filter>
+
+    <filter xpath="string-length($ctx:noSpk) = 0">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="Field 'noSpk' is required" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+    <filter xpath="string-length($ctx:type) = 0">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="Field 'type' is required" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+    <filter xpath="string-length($ctx:noPolisi) = 0">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="Field 'noPolisi' is required" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+    <filter xpath="string-length($ctx:category) = 0 or string-length($ctx:subCategory) = 0">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="Fields 'category' and 'subCategory' are required" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+    <filter xpath="string-length($ctx:vendorReferensi) = 0 or string-length($ctx:totalPrice) = 0 or not(number($ctx:totalPrice) &gt; 0)">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="Fields 'vendorReferensi' and positive 'totalPrice' are required" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+    <filter xpath="string-length($ctx:createdAt) = 0 or string-length($ctx:createdBy) = 0 or string-length($ctx:createdAt) &lt; 19">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="Fields 'createdAt' and 'createdBy' are required" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+    <filter xpath="string-length($ctx:details) = 0 or $ctx:details = '[]' or $ctx:details = 'null'">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="Field 'details' must contain at least one item" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+    <filter xpath="(string-length($ctx:invoiceNumber) &gt; 0 or string-length($ctx:invoiceDate) &gt; 0 or string-length($ctx:invoiceAmount) &gt; 0) and (string-length($ctx:invoiceNumber) = 0 or string-length($ctx:invoiceDate) = 0 or string-length($ctx:invoiceAmount) = 0 or not(number($ctx:invoiceAmount) &gt; 0))">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="Invoice fields 'invoiceNumber', 'invoiceDate', and positive 'invoiceAmount' are required together" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+
+    <script language="js"><![CDATA[
+        var payload = mc.getPayloadJSON();
+        var details = payload.details;
+        var invalidDetail = "";
+        var calculatedTotal = 0;
+        if (!Array.isArray(details) || details.length === 0) {
+            invalidDetail = "details must contain at least one item";
+        } else {
+            for (var i = 0; i < details.length; i++) {
+                var item = details[i];
+                if (!item || !item.description || !(Number(item.qty) > 0) || !(Number(item.price) > 0) || (item.jenis !== "Jasa" && item.jenis !== "Parts")) {
+                    invalidDetail = "details[" + i + "] must contain valid description, qty, price, and jenis";
+                    break;
+                }
+                calculatedTotal += Number(item.qty) * Number(item.price);
+            }
+        }
+        if (!invalidDetail && String(mc.getProperty("validateTotal")).toLowerCase() === "true" && Math.abs(calculatedTotal - Number(payload.totalPrice)) > 0.000001) {
+            invalidDetail = "sum(details[].qty * details[].price) must equal totalPrice";
+        }
+        mc.setProperty("SPK_VALIDATION_ERROR", invalidDetail);
+    ]]></script>
+    <filter xpath="string-length($ctx:SPK_VALIDATION_ERROR) &gt; 0">
+        <then><property name="ERROR_CODE" value="400" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/><property name="ERROR_DETAIL" expression="$ctx:SPK_VALIDATION_ERROR" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+
+    <property name="api.endpoint" value="/api/spk/duelist" scope="default" type="STRING"/>
+    <property name="api.params" expression="$ctx:originalPayload" scope="default" type="STRING"/>
+    <sequence key="LogRequestSeq"/>
+    <sequence key="IdempotencyGuardSeq"/>
+
+    <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
+    <property name="fileName" expression="fn:concat('SPK_Duelist_', $ctx:fileTimestamp, '_', $ctx:transactionId, '.xml')" scope="default" type="STRING"/>
+    <property name="responseMessage" value="SPK Duelist accepted and delivered to FTP" scope="default" type="STRING"/>
+    <property name="responseDocumentNumber" expression="$ctx:noSpk" scope="default" type="STRING"/>
+    <property name="xmlCreatedAt" expression="$ctx:createdAt" scope="default" type="STRING"/>
+    <xslt key="SpkDuelistXmlXslt">
+        <property name="createdAt" expression="$ctx:xmlCreatedAt"/>
+        <property name="ipAddress" expression="$ctx:ipAddress"/>
+    </xslt>
+
+    <property name="ftpHost" expression="get-property('env', 'FTP_SPK_HOST')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpHost) = 0"><then><property name="ftpHost" expression="get-property('system', 'ftp.spk.host')" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0"><then><property name="ftpHost" expression="get-property('file', 'ftp.spk.host')" scope="default" type="STRING"/></then></filter>
+    <property name="ftpPort" expression="get-property('env', 'FTP_SPK_PORT')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPort) = 0"><then><property name="ftpPort" expression="get-property('system', 'ftp.spk.port')" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0"><then><property name="ftpPort" expression="get-property('file', 'ftp.spk.port')" scope="default" type="STRING"/></then></filter>
+    <property name="ftpUsername" expression="get-property('env', 'FTP_SPK_USERNAME')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpUsername) = 0"><then><property name="ftpUsername" expression="get-property('system', 'ftp.spk.username')" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0"><then><property name="ftpUsername" expression="get-property('file', 'ftp.spk.username')" scope="default" type="STRING"/></then></filter>
+    <property name="ftpPassword" expression="get-property('env', 'FTP_SPK_PASSWORD')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPassword) = 0"><then><property name="ftpPassword" expression="get-property('system', 'ftp.spk.password')" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0"><then><property name="ftpPassword" expression="get-property('file', 'ftp.spk.password')" scope="default" type="STRING"/></then></filter>
+    <property name="ftpTargetDir" expression="get-property('env', 'FTP_SPK_TARGET')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0"><then><property name="ftpTargetDir" expression="get-property('system', 'ftp.spk.remote.dir')" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0"><then><property name="ftpTargetDir" expression="get-property('file', 'ftp.spk.remote.dir')" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0 or string-length($ctx:ftpPort) = 0 or string-length($ctx:ftpUsername) = 0 or string-length($ctx:ftpPassword) = 0 or string-length($ctx:ftpTargetDir) = 0">
+        <then><property name="ERROR_CODE" value="500" scope="default" type="STRING"/><property name="ERROR_MESSAGE" value="FTP Configuration Error" scope="default" type="STRING"/><property name="ERROR_DETAIL" value="SPK FTP upload configuration is incomplete" scope="default" type="STRING"/><sequence key="ErrorResponseSeq"/><drop/></then>
+    </filter>
+    <filter xpath="fn:starts-with($ctx:ftpTargetDir, '/')"><then><property name="cleanFtpDir" expression="fn:substring($ctx:ftpTargetDir, 2)" scope="default" type="STRING"/></then><else><property name="cleanFtpDir" expression="$ctx:ftpTargetDir" scope="default" type="STRING"/></else></filter>
+    <filter xpath="fn:contains($ctx:ftpPassword, '#')"><then><property name="ftpPasswordEncoded" expression="fn:concat(fn:substring-before($ctx:ftpPassword, '#'), '%23', fn:substring-after($ctx:ftpPassword, '#'))" scope="default" type="STRING"/></then><else><property name="ftpPasswordEncoded" expression="$ctx:ftpPassword" scope="default" type="STRING"/></else></filter>
+    <property name="ftpTargetUrl" expression="fn:concat('vfs:ftp://', $ctx:ftpUsername, ':', $ctx:ftpPasswordEncoded, '@', $ctx:ftpHost, ':', $ctx:ftpPort, '/', $ctx:cleanFtpDir, '?vfs.passive=true')" scope="default" type="STRING"/>
+    <header name="To" expression="$ctx:ftpTargetUrl" scope="default"/>
+    <property name="transport.vfs.ReplyFileName" expression="$ctx:fileName" scope="transport"/>
+    <property name="OUT_ONLY" value="true" scope="default"/>
+    <property name="FORCE_SC_ACCEPTED" value="true" scope="axis2"/>
+    <property name="messageType" value="application/xml" scope="axis2"/>
+    <property name="ContentType" value="application/xml" scope="axis2"/>
+    <property name="NO_SOAP_ENVELOPE" value="true" scope="axis2"/>
+    <property name="targetEndpointKey" value="SpkFtpEndpoint" scope="default" type="STRING"/>
+    <sequence key="SafeApiCallWithRetrySeq"/>
+</sequence>

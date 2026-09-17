@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="HealthCheckSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Health / Readiness Check (Unauthenticated for Infrastructure)    -->
+    <!-- Sesuai KONSEP_MONITORING.md Bagian 7                              -->
+    <!-- ================================================================= -->
+    <property name="HTTP_SC" value="200" scope="axis2" type="STRING"/>
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+    <property name="currentTimestamp" expression="fn:concat(get-property('SYSTEM_DATE', 'yyyy-MM-dd'), 'T', get-property('SYSTEM_DATE', 'HH:mm:ss'))" scope="default" type="STRING"/>
+
+    <filter xpath="$ctx:checkType = 'readiness'">
+        <then>
+            <!-- Readiness Probe -->
+            <payloadFactory media-type="json">
+                <format>
+                    {
+                        "status": "READY",
+                        "backend": "UP",
+                        "timestamp": "$1"
+                    }
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:currentTimestamp"/>
+                </args>
+            </payloadFactory>
+        </then>
+        <else>
+            <!-- Liveness Probe -->
+            <payloadFactory media-type="json">
+                <format>
+                    {
+                        "status": "UP",
+                        "timestamp": "$1"
+                    }
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:currentTimestamp"/>
+                </args>
+            </payloadFactory>
+        </else>
+    </filter>
+
+    <respond/>
+</sequence>

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="VehicleGetByLicensePlateSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- 1. Parameter Extraction & Validation (Vehicle Atlas)              -->
+    <!-- Referensi: panduan-get-vehicleatlas-ver1.md                       -->
+    <!-- ================================================================= -->
+    <property name="companyCode" expression="$url:companyCode" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:companyCode) = 0">
+        <then>
+            <property name="companyCode" expression="get-property('file', 'default.companyCode')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Support both new 'plate_no' parameter and legacy 'licensePlate' -->
+    <property name="plateNo" expression="$url:plate_no" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:plateNo) = 0">
+        <then>
+            <property name="plateNo" expression="$url:licensePlate" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="equipmentNo" expression="$url:equipment_no" scope="default" type="STRING"/>
+    <property name="branchCode" expression="$url:branch_code" scope="default" type="STRING"/>
+    <property name="limitParam" expression="$url:limit" scope="default" type="STRING"/>
+    <property name="offsetParam" expression="$url:offset" scope="default" type="STRING"/>
+    <property name="statusId" expression="$url:status_id" scope="default" type="STRING"/>
+    <property name="colorParam" expression="$url:color" scope="default" type="STRING"/>
+
+    <!-- Validate that at least plateNo, equipmentNo, or branchCode is provided -->
+    <filter xpath="string-length($ctx:plateNo) = 0 and string-length($ctx:equipmentNo) = 0 and string-length($ctx:branchCode) = 0">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Query parameter 'plate_no' (atau 'licensePlate') wajib disertakan (contoh: DD-8112 atau B-9065-UCU)." scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 2. Observability Logging & Idempotency Guard                      -->
+    <!-- ================================================================= -->
+    <property name="api.endpoint" value="/api/vehicles/getByLicensePlate" scope="default" type="STRING"/>
+    <property name="api.params" expression="fn:concat('plate_no=', $ctx:plateNo, '&amp;equipment_no=', $ctx:equipmentNo, '&amp;branch_code=', $ctx:branchCode)" scope="default" type="STRING"/>
+    <sequence key="LogRequestSeq"/>
+    <sequence key="IdempotencyGuardSeq"/>
+
+    <!-- ================================================================= -->
+    <!-- 3. Base URL Resolution (4-Layer: ENV -> System -> File -> Default)-->
+    <!-- ================================================================= -->
+    <property name="baseUrlConfigKey" value="assa.ext.base.url" scope="default" type="STRING"/>
+    <property name="envVarKey" value="ASSA_EXT_BASE_URL" scope="default" type="STRING"/>
+    <sequence key="ResolveBaseUrlSeq"/>
+
+    <!-- ================================================================= -->
+    <!-- 4. Path & Credentials from Configuration                          -->
+    <!-- ================================================================= -->
+    <property name="vehicleApiPath" expression="get-property('file', 'assa.api.path.vehicle')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:vehicleApiPath) = 0">
+        <then>
+            <property name="vehicleApiPath" value="/api/vehicleatlas" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Resolve API Key: ENV -> System -> File -->
+    <property name="vehicleApiKey" expression="get-property('env', 'ASSA_EXT_VEHICLE_APIKEY')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:vehicleApiKey) = 0">
+        <then>
+            <property name="vehicleApiKey" expression="get-property('system', 'assa.ext.vehicle.apikey')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:vehicleApiKey) = 0">
+        <then>
+            <property name="vehicleApiKey" expression="get-property('file', 'assa.ext.vehicle.apikey')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Remove client incoming Authorization header so backend API Gateway / external server does not misinterpret it as AWS SigV4 -->
+    <header name="Authorization" action="remove" scope="transport"/>
+
+    <!-- Set transport header 'Key' as required by Vehicle Atlas guide -->
+    <header name="Key" expression="$ctx:vehicleApiKey" scope="transport"/>
+    <header name="x-api-key" expression="$ctx:vehicleApiKey" scope="transport"/>
+
+    <!-- Compose Query String for Backend -->
+    <property name="queryString" value="" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:plateNo) &gt; 0">
+        <then>
+            <property name="queryString" expression="fn:concat($ctx:queryString, '&amp;plate_no=', $ctx:plateNo)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:equipmentNo) &gt; 0">
+        <then>
+            <property name="queryString" expression="fn:concat($ctx:queryString, '&amp;equipment_no=', $ctx:equipmentNo)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:branchCode) &gt; 0">
+        <then>
+            <property name="queryString" expression="fn:concat($ctx:queryString, '&amp;branch_code=', $ctx:branchCode)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:limitParam) &gt; 0">
+        <then>
+            <property name="queryString" expression="fn:concat($ctx:queryString, '&amp;limit=', $ctx:limitParam)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:offsetParam) &gt; 0">
+        <then>
+            <property name="queryString" expression="fn:concat($ctx:queryString, '&amp;offset=', $ctx:offsetParam)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:statusId) &gt; 0">
+        <then>
+            <property name="queryString" expression="fn:concat($ctx:queryString, '&amp;status_id=', $ctx:statusId)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:colorParam) &gt; 0">
+        <then>
+            <property name="queryString" expression="fn:concat($ctx:queryString, '&amp;color=', $ctx:colorParam)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Clean leading & in queryString if present -->
+    <filter xpath="fn:starts-with($ctx:queryString, '&amp;')">
+        <then>
+            <property name="cleanQuery" expression="fn:substring($ctx:queryString, 2)" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="cleanQuery" expression="$ctx:queryString" scope="default" type="STRING"/>
+        </else>
+    </filter>
+
+    <!-- Compose Target Backend URL -->
+    <filter xpath="string-length($ctx:cleanQuery) &gt; 0">
+        <then>
+            <property name="uri.var.extBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:vehicleApiPath, '?', $ctx:cleanQuery)" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="uri.var.extBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:vehicleApiPath)" scope="default" type="STRING"/>
+        </else>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 5. Invoke ExtServiceDynamicEndpoint with 3x Retry & DB Logging    -->
+    <!-- ================================================================= -->
+    <property name="targetEndpointKey" value="ExtServiceDynamicEndpoint" scope="default" type="STRING"/>
+    <sequence key="SafeApiCallWithRetrySeq"/>
+</sequence>

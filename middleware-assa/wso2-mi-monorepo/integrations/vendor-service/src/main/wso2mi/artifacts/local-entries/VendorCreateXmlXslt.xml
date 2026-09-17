@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<localEntry key="VendorCreateXmlXslt" xmlns="http://ws.apache.org/ns/synapse">
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:output method="xml" indent="yes" omit-xml-declaration="no" encoding="UTF-8"/>
+  <xsl:param name="atlasId" select="'ATLAS'"/>
+  <xsl:param name="transGuId"/>
+  <xsl:param name="documentNumber"/>
+  <xsl:param name="ipAddress" select="'127.0.0.1'"/>
+  <xsl:param name="destinationUser" select="'SAP'"/>
+  <xsl:param name="key1" select="'ATLAS'"/>
+  <xsl:param name="key2" select="'VMD'"/>
+  <xsl:param name="topFormatted"/>
+  <xsl:template match="/">
+    <Transaction xmlns="">
+      <Header>
+        <ID><xsl:value-of select="$atlasId"/></ID>
+        <TransGuID><xsl:value-of select="$transGuId"/></TransGuID>
+        <DocumentNumber><xsl:value-of select="$documentNumber"/></DocumentNumber>
+        <FileType>XML</FileType>
+        <IPAddress><xsl:value-of select="$ipAddress"/></IPAddress>
+        <DestinationUser><xsl:value-of select="$destinationUser"/></DestinationUser>
+        <Key1><xsl:value-of select="$key1"/></Key1>
+        <Key2><xsl:value-of select="$key2"/></Key2>
+        <DataLength>1</DataLength>
+      </Header>
+      <TransactionDatas>
+        <TransactionData>
+          <Company_title><xsl:value-of select="//companyTitle"/></Company_title>
+          <Company_Name><xsl:value-of select="//companyName"/></Company_Name>
+          <OTV><xsl:value-of select="//otv"/></OTV>
+          <Account_Number><xsl:value-of select="//accountNumber"/></Account_Number>
+          <Account_Name><xsl:value-of select="//accountName"/></Account_Name>
+          <Bank_Name><xsl:value-of select="//bankName"/></Bank_Name>
+          <HO_Email><xsl:value-of select="//hoEmail"/></HO_Email>
+          <HO_Phone><xsl:value-of select="//hoPhone"/></HO_Phone>
+          <HO_Address><xsl:value-of select="//hoAddress"/></HO_Address>
+          <Contact_Name><xsl:value-of select="//contactName"/></Contact_Name>
+          <Contact_Phone><xsl:value-of select="//contactPhone"/></Contact_Phone>
+          <NPWP><xsl:value-of select="//npwp"/></NPWP>
+          <TOP><xsl:value-of select="$topFormatted"/></TOP>
+          <Account_Group><xsl:value-of select="//accountGroup"/></Account_Group>
+          <GL_Account><xsl:value-of select="//glAccount"/></GL_Account>
+        </TransactionData>
+      </TransactionDatas>
+    </Transaction>
+  </xsl:template>
+</xsl:stylesheet>
+</localEntry>

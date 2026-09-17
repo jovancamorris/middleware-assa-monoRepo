@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/spk" name="SpkAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" uri-template="/duelist">
+        <inSequence>
+            <property name="requiredScope" value="spk" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+            <sequence key="SpkDuelistSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+</api>
