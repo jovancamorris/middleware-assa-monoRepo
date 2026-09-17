@@ -1,0 +1,30 @@
+Method Get
+https://devsapcoreapi.assa.id/api/Branches/GetByCreateDate?companyCode=1000&dateStart=2020-11-21&dateEnd=2026-11-24
+params
+    companyCode : 1000
+    dateStart   : 2020-01-01
+    dateEnd     : 2026-09-11
+
+Method Get
+https://sapcoreapi.assa.id/api/Customer/GetByCreateDate?companyCode=1000&dateStart=2024-11-22&dateEnd=2024-11-22
+params
+    companyCode : 1000
+    dateStart   : 2020-01-01
+    dateEnd     : 2026-09-11
+
+Method Get (Vehicle Atlas)
+{BASE_URL}/api/vehicleatlas
+params (query string)
+    plate_no        : DD-8112 (atau B-9065-UCU)
+    equipment_no    : 10027282 (opsional)
+    branch_code     : 1411 (opsional)
+    limit           : 50 (opsional, default 20)
+    offset          : 0 (opsional)
+headers
+    Key             : XxfOtMSMhjoMQEPUHju4u7jkCEpZ09
+
+Catatan:
+- Header wajib: 'Key' (huruf K kapital, bukan x-api-key)
+- Path endpoint: /api/vehicleatlas
+- Parameter pencarian plat nomor: plate_no
+- Base URL dev/local: http://127.0.0.1:8899 atau https://devfmsapi.assa.id

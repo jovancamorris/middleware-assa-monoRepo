@@ -1,0 +1,5 @@
+[submodule "middleware-assa"]
+	path = middleware-assa
+	url = https://gitlab.assa.id/nobi.sumariga/middleware-assa.git
+	branch = restructure-monorepo
+	ignore = all

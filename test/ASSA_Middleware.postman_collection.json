@@ -1,0 +1,455 @@
+{
+	"info": {
+		"_postman_id": "assa-middleware-api-collection",
+		"name": "ASSA Middleware API Collection",
+		"description": "Koleksi Postman resmi untuk pengujian manual ASSA Middleware (WSO2 Micro Integrator). Mencakup Health Check, Branch, Customer, Vehicle, serta Security Validation (Auth Guard 401 & 403).",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8290",
+			"type": "string"
+		},
+		{
+			"key": "token_app_a",
+			"value": "token-assa-app-a-secret-12345",
+			"type": "string"
+		},
+		{
+			"key": "token_app_b",
+			"value": "token-assa-app-b-secret-67890",
+			"type": "string"
+		},
+		{
+			"key": "token_qa",
+			"value": "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d",
+			"type": "string"
+		},
+		{
+			"key": "companyCode",
+			"value": "1000",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "1. Health & Readiness (No Auth)",
+			"item": [
+				{
+					"name": "Liveness Probe",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Memeriksa apakah instance WSO2 MI aktif (Liveness Probe)."
+					}
+				},
+				{
+					"name": "Readiness Probe",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health/ready",
+							"host": ["{{baseUrl}}"],
+							"path": ["health", "ready"]
+						},
+						"description": "Memeriksa kesiapan service untuk menerima traffic (Readiness Probe)."
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Branch Service (Scope: branches)",
+			"item": [
+				{
+					"name": "Get Branches by Create Date (App A)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_app_a}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Correlation-Id",
+								"value": "corr-postman-branch-001",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "branches", "getByCreateDate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								},
+								{
+									"key": "dateStart",
+									"value": "2020-01-01"
+								},
+								{
+									"key": "dateEnd",
+									"value": "2026-09-11"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Mengambil data cabang ASSA berdasarkan tanggal pembuatan menggunakan token App A."
+					}
+				},
+				{
+					"name": "Get Branches by Create Date (QA)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_qa}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "branches", "getByCreateDate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								},
+								{
+									"key": "dateStart",
+									"value": "2020-01-01"
+								},
+								{
+									"key": "dateEnd",
+									"value": "2026-09-11"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Customer Service (Scope: customers)",
+			"item": [
+				{
+					"name": "Get Customer by Create Date (App A)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_app_a}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Correlation-Id",
+								"value": "corr-postman-customer-001",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "getByCreateDate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								},
+								{
+									"key": "dateStart",
+									"value": "2020-01-01"
+								},
+								{
+									"key": "dateEnd",
+									"value": "2026-09-11"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Mengambil data customer ASSA berdasarkan tanggal registrasi menggunakan token App A."
+					}
+				},
+				{
+					"name": "Get Customer by Create Date (QA)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_qa}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "getByCreateDate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								},
+								{
+									"key": "dateStart",
+									"value": "2020-01-01"
+								},
+								{
+									"key": "dateEnd",
+									"value": "2026-09-11"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "perPage",
+									"value": "10"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Vehicle Service (Scope: vehicles)",
+			"item": [
+				{
+					"name": "Get Vehicle by License Plate (App B)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_app_b}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Correlation-Id",
+								"value": "corr-postman-vehicle-001",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?companyCode={{companyCode}}&licensePlate=B-9065-UCU",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "vehicles", "getByLicensePlate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								},
+								{
+									"key": "licensePlate",
+									"value": "B-9065-UCU"
+								}
+							]
+						},
+						"description": "Mengambil data detail armada/kendaraan berdasarkan nomor plat (license plate) menggunakan App B."
+					}
+				},
+				{
+					"name": "Get Vehicle by License Plate (QA)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_qa}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?companyCode={{companyCode}}&licensePlate=B-9065-UCU",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "vehicles", "getByLicensePlate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								},
+								{
+									"key": "licensePlate",
+									"value": "B-9065-UCU"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Security & Auth Guard Tests (Negative Cases)",
+			"item": [
+				{
+					"name": "401 Unauthorized - Missing Token",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "branches", "getByCreateDate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								}
+							]
+						},
+						"description": "Ekspektasi: HTTP 401 Unauthorized karena header Authorization tidak dikirim."
+					}
+				},
+				{
+					"name": "401 Unauthorized - Invalid Token",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "token-ngawur-atau-tidak-terdaftar",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "branches", "getByCreateDate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								}
+							]
+						},
+						"description": "Ekspektasi: HTTP 401 Unauthorized karena token tidak cocok dengan aplikasi manapun di App Registry."
+					}
+				},
+				{
+					"name": "403 Forbidden - Insufficient Scope (App B -> Branch)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_app_b}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "branches", "getByCreateDate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								}
+							]
+						},
+						"description": "Ekspektasi: HTTP 403 Forbidden karena App B hanya memiliki scope 'vehicles', tidak berhak akses 'branches'."
+					}
+				},
+				{
+					"name": "403 Forbidden - Insufficient Scope (App B -> Customer)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token_app_b}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "customers", "getByCreateDate"],
+							"query": [
+								{
+									"key": "companyCode",
+									"value": "{{companyCode}}"
+								}
+							]
+						},
+						"description": "Ekspektasi: HTTP 403 Forbidden karena App B hanya memiliki scope 'vehicles', tidak berhak akses 'customers'."
+					}
+				}
+			]
+		}
+	]
+}

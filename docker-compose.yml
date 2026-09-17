@@ -1,0 +1,72 @@
+# Docker Compose Root Wrapper for ASSA Middleware + Database
+# Anda bisa menjalankan 'docker compose up -d' langsung dari root workspace
+
+services:
+  # 1. Database Service (Berjalan di Docker)
+  mariadb:
+    image: ${DB_IMAGE:-mysql:8.0}
+    container_name: middleware-assa-mariadb
+    restart: unless-stopped
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: assa_middleware_db
+    ports:
+      # Port diekspos ke host 3308 agar tidak bentrok dengan 3307 lokal Windows
+      - "${COMPOSE_DB_PORT:-3308}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./scripts/init_mariadb.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # 2. WSO2 Micro Integrator Service
+  middleware-assa:
+    build:
+      context: ./middleware-assa/middleware-assa/middleware-assa
+      dockerfile: Dockerfile
+      args:
+        BASE_IMAGE: wso2/wso2mi:4.6.0
+    image: middleware-assa:1.0.0
+    container_name: middleware-assa
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    ports:
+      - "8290:8290"   # HTTP Pass-through API (Main REST Endpoints)
+      - "8253:8253"   # HTTPS Pass-through API
+      - "9164:9164"   # Micro Integrator Management HTTPS API
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # Koneksi database: diarahkan ke container 'mariadb' port 3306
+      - DB_HOST=${DB_HOST:-mariadb}
+      - DB_PORT=${DB_PORT:-3306}
+      # External Backend Endpoints
+      - SAP_CORE_BASE_URL=${SAP_CORE_BASE_URL:-https://devsapcoreapi.assa.id}
+      - SAP_CORE_CUSTOMER_BASE_URL=${SAP_CORE_CUSTOMER_BASE_URL:-https://sapcoreapi.assa.id}
+      - ASSA_EXT_BASE_URL=${ASSA_EXT_BASE_URL:-https://devfmsapi.assa.id}
+      - ASSA_EXT_VEHICLE_APIKEY=${ASSA_EXT_VEHICLE_APIKEY:-XxfOtMSMhjoMQEPUHju4u7jkCEpZ09}
+      # FTP SAP Inbound Interface
+      - FTP_SAP_HOST=${FTP_SAP_HOST:-devqaxmlpool.assa.id}
+      - FTP_SAP_PORT=${FTP_SAP_PORT:-21}
+      - FTP_SAP_TARGET=${FTP_SAP_TARGET:-/vmd}
+      - FTP_SAP_USERNAME=${FTP_SAP_USERNAME:-middlewaredev}
+      - FTP_SAP_PASSWORD=${FTP_SAP_PASSWORD:-Gu34S5a#*232}
+    volumes:
+      - ./middleware-assa/middleware-assa/middleware-assa/target/middleware-assa_1.0.0.car:/home/wso2carbon/wso2mi-4.6.0/repository/deployment/server/carbonapps/middleware-assa_1.0.0.car:ro
+      - ./middleware-assa/middleware-assa/middleware-assa/deployment/deployment.toml:/home/wso2carbon/wso2mi-4.6.0/conf/deployment.toml:ro
+      - ./middleware-assa/middleware-assa/middleware-assa/deployment/libs/mariadb-java-client-3.3.3.jar:/home/wso2carbon/wso2mi-4.6.0/lib/mariadb-java-client-3.3.3.jar:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8290 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+
+volumes:
+  mariadb_data:

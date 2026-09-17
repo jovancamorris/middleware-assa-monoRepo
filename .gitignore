@@ -1,0 +1,24 @@
+# Build artifacts
+**/target/
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.car
+
+# Logs
+*.log
+
+# Environment & credentials
+.env
+
+# WSO2 / IDE temporary
+.wso2mi/
+.mtj.tmp/
+hs_err_pid*
+replay_pid*
+
+# OS temporary
+.DS_Store
+Thumbs.db
