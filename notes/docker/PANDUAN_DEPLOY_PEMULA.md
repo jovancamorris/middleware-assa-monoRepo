@@ -1,51 +1,112 @@
 # Panduan Step-by-Step Deploy Server Dev (Pemula)
-## WSO2 MI Monorepo — ASSA Middleware
+## Menggunakan PuTTY & WinSCP — WSO2 MI Monorepo ASSA Middleware
 
-Panduan ini dibuat seringkas dan sejelas mungkin agar Anda bisa langsung copy-paste perintahnya dari terminal server (Linux) dari kondisi 0.
+Panduan ini disusun khusus untuk pengguna Windows pemula agar proses deployment ke server dev Linux berjalan mudah, cepat, dan minim kesalahan dengan memanfaatkan kombinasi dua aplikasi:
+1. **WinSCP**: File manager visual (SFTP) untuk navigasi folder, membuat/upload file, dan mengedit file konfigurasi (`.env`, `docker-compose.yml`, `nginx.conf`) menggunakan antarmuka grafis seperti Windows Explorer.
+2. **PuTTY**: Terminal remote (SSH) untuk mengeksekusi perintah server (Docker, git, build, monitoring log, dan pengujian API).
 
----
-
-## Prasyarat Awal: Masuk ke Server
-Buka terminal di komputer Anda, lalu login ke server dev via SSH:
-```bash
-ssh username@ip-server-dev
-```
+> **Rujukan Arsitektur & Spesifikasi Lengkap**: [GUIDE_DEPLOY_SERVER_DEV_DOCKER.md](file:///c:/Users/eksad/OneDrive/Documents/assa/code/middleware-assa-monorepo/notes/docker/GUIDE_DEPLOY_SERVER_DEV_DOCKER.md)  
+> **Folder Target di Server**: `/var/www/devmiddleware/`
 
 ---
 
-## Step 1 — Cek Docker & Compose
-Pastikan Docker dan Docker Compose sudah terpasang di server:
+## Prasyarat: Persiapan Aplikasi di Windows
+
+Sebelum mulai, pastikan Anda sudah mengunduh dan menginstal:
+- [PuTTY](https://www.putty.org/) (Aplikasi terminal SSH)
+- [WinSCP](https://winscp.net/) (Aplikasi SFTP transfer & file manager)
+
+### A. Konfigurasi & Login via PuTTY
+1. Buka aplikasi **PuTTY**.
+2. Di bagian **Host Name (or IP address)**, masukkan IP Server Dev (misal: `10.x.x.x` atau domain server dev Anda).
+3. Pastikan **Port**: `22` dan **Connection type**: `SSH`.
+4. Di kolom **Saved Sessions**, ketikkan nama sesi (contoh: `ASSA-Dev-Middleware`), lalu klik **Save** agar Anda tidak perlu mengetik ulang IP di kemudian hari.
+5. Klik tombol **Open**.
+   > *Catatan*: Jika muncul pop-up *"PuTTY Security Alert"* saat koneksi pertama kali, klik **Accept** atau **Yes**.
+6. Masukkan user login server Anda:
+   - `login as: <username-anda>` (lalu tekan Enter)
+   - `password: <password-anda>` (lalu tekan Enter)
+   > *Tips Penting*: Saat mengetik password di terminal Linux/PuTTY, kursor tidak akan bergerak dan karakter bintang (`*`) memang tidak ditampilkan demi keamanan. Langsung ketik password Anda sampai selesai lalu tekan Enter.
+
+---
+
+### B. Konfigurasi & Login via WinSCP
+1. Buka aplikasi **WinSCP**.
+2. Pada dialog *Login*, isi data berikut:
+   - **File protocol**: `SFTP`
+   - **Host name**: IP Server Dev Anda
+   - **Port number**: `22`
+   - **User name**: username login server
+   - **Password**: password login server
+3. Klik tombol **Save** (simpan nama sesi, misal `ASSA-Dev-Server`), lalu klik **Login**.
+4. Anda akan melihat antarmuka terbagi menjadi dua panel:
+   - **Panel Kiri (Local)**: File di laptop Windows Anda.
+   - **Panel Kanan (Remote)**: File di server Linux dev.
+
+> [!TIP]
+> **Integrasi Cepat PuTTY dari WinSCP (`Ctrl + P`)**:  
+> Saat Anda sedang berada di folder tertentu di panel kanan WinSCP, tekan tombol **`Ctrl + P`** (atau klik menu *Commands > Open in PuTTY*). WinSCP akan otomatis membuka sesi terminal PuTTY yang langsung berada pada direktori server tersebut!
+
+---
+
+## Step 1 (PuTTY) — Cek Docker & Docker Compose
+
+Buka terminal **PuTTY** Anda, lalu jalankan perintah berikut untuk memastikan server siap:
 ```bash
 docker --version
 docker compose version
 ```
-*(Jika perintah ini menampilkan versi Docker, silakan lanjut ke Step 2).*
+*(Jika kedua perintah menampilkan versi Docker dan Docker Compose, silakan lanjut ke Step 2).*
 
 ---
 
-## Step 2 — Siapkan Folder Kerja & Clone Monorepo
-Kita siapkan folder kerja di `/var/www/devmiddleware`:
+## Step 2 (PuTTY) — Siapkan Folder Kerja & Clone Monorepo
+
+Jalankan perintah berikut di terminal **PuTTY**:
 
 ```bash
-# 1. Buat folder dan atur hak akses user
+# 1. Buat folder kerja deployment di /var/www/devmiddleware
 sudo mkdir -p /var/www/devmiddleware
+
+# 2. Berikan hak kepemilikan folder ke user Anda
 sudo chown -R $USER:$USER /var/www/devmiddleware
+
+# 3. Masuk ke folder kerja
 cd /var/www/devmiddleware
 
-# 2. Clone source code monorepo ke subfolder 'wso2-mi-monorepo'
+# 4. Clone branch 'restructure-monorepo' ke subfolder 'wso2-mi-monorepo'
 git clone -b restructure-monorepo https://gitlab.assa.id/nobi.sumariga/middleware-assa.git wso2-mi-monorepo
 ```
 
+> Hasilnya, struktur folder Anda di server saat ini adalah:
+> `/var/www/devmiddleware/wso2-mi-monorepo/`
+
 ---
 
-## Step 3 — Buat 4 File Konfigurasi di `/var/www/devmiddleware/`
+## Step 3 (WinSCP) — Siapkan 4 File Konfigurasi di `/var/www/devmiddleware/`
 
-Pastikan posisi terminal Anda saat ini berada di folder `/var/www/devmiddleware`.  
-Cukup **copy-paste** blok perintah di bawah ini satu per satu:
+Sekarang gunakan aplikasi **WinSCP** untuk membuat 4 file konfigurasi tanpa perlu mengetik manual di terminal Linux:
 
-### 3.1. Buat File `.env`
-```bash
-cat << 'EOF' > /var/www/devmiddleware/.env
+1. Buka **WinSCP**.
+2. Di **Panel Kanan (Remote Server)**, buka folder target: `/var/www/devmiddleware`.  
+   *(Tips: Tekan tombol **`Ctrl + G`**, ketik `/var/www/devmiddleware`, lalu tekan Enter).*
+3. Anda akan melihat folder `wso2-mi-monorepo` yang baru saja di-clone.
+4. Buat 4 file berikut di root folder `/var/www/devmiddleware/` menggunakan langkah di bawah.
+
+### Cara Membuat File Baru di WinSCP:
+- Klik kanan pada area kosong di panel kanan > pilih **New** > **File...** (atau tekan **Shift + F4**).
+- Masukkan nama file (contoh: `.env`).
+- Jendela editor teks internal WinSCP akan terbuka.
+- **Copy isi konfigurasi** di bawah ini, lalu **Paste** ke editor WinSCP.
+- Tekan **Ctrl + S** untuk menyimpan, lalu tutup jendela editor.
+
+---
+
+### 3.1. File 1: `.env`
+Beri nama file: `.env`  
+Copy-paste isi berikut:
+
+```dotenv
 # ---- Backend & External ----
 SAP_CORE_BASE_URL=https://devsapcoreapi.assa.id
 SAP_CORE_CUSTOMER_BASE_URL=https://sapcoreapi.assa.id
@@ -93,17 +154,22 @@ SR_TARGET_EXTSERVICE_ENABLED=true
 # ---- Base Image & Port ----
 BASE_IMAGE=wso2/wso2mi:4.6.0
 NGINX_HTTP_PORT=4002
-EOF
-
-# Kunci hak akses agar aman
-chmod 600 /var/www/devmiddleware/.env
 ```
+
+> [!IMPORTANT]
+> **Kunci Izin Hak Akses File `.env` (chmod 600) via WinSCP**:  
+> 1. Di WinSCP panel kanan, klik kanan pada file `.env` > pilih **Properties** (atau tekan tombol **F9**).  
+> 2. Pada kolom **Octal**, ubah nilainya menjadi **`0600`** (hanya Owner yang bisa Read & Write).  
+> 3. Klik **OK**.  
+> *(Atau bila lewat PuTTY: jalankan `chmod 600 /var/www/devmiddleware/.env`).*
 
 ---
 
-### 3.2. Buat File `nginx.conf`
-```bash
-cat << 'EOF' > /var/www/devmiddleware/nginx.conf
+### 3.2. File 2: `nginx.conf`
+Beri nama file: `nginx.conf`  
+Copy-paste isi berikut:
+
+```nginx
 worker_processes auto;
 events { worker_connections 1024; }
 
@@ -146,27 +212,29 @@ http {
         proxy_read_timeout 120s;
     }
 }
-EOF
 ```
 
 ---
 
-### 3.3. Buat File `Dockerfile.nginx`
-```bash
-cat << 'EOF' > /var/www/devmiddleware/Dockerfile.nginx
+### 3.3. File 3: `Dockerfile.nginx`
+Beri nama file: `Dockerfile.nginx`  
+Copy-paste isi berikut:
+
+```dockerfile
 FROM nginx:1.27-alpine
 COPY nginx.conf /etc/nginx/nginx.conf
 EXPOSE 80
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 \
     CMD wget -qO- http://localhost/health || exit 1
-EOF
 ```
 
 ---
 
-### 3.4. Buat File `docker-compose.yml`
-```bash
-cat << 'EOF' > /var/www/devmiddleware/docker-compose.yml
+### 3.4. File 4: `docker-compose.yml`
+Beri nama file: `docker-compose.yml`  
+Copy-paste isi berikut:
+
+```yaml
 services:
 
   # ---- Reverse Proxy ----
@@ -266,76 +334,133 @@ services:
 
 volumes:
   mariadb_data:
-EOF
 ```
+
+> **Verifikasi Struktur Folder di WinSCP**:  
+> Pastikan di panel kanan `/var/www/devmiddleware/` sekarang terdapat:
+> ```text
+> ├── .env
+> ├── nginx.conf
+> ├── Dockerfile.nginx
+> ├── docker-compose.yml
+> └── wso2-mi-monorepo/
+> ```
 
 ---
 
-## Step 4 — Build Image Docker
-Jalankan proses compile Maven & build Docker image:
+## Step 4 (PuTTY) — Build Image Docker
+
+Kembali ke jendela **PuTTY** (pastikan posisi direktori di `/var/www/devmiddleware`):
+
 ```bash
+cd /var/www/devmiddleware
 docker compose build
 ```
-*(Build pertama akan memakan waktu beberapa menit karena mengunduh base image WSO2 dan dependency Maven).*
+*(Proses build pertama ini akan memakan waktu beberapa menit karena mengunduh base image WSO2 MI dan library Maven).*
 
 ---
 
-## Step 5 — Jalankan Semua Service
-Jalankan semua container di background:
+## Step 5 (PuTTY) — Jalankan Semua Service
+
+Setelah proses build selesai tanpa error, jalankan seluruh container:
+
 ```bash
 docker compose up -d
 ```
 
 ---
 
-## Step 6 — Pantau Status Container
-WSO2 MI butuh waktu warm-up awal sekitar 30–60 detik. Cek statusnya:
+## Step 6 (PuTTY) — Pantau Status & Log Container
+
+WSO2 Micro Integrator membutuhkan waktu start-up sekitar 30–60 detik. Pantau statusnya:
+
 ```bash
 docker compose ps
 ```
-> Pastikan status semua service bertuliskan **`Up`** atau **`Up (healthy)`**.
+> Pastikan semua kolom status bertuliskan **`Up`** atau **`Up (healthy)`**.
 
-Untuk memantau log:
+Untuk memantau log container:
 ```bash
-# Log Nginx
+# 1. Pantau log Nginx
 docker compose logs -f nginx
 
-# Log salah satu service (misal service-request). Tekan Ctrl+C untuk keluar.
+# 2. Pantau log service tertentu (contoh: service-request-service)
 docker compose logs -f service-request-service
+
+# (Tekan tombol Ctrl + C di keyboard untuk keluar dari tampilan log)
 ```
 
 ---
 
-## Step 7 — Verifikasi & Testing
-Jalankan tes langsung di terminal server:
+## Step 7 (PuTTY) — Verifikasi & Pengujian API
 
-1. **Tes Health Check Nginx:**
-   ```bash
-   curl http://localhost:4002/health
-   ```
+Lakukan pengujian langsung dari terminal PuTTY:
 
-2. **Cek Database MariaDB (Pastikan tabel otomatis terbuat):**
-   ```bash
-   docker exec -it mi-mariadb mariadb -uroot assa_middleware_db -e "SHOW TABLES;"
-   ```
+### 1. Uji Health Check Nginx Reverse Proxy
+```bash
+curl http://localhost:4002/health
+```
 
-3. **Uji Service Request via Nginx:**
-   ```bash
-   curl --location 'http://localhost:4002/api/service-requests' \
-     --header 'Authorization: Bearer token-assa-omnichannel-secret-99999' \
-     --header 'Content-Type: application/json' \
-     --data '{ "app_id":"sr_app_id", "reff_number":"sr_reff_number", "branch_code":"sr_branch_code", "created_datetime":"12-12-2022", "created_by":"testing", "ticket_no":"test" }'
-   ```
+### 2. Cek Skema Database MariaDB (Pastikan tabel otomatis terbuat)
+```bash
+docker exec -it mi-mariadb mariadb -uroot assa_middleware_db -e "SHOW TABLES;"
+```
+
+### 3. Uji Kirim Data ke Service Request via Port Nginx 4002
+```bash
+curl --location 'http://localhost:4002/api/service-requests' \
+  --header 'Authorization: Bearer token-assa-omnichannel-secret-99999' \
+  --header 'Content-Type: application/json' \
+  --data '{ "app_id":"sr_app_id", "reff_number":"sr_reff_number", "branch_code":"sr_branch_code", "created_datetime":"12-12-2022", "created_by":"testing", "ticket_no":"test" }'
+```
 
 ---
 
-## Cheat Sheet: Perintah Sehari-hari
+## Tips Produktivitas Pemula: PuTTY & WinSCP
 
-| Kebutuhan | Perintah |
+| Tips / Fitur | Cara Melakukan | Penjelasan |
+|---|---|---|
+| **Copy-Paste di PuTTY** | **Copy di Windows** (`Ctrl + C`) → **Klik Kanan Mouse 1x** di PuTTY | Jangan tekan `Ctrl + V` di PuTTY. Klik kanan mouse langsung menempelkan teks. |
+| **Copy Teks dari PuTTY** | **Sorot / Blok Teks** menggunakan mouse | Teks yang diblok di PuTTY otomatis tersimpan ke clipboard Windows Anda. |
+| **Buka PuTTY dari WinSCP** | Tekan **`Ctrl + P`** di WinSCP | Terminal PuTTY akan langsung terbuka dan masuk ke folder server yang aktif di WinSCP. |
+| **Edit File Cepat** | **Double Click** file di WinSCP (mis. `.env` atau `nginx.conf`) | File terbuka di text editor WinSCP. Tekan `Ctrl + S`, file otomatis tersimpan langsung di server. |
+| **Ubah Permission File** | Klik kanan file di WinSCP → **Properties** (`F9`) | Ubah angka Octal (misal `0600` untuk `.env` atau `0755` untuk script). |
+
+---
+
+## Cheat Sheet: Alur Pembaruan & Perintah Sehari-hari
+
+### A. Jika Ada Update Kodingan di Gitlab:
+Jalankan urutan ini di **PuTTY**:
+```bash
+cd /var/www/devmiddleware/wso2-mi-monorepo
+git pull
+cd /var/www/devmiddleware
+docker compose build
+docker compose up -d
+```
+
+### B. Jika Hanya Mengubah File `.env`:
+1. Buka WinSCP, double-click `.env` di `/var/www/devmiddleware/`.
+2. Edit nilainya, lalu simpan (**Ctrl + S**).
+3. Di **PuTTY**, jalankan perintah agar container menerapkan nilai baru:
+   ```bash
+   cd /var/www/devmiddleware && docker compose up -d
+   ```
+
+### C. Jika Hanya Mengubah `nginx.conf`:
+1. Edit file `nginx.conf` di WinSCP, lalu simpan (**Ctrl + S**).
+2. Di **PuTTY**, rebuild dan restart Nginx:
+   ```bash
+   cd /var/www/devmiddleware && docker compose build nginx && docker compose up -d nginx
+   ```
+
+### D. Perintah Manajemen Docker Cepat:
+| Kebutuhan | Perintah di PuTTY |
 |---|---|
-| **Stop semua container** | `docker compose down` |
-| **Start kembali** | `docker compose up -d` |
-| **Ada update kodingan terbaru** | `cd wso2-mi-monorepo && git pull && cd .. && docker compose build && docker compose up -d` |
-| **Rebuild 1 service saja** (contoh: service-request) | `docker compose build service-request-service && docker compose up -d service-request-service` |
-| **Restart Nginx saja** | `docker compose restart nginx` |
-| **Lihat semua log realtime** | `docker compose logs -f` |
+| Menghentikan semua service | `docker compose down` |
+| Menjalankan kembali service | `docker compose up -d` |
+| Rebuild 1 service saja (misal `vehicle-service`) | `docker compose build vehicle-service && docker compose up -d vehicle-service` |
+| Restart 1 service saja (misal `nginx`) | `docker compose restart nginx` |
+| Melihat log seluruh container realtime | `docker compose logs -f` |
+| Menghapus container + volume database *(Hati-hati: data DB terhapus)* | `docker compose down -v` |
