@@ -1,0 +1,40 @@
+# ============================================
+# API KEYS
+# Disimpan di tabel `api_keys` (MySQL/MariaDB), BUKAN di .env.
+# Jalankan `bun run db:migrate` untuk membuat tabel & seed data awal.
+# Kelola via endpoint: GET/POST/PATCH/DELETE /api/keys
+# ============================================
+
+# ============================================
+# TARGET SERVICES (upstream API)
+# Disimpan di tabel `target_services` (MySQL/MariaDB).
+# Jalankan `bun run db:migrate` untuk seed data awal.
+# Kelola via admin panel menu "Services" atau endpoint /api/services
+# ============================================
+
+# ============================================
+# FTP - XMLPOOL
+# ============================================
+FTP_HOST=devqaxmlpool.assa.id
+FTP_USERNAME=sapcoredev
+FTP_PASSWORD=''
+
+# ============================================
+# LOG DATABASE - MYSQL / MARIADB (monitoring)
+# ============================================
+LOG_DB_HOST=devqa-rds-mariadb.chhprpv0wgwa.ap-southeast-3.rds.amazonaws.com
+LOG_DB_PORT=3306
+LOG_DB_DATABASE=dev_middleware
+LOG_DB_USERNAME=devmiddlewareapp
+LOG_DB_PASSWORD=""
+
+# ============================================
+# APP
+# ============================================
+PORT=80
+
+# ============================================
+# LDAP LOGIN (untuk admin panel)
+# ============================================
+LDAP_LOGIN_URL=https://devhcbead.assa.id/auth/login
+ADMIN_TOKEN_SECRET=middleware-admin-secret-change-me

@@ -30,6 +30,8 @@ services:
     build:
       context: .
       dockerfile: integrations/branch-service/Dockerfile
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/branch-service:1.0.0
     container_name: branch-service
     restart: unless-stopped
@@ -60,6 +62,8 @@ services:
     build:
       context: .
       dockerfile: integrations/customer-service/Dockerfile
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/customer-service:1.0.0
     container_name: customer-service
     restart: unless-stopped
@@ -74,6 +78,8 @@ services:
     build:
       context: .
       dockerfile: integrations/vehicle-service/Dockerfile
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/vehicle-service:1.0.0
     container_name: vehicle-service
     restart: unless-stopped
@@ -90,6 +96,8 @@ services:
     build:
       context: .
       dockerfile: integrations/vendor-service/Dockerfile
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/vendor-service:1.0.0
     container_name: vendor-service
     restart: unless-stopped
@@ -110,6 +118,8 @@ services:
     build:
       context: .
       dockerfile: integrations/spk-service/Dockerfile
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/spk-service:1.0.0
     container_name: spk-service
     restart: unless-stopped
@@ -130,6 +140,8 @@ services:
     build:
       context: .
       dockerfile: integrations/service-request-service/Dockerfile
+      args:
+        BASE_IMAGE: wso2/wso2mi:4.6.0
     image: assa/service-request-service:1.0.0
     container_name: service-request-service
     restart: unless-stopped

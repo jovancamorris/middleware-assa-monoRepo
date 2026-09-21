@@ -1,0 +1,20 @@
+services:
+  middleware-api:
+    image: registry.assa.id/middleware-assa/middleware:1.0.1
+    container_name: middleware-api
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: middleware-nginx
+    ports:
+      - "6030:80"
+    depends_on:
+      - middleware-api
+    restart: unless-stopped

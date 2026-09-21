@@ -4,7 +4,7 @@
 # BUILD CONTEXT = root monorepo (agar bisa akses parent pom & shared/).
 #   docker build -f integrations/vehicle-service/Dockerfile -t assa/vehicle-service:1.0.0 .
 # ==============================================================================
-
+ARG BASE_IMAGE=wso2/wso2mi:4.6.0
 # ---- Stage 1: build shared + service .car ----
 FROM maven:3.9-eclipse-temurin-11 AS build
 WORKDIR /app
@@ -14,7 +14,6 @@ RUN mvn -q -pl shared -am install -DskipTests && \
     mvn -q -pl integrations/vehicle-service -am package -DskipTests
 
 # ---- Stage 2: runtime ----
-ARG BASE_IMAGE=wso2/wso2mi:4.6.0
 FROM ${BASE_IMAGE}
 USER root
 ARG SERVICE_DIR=integrations/vehicle-service
