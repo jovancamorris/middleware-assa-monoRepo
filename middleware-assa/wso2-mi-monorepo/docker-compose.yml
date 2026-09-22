@@ -3,6 +3,8 @@
 # Setiap service integrasi punya image & container sendiri, berbagi 1 MariaDB.
 # Jalankan: docker compose up --build
 # ==============================================================================
+name: middleware-assa
+
 services:
 
   # ---- Shared Database ----

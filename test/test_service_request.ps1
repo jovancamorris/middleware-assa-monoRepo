@@ -9,8 +9,8 @@ Write-Host " MEMULAI PENGUJIAN FITUR SERVICE REQUEST (SR) PARALEL FAN-OUT" -Fore
 Write-Host "====================================================================" -ForegroundColor Cyan
 
 $baseUrl = "http://localhost:8290/api/service-requests"
-$omnichannelToken = "token-assa-omnichannel-secret-99999"
-$appBToken = "token-assa-app-b-secret-67890"
+$omnichannelToken = "14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12"
+$appBToken = "988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
 
 # ------------------------------------------------------------------------------
 # Test 1: 401 Unauthorized (Tanpa Token)

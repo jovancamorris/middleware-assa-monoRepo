@@ -102,11 +102,11 @@ ASSA_EXT_SR_APIKEY=DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs
 SR_TARGET_ATLAS_APIKEY=ATLAS_PLACEHOLDER_KEY
 
 # ---- App Registry Tokens ----
-AUTH_APP_A_TOKEN=token-assa-app-a-secret-12345
-AUTH_APP_B_TOKEN=token-assa-app-b-secret-67890
+AUTH_APP_A_TOKEN=3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013
+AUTH_APP_B_TOKEN=988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881
 AUTH_APP_QA_TOKEN=ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d
-AUTH_APP_ATLAS_TOKEN=token-assa-atlas-vmd-secret-99999
-AUTH_APP_OMNICHANNEL_TOKEN=token-assa-omnichannel-secret-99999
+AUTH_APP_ATLAS_TOKEN=513736d17f45657e2e448779cbc89320691f0fc246728f34250c0abf166f494a
+AUTH_APP_OMNICHANNEL_TOKEN=14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12
 
 # ---- Database (di dalam Docker) ----
 DB_HOST=mariadb
@@ -248,7 +248,7 @@ services:
       - "${COMPOSE_DB_PORT:-3308}:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
-      - ./wso2-mi-monorepo/scripts/db/init_mariadb_schema.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./wso2-mi-monorepo/wso2-mi-monorepo/scripts/db/init_mariadb_schema.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "mariadb-admin ping -h localhost --silent"]
       interval: 5s
@@ -258,7 +258,7 @@ services:
 
   # ---- Integration Services ----
   branch-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/branch-service/Dockerfile }
+    build: { context: ./wso2-mi-monorepo/wso2-mi-monorepo, dockerfile: integrations/branch-service/Dockerfile }
     image: assa/branch-service:1.0.0
     container_name: branch-service
     restart: unless-stopped
@@ -271,7 +271,7 @@ services:
     # Buka bila perlu debug langsung: ports: ["8290:8290"]
 
   customer-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/customer-service/Dockerfile }
+    build: { context: ./wso2-mi-monorepo/wso2-mi-monorepo, dockerfile: integrations/customer-service/Dockerfile }
     image: assa/customer-service:1.0.0
     container_name: customer-service
     restart: unless-stopped
@@ -280,7 +280,7 @@ services:
     environment: *svc-env
 
   vehicle-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/vehicle-service/Dockerfile }
+    build: { context: ./wso2-mi-monorepo/wso2-mi-monorepo, dockerfile: integrations/vehicle-service/Dockerfile }
     image: assa/vehicle-service:1.0.0
     container_name: vehicle-service
     restart: unless-stopped
@@ -289,7 +289,7 @@ services:
     environment: *svc-env
 
   vendor-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/vendor-service/Dockerfile }
+    build: { context: ./wso2-mi-monorepo/wso2-mi-monorepo, dockerfile: integrations/vendor-service/Dockerfile }
     image: assa/vendor-service:1.0.0
     container_name: vendor-service
     restart: unless-stopped
@@ -298,7 +298,7 @@ services:
     environment: *svc-env
 
   spk-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/spk-service/Dockerfile }
+    build: { context: ./wso2-mi-monorepo/wso2-mi-monorepo, dockerfile: integrations/spk-service/Dockerfile }
     image: assa/spk-service:1.0.0
     container_name: spk-service
     restart: unless-stopped
@@ -307,7 +307,7 @@ services:
     environment: *svc-env
 
   service-request-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/service-request-service/Dockerfile }
+    build: { context: ./wso2-mi-monorepo/wso2-mi-monorepo, dockerfile: integrations/service-request-service/Dockerfile }
     image: assa/service-request-service:1.0.0
     container_name: service-request-service
     restart: unless-stopped
@@ -371,7 +371,7 @@ curl http://localhost:4002/health
 
 # Uji Service Request lewat Nginx (pola dari ref curl)
 curl --location 'http://localhost:4002/api/service-requests' \
-  --header 'Authorization: Bearer token-assa-omnichannel-secret-99999' \
+  --header 'Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12' \
   --header 'Content-Type: application/json' \
   --data '{ "app_id":"sr_app_id", "reff_number":"sr_reff_number", "branch_code":"sr_branch_code", "created_datetime":"12-12-2022", "created_by":"testing", "ticket_no":"test" }'
 ```

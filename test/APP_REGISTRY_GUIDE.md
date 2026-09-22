@@ -79,8 +79,8 @@ Setiap aplikasi konsumen wajib menggunakan token tersendiri (token per-aplikasi)
 
 | Aplikasi ID (`appId`) | Nama Aplikasi | Scopes yang Diizinkan | Token Bearer |
 | :--- | :--- | :--- | :--- |
-| `app_a` | Customer & Branch Service Consumer | `branches, customers, vehicles` | `Bearer token-assa-app-a-secret-12345` |
-| `app_b` | Operations & Fleet Consumer | `vehicles` | `Bearer token-assa-app-b-secret-67890` |
+| `app_a` | Customer & Branch Service Consumer | `branches, customers, vehicles` | `Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` |
+| `app_b` | Operations & Fleet Consumer | `vehicles` | `Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` |
 | `app_qa` | QA Automation Consumer | `branches, customers, vehicles` | `Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
 
 ### Menambah Aplikasi / Token Baru:
@@ -162,13 +162,13 @@ Port default HTTP WSO2 MI adalah `8290`. Berikut skenario pengujian menggunakan 
 - **Bash / Linux / macOS**:
   ```bash
   curl -i -X GET "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" \
-    -H "Authorization: Bearer token-assa-app-a-secret-12345" \
+    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" \
     -H "X-Correlation-Id: corr-test-branch-01"
   ```
 - **Windows PowerShell**:
   ```powershell
   curl.exe -i -X GET "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" `
-    -H "Authorization: Bearer token-assa-app-a-secret-12345" `
+    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" `
     -H "X-Correlation-Id: corr-test-branch-01"
   ```
 
@@ -176,13 +176,13 @@ Port default HTTP WSO2 MI adalah `8290`. Berikut skenario pengujian menggunakan 
 - **Bash / Linux / macOS**:
   ```bash
   curl -i -X GET "http://localhost:8290/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" \
-    -H "Authorization: Bearer token-assa-app-a-secret-12345" \
+    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" \
     -H "X-Correlation-Id: corr-test-cust-01"
   ```
 - **Windows PowerShell**:
   ```powershell
   curl.exe -i -X GET "http://localhost:8290/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" `
-    -H "Authorization: Bearer token-assa-app-a-secret-12345" `
+    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" `
     -H "X-Correlation-Id: corr-test-cust-01"
   ```
 
@@ -190,13 +190,13 @@ Port default HTTP WSO2 MI adalah `8290`. Berikut skenario pengujian menggunakan 
 - **Bash / Linux / macOS**:
   ```bash
   curl -i -X GET "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU" \
-    -H "Authorization: Bearer token-assa-app-b-secret-67890" \
+    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" \
     -H "X-Correlation-Id: corr-test-veh-01"
   ```
 - **Windows PowerShell**:
   ```powershell
   curl.exe -i -X GET "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU" `
-    -H "Authorization: Bearer token-assa-app-b-secret-67890" `
+    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" `
     -H "X-Correlation-Id: corr-test-veh-01"
   ```
   *Live Response (200 OK — AWS ASSA QA):*
@@ -262,7 +262,7 @@ Port default HTTP WSO2 MI adalah `8290`. Berikut skenario pengujian menggunakan 
   `app_b` hanya memiliki izin scope `vehicles`. Jika dipakai untuk mengakses `branches`:
   ```bash
   curl -i -X GET "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000" \
-    -H "Authorization: Bearer token-assa-app-b-secret-67890"
+    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
   ```
   *Expected Response (403 Forbidden):*
   ```json
@@ -296,8 +296,8 @@ Buat Environment baru di Postman (misal: `ASSA-Local`) dengan variabel berikut:
 | Variable | Initial Value | Current Value |
 | :--- | :--- | :--- |
 | `baseUrl` | `http://localhost:8290` | `http://localhost:8290` |
-| `token_app_a` | `token-assa-app-a-secret-12345` | `token-assa-app-a-secret-12345` |
-| `token_app_b` | `token-assa-app-b-secret-67890` | `token-assa-app-b-secret-67890` |
+| `token_app_a` | `3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` | `3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` |
+| `token_app_b` | `988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` | `988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` |
 | `token_qa` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
 | `companyCode` | `1000` | `1000` |
 

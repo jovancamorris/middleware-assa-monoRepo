@@ -1,3 +1,0 @@
-# Wrapper to automatically route to wso2-mi-monorepo services
-include:
-  - path: ./wso2-mi-monorepo/docker-compose.yml

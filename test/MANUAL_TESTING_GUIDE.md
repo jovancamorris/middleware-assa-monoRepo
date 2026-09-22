@@ -46,8 +46,8 @@ Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk penguji
 
 | Aplikasi (`appId`) | Nama Aplikasi | Scopes yang Diizinkan | Token Bearer |
 | :--- | :--- | :--- | :--- |
-| `app_a` | Customer & Branch Consumer | `branches, customers, vehicles` | `Bearer token-assa-app-a-secret-12345` |
-| `app_b` | Operations & Fleet Consumer | `vehicles` | `Bearer token-assa-app-b-secret-67890` |
+| `app_a` | Customer & Branch Consumer | `branches, customers, vehicles` | `Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` |
+| `app_b` | Operations & Fleet Consumer | `vehicles` | `Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` |
 | `app_qa` | QA Automation Consumer | `branches, customers, vehicles` | `Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
 
 ---
@@ -151,7 +151,7 @@ Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk penguji
 - **cURL**:
   ```bash
   curl -i -X GET 'http://localhost:8290/api/branches/getByCreateDate' \
-    -H 'Authorization: Bearer token-assa-app-b-secret-67890'
+    -H 'Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881'
   ```
 - **Expected Response**:
   - HTTP Status: `403 Forbidden`
@@ -173,7 +173,7 @@ Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk penguji
 - **cURL**:
   ```bash
   curl -i -X GET 'http://localhost:8290/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11' \
-    -H 'Authorization: Bearer token-assa-app-a-secret-12345'
+    -H 'Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013'
   ```
 - **Expected Response**:
   - HTTP Status: `200 OK`
@@ -188,7 +188,7 @@ Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk penguji
 - **cURL**:
   ```bash
   curl -i -X GET 'http://localhost:8290/api/branches/getByCreateDate' \
-    -H 'Authorization: Bearer token-assa-app-a-secret-12345'
+    -H 'Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013'
   ```
 - **Expected Response**:
   - HTTP Status: `200 OK` (Request berhasil diproses menggunakan nilai default).
@@ -202,7 +202,7 @@ Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk penguji
 - **cURL**:
   ```bash
   curl -i -X GET 'http://localhost:8290/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11' \
-    -H 'Authorization: Bearer token-assa-app-a-secret-12345'
+    -H 'Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013'
   ```
 - **Expected Response**:
   - HTTP Status: `200 OK`
@@ -218,7 +218,7 @@ Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk penguji
 - **cURL**:
   ```bash
   curl -i -X GET 'http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000' \
-    -H 'Authorization: Bearer token-assa-app-b-secret-67890'
+    -H 'Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881'
   ```
 - **Expected Response**:
   - HTTP Status: `400 Bad Request`
@@ -236,7 +236,7 @@ Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk penguji
 - **cURL**:
   ```bash
   curl -i -X GET 'http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU' \
-    -H 'Authorization: Bearer token-assa-app-b-secret-67890'
+    -H 'Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881'
   ```
 - **Expected Response**:
   - HTTP Status: `200 OK`
@@ -252,7 +252,7 @@ Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk penguji
 - **cURL**:
   ```bash
   curl -i -X GET 'http://localhost:8290/api/branches/getByCreateDate?companyCode=1000' \
-    -H 'Authorization: Bearer token-assa-app-a-secret-12345' \
+    -H 'Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013' \
     -H 'X-Correlation-Id: TRACE-AUDIT-TEST-9999'
   ```
 - **Expected Response Headers**:

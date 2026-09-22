@@ -90,7 +90,7 @@ Test-Endpoint -TestId "TC-04" -Description "Auth Guard: Akses token palsu (Expec
 
 Test-Endpoint -TestId "TC-05" -Description "Auth Guard: Scope tidak berhak (app_b ke branches - Expect 403)" `
     -Path "/api/branches/getByCreateDate" `
-    -Headers @{ "Authorization" = "Bearer token-assa-app-b-secret-67890" } `
+    -Headers @{ "Authorization" = "Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" } `
     -ExpectedStatus 403
 
 # ------------------------------------------------------------------------------
@@ -98,12 +98,12 @@ Test-Endpoint -TestId "TC-05" -Description "Auth Guard: Scope tidak berhak (app_
 # ------------------------------------------------------------------------------
 Test-Endpoint -TestId "TC-06" -Description "Branch: Parameter lengkap dengan token app_a (Expect 200)" `
     -Path "/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11" `
-    -Headers @{ "Authorization" = "Bearer token-assa-app-a-secret-12345" } `
+    -Headers @{ "Authorization" = "Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" } `
     -ExpectedStatus 200
 
 Test-Endpoint -TestId "TC-07" -Description "Branch: Parameter default fallback (Expect 200)" `
     -Path "/api/branches/getByCreateDate" `
-    -Headers @{ "Authorization" = "Bearer token-assa-app-a-secret-12345" } `
+    -Headers @{ "Authorization" = "Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" } `
     -ExpectedStatus 200
 
 # ------------------------------------------------------------------------------
@@ -111,7 +111,7 @@ Test-Endpoint -TestId "TC-07" -Description "Branch: Parameter default fallback (
 # ------------------------------------------------------------------------------
 Test-Endpoint -TestId "TC-08" -Description "Customer: Get by Create Date dengan token app_a (Expect 200)" `
     -Path "/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11" `
-    -Headers @{ "Authorization" = "Bearer token-assa-app-a-secret-12345" } `
+    -Headers @{ "Authorization" = "Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" } `
     -ExpectedStatus 200
 
 # ------------------------------------------------------------------------------
@@ -119,12 +119,12 @@ Test-Endpoint -TestId "TC-08" -Description "Customer: Get by Create Date dengan 
 # ------------------------------------------------------------------------------
 Test-Endpoint -TestId "TC-09" -Description "Vehicle: Tanpa plat nomor (Expect 400)" `
     -Path "/api/vehicles/getByLicensePlate?companyCode=1000" `
-    -Headers @{ "Authorization" = "Bearer token-assa-app-b-secret-67890" } `
+    -Headers @{ "Authorization" = "Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" } `
     -ExpectedStatus 400
 
 Test-Endpoint -TestId "TC-10" -Description "Vehicle: Plat nomor valid DD-8112 Vehicle Atlas (Expect 200)" `
     -Path "/api/vehicles/vehicleatlas?plate_no=DD-8112" `
-    -Headers @{ "Authorization" = "Bearer token-assa-app-b-secret-67890" } `
+    -Headers @{ "Authorization" = "Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" } `
     -ExpectedStatus 200
 
 # ------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ Test-Endpoint -TestId "TC-10" -Description "Vehicle: Plat nomor valid DD-8112 Ve
 Test-Endpoint -TestId "TC-11" -Description "Tracing: Custom Correlation ID echo (Expect 200)" `
     -Path "/api/branches/getByCreateDate" `
     -Headers @{ 
-        "Authorization" = "Bearer token-assa-app-a-secret-12345"
+        "Authorization" = "Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013"
         "X-Correlation-Id" = "CUSTOM-TRACE-AUDIT-9999"
     } `
     -ExpectedStatus 200

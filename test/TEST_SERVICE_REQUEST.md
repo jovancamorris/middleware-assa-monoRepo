@@ -163,7 +163,7 @@ curl.exe -i -s -X POST http://localhost:8290/api/vendors/create `
 Gunakan token App B yang hanya memiliki scope `vehicles`:
 ```powershell
 curl.exe -i -s -X POST http://localhost:8290/api/vendors/create `
-  -H "Authorization: Bearer token-assa-app-b-secret-67890" `
+  -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" `
   -H "Content-Type: application/json" `
   -d "{}"
 ```
@@ -184,7 +184,7 @@ curl.exe -i -s -X POST http://localhost:8290/api/vendors/create `
 Jalankan perintah berikut di PowerShell:
 ```powershell
 $headers = @{
-    "Authorization" = "Bearer token-assa-omnichannel-secret-99999"
+    "Authorization" = "Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12"
     "Content-Type" = "application/json"
     "X-Transaction-Id" = "TRX-SR-" + (Get-Date -Format "yyyyMMddHHmmss")
 }
@@ -251,7 +251,7 @@ Invoke-RestMethod -Uri "http://localhost:8290/api/service-requests" -Method Post
 Kirim ulang cURL dengan `X-Transaction-Id` yang sama:
 ```powershell
 curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
-  -H "Authorization: Bearer token-assa-omnichannel-secret-99999" `
+  -H "Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" `
   -H "Content-Type: application/json" `
   -H "X-Transaction-Id: TRX-SR-MANUAL-001" `
   --data-binary "@test/payload_sr_test.json"
@@ -263,7 +263,7 @@ curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
 Hapus field `app_id` atau `ticket_no`:
 ```powershell
 curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
-  -H "Authorization: Bearer token-assa-omnichannel-secret-99999" `
+  -H "Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" `
   -H "Content-Type: application/json" `
   -d '{"reff_number":"REF01","branch_code":"JKT01","created_datetime":"17-09-2026","created_by":"admin","ticket_no":"TCK01"}'
 ```
@@ -274,7 +274,7 @@ curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
 Gunakan token App B:
 ```powershell
 curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
-  -H "Authorization: Bearer token-assa-app-b-secret-67890" `
+  -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" `
   -H "Content-Type: application/json" `
   -d "{}"
 ```

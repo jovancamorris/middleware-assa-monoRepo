@@ -102,11 +102,11 @@ ASSA_EXT_SR_APIKEY=DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs
 SR_TARGET_ATLAS_APIKEY=ATLAS_PLACEHOLDER_KEY
 
 # ---- App Registry Tokens ----
-AUTH_APP_A_TOKEN=token-assa-app-a-secret-12345
-AUTH_APP_B_TOKEN=token-assa-app-b-secret-67890
+AUTH_APP_A_TOKEN=3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013
+AUTH_APP_B_TOKEN=988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881
 AUTH_APP_QA_TOKEN=ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d
-AUTH_APP_ATLAS_TOKEN=token-assa-atlas-vmd-secret-99999
-AUTH_APP_OMNICHANNEL_TOKEN=token-assa-omnichannel-secret-99999
+AUTH_APP_ATLAS_TOKEN=513736d17f45657e2e448779cbc89320691f0fc246728f34250c0abf166f494a
+AUTH_APP_OMNICHANNEL_TOKEN=14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12
 
 # ---- Database (di dalam Docker) ----
 DB_HOST=mariadb
@@ -371,7 +371,7 @@ curl http://localhost:4002/health
 
 # Uji Service Request lewat Nginx (pola dari ref curl)
 curl --location 'http://localhost:4002/api/service-requests' \
-  --header 'Authorization: Bearer token-assa-omnichannel-secret-99999' \
+  --header 'Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12' \
   --header 'Content-Type: application/json' \
   --data '{ "app_id":"sr_app_id", "reff_number":"sr_reff_number", "branch_code":"sr_branch_code", "created_datetime":"12-12-2022", "created_by":"testing", "ticket_no":"test" }'
 ```

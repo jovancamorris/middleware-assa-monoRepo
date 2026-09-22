@@ -120,11 +120,11 @@ ASSA_EXT_SR_APIKEY=DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs
 SR_TARGET_ATLAS_APIKEY=ATLAS_PLACEHOLDER_KEY
 
 # ---- App Registry Tokens ----
-AUTH_APP_A_TOKEN=token-assa-app-a-secret-12345
-AUTH_APP_B_TOKEN=token-assa-app-b-secret-67890
+AUTH_APP_A_TOKEN=3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013
+AUTH_APP_B_TOKEN=988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881
 AUTH_APP_QA_TOKEN=ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d
-AUTH_APP_ATLAS_TOKEN=token-assa-atlas-vmd-secret-99999
-AUTH_APP_OMNICHANNEL_TOKEN=token-assa-omnichannel-secret-99999
+AUTH_APP_ATLAS_TOKEN=513736d17f45657e2e448779cbc89320691f0fc246728f34250c0abf166f494a
+AUTH_APP_OMNICHANNEL_TOKEN=14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12
 
 # ---- Database (Internal Docker) ----
 DB_HOST=mariadb
@@ -236,104 +236,25 @@ Copy-paste isi berikut:
 
 ```yaml
 services:
+  middleware-api:
+    image: registry.assa.id/middleware-assa/middleware:1.0.1
+    container_name: middleware-api
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+    restart: unless-stopped
 
-  # ---- Reverse Proxy ----
   nginx:
     build:
       context: .
       dockerfile: Dockerfile.nginx
-    image: assa/middleware-nginx:1.0.0
     container_name: middleware-nginx
-    restart: unless-stopped
+    ports:
+      - "6030:80"
     depends_on:
-      - branch-service
-      - customer-service
-      - vehicle-service
-      - vendor-service
-      - spk-service
-      - service-request-service
-    ports:
-      - "${NGINX_HTTP_PORT:-4002}:80"
-
-  # ---- Database ----
-  mariadb:
-    image: ${DB_IMAGE:-mariadb:11}
-    container_name: mi-mariadb
+      - middleware-api
     restart: unless-stopped
-    environment:
-      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "yes"
-      MARIADB_DATABASE: ${DB_NAME:-assa_middleware_db}
-    ports:
-      - "${COMPOSE_DB_PORT:-3308}:3306"
-    volumes:
-      - mariadb_data:/var/lib/mysql
-      - ./wso2-mi-monorepo/scripts/db/init_mariadb_schema.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "mariadb-admin ping -h localhost --silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
-  # ---- Integration Services ----
-  branch-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/branch-service/Dockerfile }
-    image: assa/branch-service:1.0.0
-    container_name: branch-service
-    restart: unless-stopped
-    depends_on: { mariadb: { condition: service_healthy } }
-    env_file: [ .env ]
-    environment: &svc-env
-      DB_HOST: ${DB_HOST:-mariadb}
-      DB_PORT: ${DB_PORT:-3306}
-
-  customer-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/customer-service/Dockerfile }
-    image: assa/customer-service:1.0.0
-    container_name: customer-service
-    restart: unless-stopped
-    depends_on: { mariadb: { condition: service_healthy } }
-    env_file: [ .env ]
-    environment: *svc-env
-
-  vehicle-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/vehicle-service/Dockerfile }
-    image: assa/vehicle-service:1.0.0
-    container_name: vehicle-service
-    restart: unless-stopped
-    depends_on: { mariadb: { condition: service_healthy } }
-    env_file: [ .env ]
-    environment: *svc-env
-
-  vendor-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/vendor-service/Dockerfile }
-    image: assa/vendor-service:1.0.0
-    container_name: vendor-service
-    restart: unless-stopped
-    depends_on: { mariadb: { condition: service_healthy } }
-    env_file: [ .env ]
-    environment: *svc-env
-
-  spk-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/spk-service/Dockerfile }
-    image: assa/spk-service:1.0.0
-    container_name: spk-service
-    restart: unless-stopped
-    depends_on: { mariadb: { condition: service_healthy } }
-    env_file: [ .env ]
-    environment: *svc-env
-
-  service-request-service:
-    build: { context: ./wso2-mi-monorepo, dockerfile: integrations/service-request-service/Dockerfile }
-    image: assa/service-request-service:1.0.0
-    container_name: service-request-service
-    restart: unless-stopped
-    depends_on: { mariadb: { condition: service_healthy } }
-    env_file: [ .env ]
-    environment: *svc-env
-
-volumes:
-  mariadb_data:
 ```
 
 > **Verifikasi Struktur Folder di WinSCP**:  
@@ -384,8 +305,8 @@ Untuk memantau log container:
 # 1. Pantau log Nginx
 docker compose logs -f nginx
 
-# 2. Pantau log service tertentu (contoh: service-request-service)
-docker compose logs -f service-request-service
+# 2. Pantau log middleware-api
+docker compose logs -f middleware-api
 
 # (Tekan tombol Ctrl + C di keyboard untuk keluar dari tampilan log)
 ```
@@ -398,7 +319,7 @@ Lakukan pengujian langsung dari terminal PuTTY:
 
 ### 1. Uji Health Check Nginx Reverse Proxy
 ```bash
-curl http://localhost:4002/health
+curl http://localhost:6030/health
 ```
 
 ### 2. Cek Skema Database MariaDB (Pastikan tabel otomatis terbuat)
@@ -406,10 +327,10 @@ curl http://localhost:4002/health
 docker exec -it mi-mariadb mariadb -uroot assa_middleware_db -e "SHOW TABLES;"
 ```
 
-### 3. Uji Kirim Data ke Service Request via Port Nginx 4002
+### 3. Uji Kirim Data ke Service Request via Port Nginx 6030
 ```bash
-curl --location 'http://localhost:4002/api/service-requests' \
-  --header 'Authorization: Bearer token-assa-omnichannel-secret-99999' \
+curl --location 'http://localhost:6030/api/service-requests' \
+  --header 'Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12' \
   --header 'Content-Type: application/json' \
   --data '{ "app_id":"sr_app_id", "reff_number":"sr_reff_number", "branch_code":"sr_branch_code", "created_datetime":"12-12-2022", "created_by":"testing", "ticket_no":"test" }'
 ```
@@ -460,7 +381,7 @@ docker compose up -d
 |---|---|
 | Menghentikan semua service | `docker compose down` |
 | Menjalankan kembali service | `docker compose up -d` |
-| Rebuild 1 service saja (misal `vehicle-service`) | `docker compose build vehicle-service && docker compose up -d vehicle-service` |
-| Restart 1 service saja (misal `nginx`) | `docker compose restart nginx` |
+| Rebuild 1 service saja (misal `nginx`) | `docker compose build nginx && docker compose up -d nginx` |
+| Restart 1 service saja (misal `nginx` atau `middleware-api`) | `docker compose restart nginx` |
 | Melihat log seluruh container realtime | `docker compose logs -f` |
 | Menghapus container + volume database *(Hati-hati: data DB terhapus)* | `docker compose down -v` |

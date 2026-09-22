@@ -1,17 +1,23 @@
-﻿# ==============================================================================
+# ==============================================================================
 # Dockerfile â€” Integration Service (vendor-service)
 # Multi-stage: build .car dengan Maven lalu bungkus ke image WSO2 MI.
 # BUILD CONTEXT = root monorepo (agar bisa akses parent pom & shared/).
 #   docker build -f integrations/vendor-service/Dockerfile -t assa/vendor-service:1.0.0 .
 # ==============================================================================
+ARG SERVICE_DIR=integrations/vendor-service
 ARG BASE_IMAGE=wso2/wso2mi:4.6.0
 # ---- Stage 1: build shared + service .car ----
 FROM maven:3.9-eclipse-temurin-11 AS build
+ARG SERVICE_DIR=integrations/vendor-service
 WORKDIR /app
 COPY . .
-# Build shared dulu (di-install ke local repo), lalu service ini
-RUN mvn -q -pl shared -am install -DskipTests && \
-    mvn -q -pl integrations/vendor-service -am package -DskipTests
+# Build shared dulu (di-install ke local repo), lalu service ini jika belum ter-build
+RUN if ls /app/${SERVICE_DIR}/target/*.car 1> /dev/null 2>&1 && ls /app/shared/target/*.car 1> /dev/null 2>&1; then \
+        echo "Pre-built CAR found for ${SERVICE_DIR}. Skipping maven build."; \
+    else \
+        mvn -q -pl shared -am install -DskipTests && \
+        mvn -q -pl ${SERVICE_DIR} -am package -DskipTests; \
+    fi
 
 # ---- Stage 2: runtime ----
 FROM ${BASE_IMAGE}

@@ -252,16 +252,16 @@ Memverifikasi **Role-Based Access Control (RBAC)** dan *Principle of Least Privi
 
 #### 📥 2. Spesifikasi Request
 - **Method & URL**: `GET http://localhost:8290/api/branches/getByCreateDate?companyCode=1000`
-- **Header**: `Authorization: Bearer token-assa-app-b-secret-67890` (Token Asli App B)
+- **Header**: `Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` (Token Asli App B)
 - **cURL**:
   ```powershell
-  curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000" -H "Authorization: Bearer token-assa-app-b-secret-67890"
+  curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000" -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
   ```
 
 #### ⚙️ 3. Alur Eksekusi Internal (Code Trace)
 1. [BranchAPI.xml](file:///c:/Users/eksad/OneDrive/Documents/assa/code/middleware-assa-all/middleware-assa/middleware-assa/middleware-assa/src/main/wso2mi/artifacts/apis/BranchAPI.xml) mendefinisikan: `<property name="requiredScope" value="branches"/>`.
 2. Masuk ke [AuthGuardSeq.xml](file:///c:/Users/eksad/OneDrive/Documents/assa/code/middleware-assa-all/middleware-assa/middleware-assa/middleware-assa/src/main/wso2mi/artifacts/sequences/AuthGuardSeq.xml):
-   - Token diekstrak: `"token-assa-app-b-secret-67890"`.
+   - Token diekstrak: `"988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"`.
    - Teridentifikasi sebagai: `appId = "app_b"`, `appScopes = "vehicles"`.
 3. Masuk ke pengecekan scope:
    - Kondisi filter: `not(fn:contains($ctx:appScopes, $ctx:requiredScope))`
@@ -292,10 +292,10 @@ Mirip dengan Tes 5, memastikan App B dilarang membaca data rahasia pelanggan (*c
 
 #### 📥 2. Spesifikasi Request
 - **Method & URL**: `GET http://localhost:8290/api/customers/getByCreateDate?companyCode=1000`
-- **Header**: `Authorization: Bearer token-assa-app-b-secret-67890`
+- **Header**: `Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881`
 - **cURL**:
   ```powershell
-  curl.exe -i "http://localhost:8290/api/customers/getByCreateDate?companyCode=1000" -H "Authorization: Bearer token-assa-app-b-secret-67890"
+  curl.exe -i "http://localhost:8290/api/customers/getByCreateDate?companyCode=1000" -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
   ```
 
 #### ⚙️ 3. Alur Eksekusi Internal (Code Trace)
@@ -324,10 +324,10 @@ Memvalidasi input pengguna sebelum diteruskan ke backend hilir (*fail-fast patte
 
 #### 📥 2. Spesifikasi Request
 - **Method & URL**: `GET http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000`
-- **Header**: `Authorization: Bearer token-assa-app-b-secret-67890`
+- **Header**: `Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881`
 - **cURL**:
   ```powershell
-  curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000" -H "Authorization: Bearer token-assa-app-b-secret-67890"
+  curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000" -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
   ```
 
 #### ⚙️ 3. Alur Eksekusi Internal (Code Trace)
@@ -361,10 +361,10 @@ Menguji skenario ideal / jalur utama (*Happy Path*): Klien mengirimkan parameter
 
 #### 📥 2. Spesifikasi Request
 - **Method & URL**: `GET http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU`
-- **Header**: `Authorization: Bearer token-assa-app-b-secret-67890`
+- **Header**: `Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881`
 - **cURL**:
   ```powershell
-  curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU" -H "Authorization: Bearer token-assa-app-b-secret-67890"
+  curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU" -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
   ```
 
 #### ⚙️ 3. Alur Eksekusi Internal (Code Trace)
@@ -428,10 +428,10 @@ Menguji integrasi dengan backend internal korporat ASSA (**SAP Core**). Aplikasi
 
 #### 📥 2. Spesifikasi Request
 - **Method & URL**: `GET http://localhost:8290/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11`
-- **Header**: `Authorization: Bearer token-assa-app-a-secret-12345`
+- **Header**: `Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013`
 - **cURL**:
   ```powershell
-  curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11" -H "Authorization: Bearer token-assa-app-a-secret-12345"
+  curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11" -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013"
   ```
 
 #### ⚙️ 3. Alur Eksekusi Internal (Code Trace)
@@ -454,11 +454,11 @@ Menguji propagasi header pelacakan (*Distributed Tracing*). Jika klien mengirimk
 #### 📥 2. Spesifikasi Request
 - **Method & URL**: `GET http://localhost:8290/api/branches/getByCreateDate`
 - **Header**:
-  - `Authorization: Bearer token-assa-app-a-secret-12345`
+  - `Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013`
   - `X-Correlation-Id: CUSTOM-TRACE-AUDIT-9999`
 - **cURL**:
   ```powershell
-  curl.exe -i "http://localhost:8290/api/branches/getByCreateDate" -H "Authorization: Bearer token-assa-app-a-secret-12345" -H "X-Correlation-Id: CUSTOM-TRACE-AUDIT-9999"
+  curl.exe -i "http://localhost:8290/api/branches/getByCreateDate" -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" -H "X-Correlation-Id: CUSTOM-TRACE-AUDIT-9999"
   ```
 
 #### ⚙️ 3. Alur Eksekusi Internal (Code Trace)
@@ -483,12 +483,12 @@ Mencatat seluruh siklus hidup transaksi ke dalam database audit. Ketika klien me
 #### 📥 2. Spesifikasi Request
 - **Method & URL**: `GET http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU`
 - **Header**:
-  - `Authorization: Bearer token-assa-app-a-secret-12345`
+  - `Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013`
   - `X-Transaction-Id: TRX-MANUAL-001`
 - **cURL**:
   ```powershell
   curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU" `
-    -H "Authorization: Bearer token-assa-app-a-secret-12345" `
+    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" `
     -H "X-Transaction-Id: TRX-MANUAL-001"
   ```
 
@@ -552,7 +552,7 @@ Mencegah eksekusi ganda (*double processing*) pada kasus jaringan tidak stabil (
 - **cURL**:
   ```powershell
   curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000&licensePlate=B-9065-UCU" `
-    -H "Authorization: Bearer token-assa-app-a-secret-12345" `
+    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" `
     -H "X-Transaction-Id: TRX-MANUAL-001"
   ```
 
@@ -598,14 +598,14 @@ Menguji skenario ketika backend hilir sedang *down*, *crashed*, atau *unreachabl
 #### 📥 2. Spesifikasi Request
 - **Method & URL**: `GET http://localhost:8290/api/branches/getByCreateDate?companyCode=1000`
 - **Header**:
-  - `Authorization: Bearer token-assa-app-a-secret-12345`
+  - `Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013`
   - `X-Transaction-Id: TRX-FAIL-MANUAL-001`
   - `X-Retry-Interval-Seconds: 1` *(Jeda retry 1 detik untuk percepatan testing)*
   - `X-Target-Backend-Url: http://127.0.0.1:59999` *(Port fiktif yang sengaja mati)*
 - **cURL**:
   ```powershell
   curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000" `
-    -H "Authorization: Bearer token-assa-app-a-secret-12345" `
+    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" `
     -H "X-Transaction-Id: TRX-FAIL-MANUAL-001" `
     -H "X-Retry-Interval-Seconds: 1" `
     -H "X-Target-Backend-Url: http://127.0.0.1:59999"

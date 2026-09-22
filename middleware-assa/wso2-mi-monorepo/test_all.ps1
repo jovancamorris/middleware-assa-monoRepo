@@ -30,10 +30,10 @@ $baseUrl2 = if ($env:BASE_URL2) { $env:BASE_URL2 } else { "http://localhost:8292
 $baseUrl3 = if ($env:BASE_URL3) { $env:BASE_URL3 } else { "http://localhost:8293" }
 $baseUrl4 = if ($env:BASE_URL4) { $env:BASE_URL4 } else { "http://localhost:8294" }
 $baseUrl5 = if ($env:BASE_URL5) { $env:BASE_URL5 } else { "http://localhost:8295" }
-$tokenAppA = if ($env:AUTH_APP_A_TOKEN) { $env:AUTH_APP_A_TOKEN } else { "token-assa-app-a-secret-12345" }
-$tokenAppB = if ($env:AUTH_APP_B_TOKEN) { $env:AUTH_APP_B_TOKEN } else { "token-assa-app-b-secret-67890" }
+$tokenAppA = if ($env:AUTH_APP_A_TOKEN) { $env:AUTH_APP_A_TOKEN } else { "3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" }
+$tokenAppB = if ($env:AUTH_APP_B_TOKEN) { $env:AUTH_APP_B_TOKEN } else { "988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" }
 $tokenQA   = if ($env:AUTH_APP_QA_TOKEN) { $env:AUTH_APP_QA_TOKEN } else { "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" }
-$tokenOmnichannel = if ($env:AUTH_APP_OMNICHANNEL_TOKEN) { $env:AUTH_APP_OMNICHANNEL_TOKEN } else { "token-assa-omnichannel-secret-99999" }
+$tokenOmnichannel = if ($env:AUTH_APP_OMNICHANNEL_TOKEN) { $env:AUTH_APP_OMNICHANNEL_TOKEN } else { "14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" }
 
 
 # 1. Cek Koneksi Server

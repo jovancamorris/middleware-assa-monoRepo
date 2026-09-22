@@ -193,7 +193,7 @@ curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000
 #### 5. Tes Scope Guard: App B Akses Branch (Harus Ditolak 403)
 *(App B hanya memiliki izin scope `vehicles`, dilarang mengakses `branches`)*
 ```powershell
-curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000" -H "Authorization: Bearer token-assa-app-b-secret-67890"
+curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000" -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
 ```
 *Ekspektasi Hasil: `HTTP/1.1 403 Forbidden`*
 ```json
@@ -209,7 +209,7 @@ curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000
 #### 6. Tes Scope Guard: App B Akses Customer (Harus Ditolak 403)
 *(App B hanya memiliki izin scope `vehicles`, dilarang mengakses `customers`)*
 ```powershell
-curl.exe -i "http://localhost:8290/api/customers/getByCreateDate?companyCode=1000" -H "Authorization: Bearer token-assa-app-b-secret-67890"
+curl.exe -i "http://localhost:8290/api/customers/getByCreateDate?companyCode=1000" -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
 ```
 *Ekspektasi Hasil: `HTTP/1.1 403 Forbidden`*
 ```json
@@ -224,7 +224,7 @@ curl.exe -i "http://localhost:8290/api/customers/getByCreateDate?companyCode=100
 
 #### 7. Tes Validasi Parameter: Vehicle tanpa Parameter Pencarian (Harus Ditolak 400)
 ```powershell
-curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000" -H "Authorization: Bearer token-assa-app-b-secret-67890"
+curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=1000" -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
 ```
 *Ekspektasi Hasil: `HTTP/1.1 400 Bad Request`*
 ```json
@@ -240,7 +240,7 @@ curl.exe -i "http://localhost:8290/api/vehicles/getByLicensePlate?companyCode=10
 #### 8. Tes Sukses: Vehicle Atlas API ke Backend Live (Token App B)
 Mengambil data armada dari server live `https://devfmsapi.assa.id/api/vehicleatlas` dengan pencarian sebagian (*partial match*) nomor polisi:
 ```powershell
-curl.exe -i "http://localhost:8290/api/vehicles/vehicleatlas?plate_no=DD-8112" -H "Authorization: Bearer token-assa-app-b-secret-67890"
+curl.exe -i "http://localhost:8290/api/vehicles/vehicleatlas?plate_no=DD-8112" -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
 ```
 *(Atau via path backward compatibility: `/api/vehicles/getByLicensePlate?plate_no=DD-8112`)*
 
@@ -298,12 +298,12 @@ curl.exe -i "http://localhost:8290/api/vehicles/vehicleatlas?plate_no=DD-8112" -
 
 #### 10. Tes Branch Service (Token App A)
 ```powershell
-curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -H "Authorization: Bearer token-assa-app-a-secret-12345"
+curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013"
 ```
 
 #### 11. Tes Customer Service (Token App A)
 ```powershell
-curl.exe -i "http://localhost:8290/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -H "Authorization: Bearer token-assa-app-a-secret-12345"
+curl.exe -i "http://localhost:8290/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013"
 ```
 
 > [!NOTE]
@@ -320,7 +320,7 @@ Bagian ini menguji fitur ketahanan backend, pencegahan request ganda (idempotenc
 Mengirim request dengan `X-Transaction-Id` baru. Middleware akan memproses request, menyimpan status `SUCCESS` ke `api_transaction`, dan mencatat percobaan ke `api_transaction_log`.
 ```powershell
 curl.exe -i "http://localhost:8290/api/vehicles/vehicleatlas?plate_no=DD-8112" `
-  -H "Authorization: Bearer token-assa-app-a-secret-12345" `
+  -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" `
   -H "X-Transaction-Id: TRX-MANUAL-001"
 ```
 *Ekspektasi Hasil:*
@@ -336,7 +336,7 @@ curl.exe -i "http://localhost:8290/api/vehicles/vehicleatlas?plate_no=DD-8112" `
 Kirim kembali request yang sama persis dengan `X-Transaction-Id: TRX-MANUAL-001`. Middleware **tidak akan** memanggil backend eksternal lagi, melainkan langsung mengembalikan respons tersimpan dari cache database.
 ```powershell
 curl.exe -i "http://localhost:8290/api/vehicles/vehicleatlas?plate_no=DD-8112" `
-  -H "Authorization: Bearer token-assa-app-a-secret-12345" `
+  -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" `
   -H "X-Transaction-Id: TRX-MANUAL-001"
 ```
 *Ekspektasi Hasil:*
@@ -353,7 +353,7 @@ Mensimulasikan backend external mati (port 59999 tidak aktif). Middleware akan m
 **Contoh A (Branch API):**
 ```powershell
 curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000" `
-  -H "Authorization: Bearer token-assa-app-a-secret-12345" `
+  -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" `
   -H "X-Transaction-Id: TRX-FAIL-MANUAL-001" `
   -H "X-Retry-Interval-Seconds: 1" `
   -H "X-Target-Backend-Url: http://127.0.0.1:59999"
@@ -362,7 +362,7 @@ curl.exe -i "http://localhost:8290/api/branches/getByCreateDate?companyCode=1000
 **Contoh B (Vehicle Atlas API):**
 ```powershell
 curl.exe -i "http://localhost:8290/api/vehicles/vehicleatlas?plate_no=DD-8112" `
-  -H "Authorization: Bearer token-assa-app-b-secret-67890" `
+  -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" `
   -H "X-Transaction-Id: TRX-FAIL-VERIFY-001" `
   -H "X-Retry-Interval-Seconds: 1" `
   -H "X-Target-Backend-Url: http://127.0.0.1:59999"
@@ -475,7 +475,7 @@ Invoke-RestMethod -Uri "http://localhost:8290/api/vendors/create" -Method Post -
 Gunakan token App B yang tidak memiliki scope `vendors`:
 ```powershell
 $noScopeHeaders = @{
-    "Authorization" = "Bearer token-assa-app-b-secret-67890"
+    "Authorization" = "Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
     "Content-Type" = "application/json"
 }
 Invoke-RestMethod -Uri "http://localhost:8290/api/vendors/create" -Method Post -Headers $noScopeHeaders -Body "{}"
@@ -501,7 +501,7 @@ Referensi: [GUIDE_SR.md](../notes/GUIDE_SR.md) & [TEST_SERVICE_REQUEST.md](TEST_
 Copy-paste kode berikut langsung ke terminal PowerShell Anda:
 ```powershell
 $headers = @{
-    "Authorization" = "Bearer token-assa-omnichannel-secret-99999"
+    "Authorization" = "Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12"
     "Content-Type" = "application/json"
     "X-Transaction-Id" = "TRX-SR-" + (Get-Date -Format "yyyyMMddHHmmss")
 }
@@ -567,7 +567,7 @@ Invoke-RestMethod -Uri "http://localhost:8290/api/service-requests" -Method Post
 ##### B. Menggunakan cURL Terminal (`curl.exe`)
 ```powershell
 curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
-  -H "Authorization: Bearer token-assa-omnichannel-secret-99999" `
+  -H "Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" `
   -H "Content-Type: application/json" `
   -H "X-Transaction-Id: TRX-SR-MANUAL-001" `
   --data-binary "@test/payload_sr_test.json"
@@ -582,7 +582,7 @@ Jika Anda mengeksekusi ulang perintah cURL di atas dengan `X-Transaction-Id: TRX
 Jika ada field wajib (`app_id`, `reff_number`, `branch_code`, `created_datetime`, `created_by`, `ticket_no`) yang tidak disertakan:
 ```powershell
 curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
-  -H "Authorization: Bearer token-assa-omnichannel-secret-99999" `
+  -H "Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" `
   -H "Content-Type: application/json" `
   -d '{"reff_number":"REF01","branch_code":"JKT01","created_datetime":"17-09-2026","created_by":"admin","ticket_no":"TCK01"}'
 ```
@@ -599,7 +599,7 @@ curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
 Gunakan token App B yang hanya berhak untuk scope `vehicles`:
 ```powershell
 curl.exe -i -s -X POST http://localhost:8290/api/service-requests `
-  -H "Authorization: Bearer token-assa-app-b-secret-67890" `
+  -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" `
   -H "Content-Type: application/json" `
   -d "{}"
 ```
@@ -637,9 +637,9 @@ ORDER BY id DESC LIMIT 10;
 
 | Token ID | Scopes | Bearer Token Header |
 | :--- | :--- | :--- |
-| **App A** | `branches, customers, vehicles, vendors, service_requests` | `Authorization: Bearer token-assa-app-a-secret-12345` |
-| **App B** | `vehicles` | `Authorization: Bearer token-assa-app-b-secret-67890` |
+| **App A** | `branches, customers, vehicles, vendors, service_requests` | `Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` |
+| **App B** | `vehicles` | `Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` |
 | **App QA** | `branches, customers, vehicles, vendors, service_requests` | `Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
-| **App ATLAS** | `vendors` | `Authorization: Bearer token-assa-atlas-vmd-secret-99999` |
-| **App Omnichannel** | `service_requests` | `Authorization: Bearer token-assa-omnichannel-secret-99999` |
+| **App ATLAS** | `vendors` | `Authorization: Bearer 513736d17f45657e2e448779cbc89320691f0fc246728f34250c0abf166f494a` |
+| **App Omnichannel** | `service_requests` | `Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12` |
 

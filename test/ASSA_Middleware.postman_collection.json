@@ -13,12 +13,12 @@
 		},
 		{
 			"key": "token_app_a",
-			"value": "token-assa-app-a-secret-12345",
+			"value": "3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013",
 			"type": "string"
 		},
 		{
 			"key": "token_app_b",
-			"value": "token-assa-app-b-secret-67890",
+			"value": "988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881",
 			"type": "string"
 		},
 		{

@@ -63,7 +63,7 @@ Write-Host "[TEST 2] Successful External API Call with Idempotency Key ($TrxSucc
 
 try {
     $Headers = @{
-        "Authorization" = "Bearer token-assa-app-a-secret-12345"
+        "Authorization" = "Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013"
         "X-Transaction-Id" = $TrxSuccess
     }
     $Resp = Invoke-WebRequest -Uri "$BaseUrl/api/vehicles/vehicleatlas?plate_no=DD-8112" -Headers $Headers -UseBasicParsing -ErrorAction Stop
@@ -102,7 +102,7 @@ Write-Host "[TEST 3] Idempotency Check - Duplicate Transaction ID ($TrxSuccess)"
 
 try {
     $Headers = @{
-        "Authorization" = "Bearer token-assa-app-a-secret-12345"
+        "Authorization" = "Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013"
         "X-Transaction-Id" = $TrxSuccess
     }
     $Resp = Invoke-WebRequest -Uri "$BaseUrl/api/vehicles/vehicleatlas?plate_no=DD-8112" -Headers $Headers -UseBasicParsing -ErrorAction Stop
@@ -139,7 +139,7 @@ Write-Host "  Mengirim request ke backend down dengan interval 1 detik (X-Retry-
 $StartTime = Get-Date
 try {
     $Headers = @{
-        "Authorization" = "Bearer token-assa-app-a-secret-12345"
+        "Authorization" = "Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013"
         "X-Transaction-Id" = $TrxFail
         "X-Retry-Interval-Seconds" = "1"
         "X-Target-Backend-Url" = "http://127.0.0.1:59999"

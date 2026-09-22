@@ -4,14 +4,20 @@
 # BUILD CONTEXT = root monorepo (agar bisa akses parent pom & shared/).
 #   docker build -f integrations/branch-service/Dockerfile -t assa/branch-service:1.0.0 .
 # ==============================================================================
+ARG SERVICE_DIR=integrations/branch-service
 ARG BASE_IMAGE=wso2/wso2mi:4.6.0
 # ---- Stage 1: build shared + service .car ----
 FROM maven:3.9-eclipse-temurin-11 AS build
+ARG SERVICE_DIR=integrations/branch-service
 WORKDIR /app
 COPY . .
-# Build shared dulu (di-install ke local repo), lalu service ini
-RUN mvn -q -pl shared -am install -DskipTests && \
-    mvn -q -pl integrations/branch-service -am package -DskipTests
+# Build shared dulu (di-install ke local repo), lalu service ini jika belum ter-build
+RUN if ls /app/${SERVICE_DIR}/target/*.car 1> /dev/null 2>&1 && ls /app/shared/target/*.car 1> /dev/null 2>&1; then \
+        echo "Pre-built CAR found for ${SERVICE_DIR}. Skipping maven build."; \
+    else \
+        mvn -q -pl shared -am install -DskipTests && \
+        mvn -q -pl ${SERVICE_DIR} -am package -DskipTests; \
+    fi
 
 # ---- Stage 2: runtime ----
 FROM ${BASE_IMAGE}
