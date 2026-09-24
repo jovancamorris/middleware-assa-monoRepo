@@ -22,8 +22,9 @@ services:
 
   branch-service:
     build:
-      context: ./integrations/branch-service/deployment/docker
+      context: .
       dockerfile: Dockerfile
+      target: branch-service
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/branch-service:1.0.0
@@ -53,8 +54,9 @@ services:
 
   customer-service:
     build:
-      context: ./integrations/customer-service/deployment/docker
+      context: .
       dockerfile: Dockerfile
+      target: customer-service
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/customer-service:1.0.0
@@ -68,8 +70,9 @@ services:
 
   vehicle-service:
     build:
-      context: ./integrations/vehicle-service/deployment/docker
+      context: .
       dockerfile: Dockerfile
+      target: vehicle-service
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/vehicle-service:1.0.0
@@ -85,8 +88,9 @@ services:
 
   vendor-service:
     build:
-      context: ./integrations/vendor-service/deployment/docker
+      context: .
       dockerfile: Dockerfile
+      target: vendor-service
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/vendor-service:1.0.0
@@ -106,8 +110,9 @@ services:
 
   spk-service:
     build:
-      context: ./integrations/spk-service/deployment/docker
+      context: .
       dockerfile: Dockerfile
+      target: spk-service
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/spk-service:1.0.0
@@ -127,8 +132,9 @@ services:
 
   service-request-service:
     build:
-      context: ./integrations/service-request-service/deployment/docker
+      context: .
       dockerfile: Dockerfile
+      target: service-request-service
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/service-request-service:1.0.0

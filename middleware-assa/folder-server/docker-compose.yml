@@ -1,0 +1,72 @@
+services:
+  # ---- 1. Init Container: Ekstrak Skema SQL dari Image 1.0.5 ----
+  mariadb-init:
+    image: registry.assa.id/nobi.sumariga/middleware-assa:1.0.5
+    container_name: mi-mariadb-init
+    user: root
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "cp /docker-entrypoint-initdb.d/01_init.sql /init-target/01_init.sql"
+    volumes:
+      - mariadb_init_script:/init-target
+
+  # ---- 2. MariaDB Database (Idempotency & Retry Tracking) ----
+  mariadb:
+    image: ${DB_IMAGE:-mariadb:11}
+    container_name: mi-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "yes"
+      MARIADB_DATABASE: ${DB_NAME:-assa_middleware_db}
+    ports:
+      - "${COMPOSE_DB_PORT:-3308}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      # Mengambil schema dari shared volume yang diisi oleh mariadb-init:
+      - mariadb_init_script:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      mariadb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---- 3. WSO2 MI Monorepo (Single Image from GitLab Container Registry) ----
+  middleware-wso2-api:
+    image: registry.assa.id/nobi.sumariga/middleware-assa:1.0.5
+    container_name: middleware-wso2-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST:-mariadb}
+      DB_PORT: ${DB_PORT:-3306}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8290 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---- 4. Nginx Reverse Proxy (Satu Pintu Akses HTTP) ----
+  nginx:
+    image: nginx:alpine
+    container_name: middleware-wso2-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-6031}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - middleware-wso2-api
+
+volumes:
+  mariadb_data:
+  mariadb_init_script:
