@@ -6,6 +6,9 @@ RUN rm -f /etc/nginx/conf.d/default.conf
 # Copy config custom
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# Copy static documentation & OpenAPI specs
+COPY doc /usr/share/nginx/html/doc
+
 EXPOSE 80
 
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 \

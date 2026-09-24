@@ -153,5 +153,22 @@ services:
       SR_TARGET_ATLAS_APIKEY: ${SR_TARGET_ATLAS_APIKEY:-}
       SR_TARGET_EXTSERVICE_ENABLED: ${SR_TARGET_EXTSERVICE_ENABLED:-true}
 
+  nginx:
+    image: nginx:alpine
+    container_name: middleware-wso2-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-6031}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docs:/usr/share/nginx/html/docs:ro
+    depends_on:
+      - branch-service
+      - customer-service
+      - vehicle-service
+      - vendor-service
+      - spk-service
+      - service-request-service
+
 volumes:
   mariadb_data:

@@ -19,6 +19,8 @@ COPY --from=build /app/shared/target/*.car \
 COPY --from=build /app/platform/docker/resources/*.jks ${WSO2_SERVER_HOME}/repository/resources/security/
 COPY platform/docker/entrypoint.sh /home/wso2carbon/entrypoint.sh
 COPY --from=build /app/scripts/db/init_mariadb_schema.sql /docker-entrypoint-initdb.d/01_init.sql
+# Salin dokumentasi & kontrak OpenAPI 3.0 ke dalam image container
+COPY --from=build /app/docs /app/docs
 
 RUN sed -i 's/\r$//' /home/wso2carbon/entrypoint.sh && \
     chmod +x /home/wso2carbon/entrypoint.sh && \

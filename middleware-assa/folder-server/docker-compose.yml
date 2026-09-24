@@ -1,7 +1,9 @@
+name: middleware-assa-server
+
 services:
-  # ---- 1. Init Container: Ekstrak Skema SQL dari Image 1.0.5 ----
+  # ---- 1. Init Container: Ekstrak Skema SQL ----
   mariadb-init:
-    image: registry.assa.id/nobi.sumariga/middleware-assa:1.0.5
+    image: ${BRANCH_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:branch-service-1.0.0}
     container_name: mi-mariadb-init
     user: root
     restart: "no"
@@ -23,7 +25,6 @@ services:
       - "${COMPOSE_DB_PORT:-3308}:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
-      # Mengambil schema dari shared volume yang diisi oleh mariadb-init:
       - mariadb_init_script:/docker-entrypoint-initdb.d:ro
     depends_on:
       mariadb-init:
@@ -35,16 +36,24 @@ services:
       retries: 10
       start_period: 20s
 
-  # ---- 3. WSO2 MI Monorepo (Single Image from GitLab Container Registry) ----
-  middleware-wso2-api:
-    image: registry.assa.id/nobi.sumariga/middleware-assa:1.0.5
-    container_name: middleware-wso2-api
+  # ---- 3. Microservice WSO2 MI Containers (Per Service) ----
+  branch-service:
+    image: ${BRANCH_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:branch-service-1.0.0}
+    container_name: branch-service
     restart: unless-stopped
-    env_file:
-      - .env
-    environment:
+    ports:
+      - "8290:8290"
+    environment: &common-env
       DB_HOST: ${DB_HOST:-mariadb}
       DB_PORT: ${DB_PORT:-3306}
+      SAP_CORE_BASE_URL: ${SAP_CORE_BASE_URL:-https://devsapcoreapi.assa.id}
+      SAP_CORE_CUSTOMER_BASE_URL: ${SAP_CORE_CUSTOMER_BASE_URL:-https://sapcoreapi.assa.id}
+      ASSA_EXT_BASE_URL: ${ASSA_EXT_BASE_URL:-https://devfmsapi.assa.id}
+      AUTH_APP_A_TOKEN: ${AUTH_APP_A_TOKEN:-}
+      AUTH_APP_B_TOKEN: ${AUTH_APP_B_TOKEN:-}
+      AUTH_APP_QA_TOKEN: ${AUTH_APP_QA_TOKEN:-}
+      AUTH_APP_ATLAS_TOKEN: ${AUTH_APP_ATLAS_TOKEN:-}
+      AUTH_APP_OMNICHANNEL_TOKEN: ${AUTH_APP_OMNICHANNEL_TOKEN:-}
     depends_on:
       mariadb:
         condition: service_healthy
@@ -55,7 +64,83 @@ services:
       retries: 5
       start_period: 30s
 
-  # ---- 4. Nginx Reverse Proxy (Satu Pintu Akses HTTP) ----
+  customer-service:
+    image: ${CUSTOMER_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:customer-service-1.0.0}
+    container_name: customer-service
+    restart: unless-stopped
+    ports:
+      - "8291:8290"
+    environment: *common-env
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  vehicle-service:
+    image: ${VEHICLE_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:vehicle-service-1.0.0}
+    container_name: vehicle-service
+    restart: unless-stopped
+    ports:
+      - "8292:8290"
+    environment:
+      <<: *common-env
+      ASSA_EXT_VEHICLE_APIKEY: ${ASSA_EXT_VEHICLE_APIKEY:-}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  vendor-service:
+    image: ${VENDOR_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:vendor-service-1.0.0}
+    container_name: vendor-service
+    restart: unless-stopped
+    ports:
+      - "8293:8290"
+    environment:
+      <<: *common-env
+      FTP_SAP_HOST: ${FTP_SAP_HOST:-devqaxmlpool.assa.id}
+      FTP_SAP_PORT: ${FTP_SAP_PORT:-21}
+      FTP_SAP_TARGET: ${FTP_SAP_TARGET:-/vmd}
+      FTP_SAP_USERNAME: ${FTP_SAP_USERNAME:-middlewaredev}
+      FTP_SAP_PASSWORD: ${FTP_SAP_PASSWORD:-}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  spk-service:
+    image: ${SPK_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:spk-service-1.0.0}
+    container_name: spk-service
+    restart: unless-stopped
+    ports:
+      - "8294:8290"
+    environment:
+      <<: *common-env
+      FTP_SPK_HOST: ${FTP_SPK_HOST:-devqaxmlpool.assa.id}
+      FTP_SPK_PORT: ${FTP_SPK_PORT:-21}
+      FTP_SPK_TARGET: ${FTP_SPK_TARGET:-/duelist}
+      FTP_SPK_USERNAME: ${FTP_SPK_USERNAME:-middlewaredev}
+      FTP_SPK_PASSWORD: ${FTP_SPK_PASSWORD:-}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  service-request-service:
+    image: ${SR_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:service-request-service-1.0.0}
+    container_name: service-request-service
+    restart: unless-stopped
+    ports:
+      - "8295:8290"
+    environment:
+      <<: *common-env
+      ASSA_EXT_SR_BASE_URL: ${ASSA_EXT_SR_BASE_URL:-https://assa-ext-services.assa.id/dev}
+      ASSA_EXT_SR_APIKEY: ${ASSA_EXT_SR_APIKEY:-}
+      SR_TARGET_ATLAS_ENABLED: ${SR_TARGET_ATLAS_ENABLED:-false}
+      SR_TARGET_ATLAS_BASE_URL: ${SR_TARGET_ATLAS_BASE_URL:-https://atlas-api.assa.id/dev}
+      SR_TARGET_ATLAS_APIKEY: ${SR_TARGET_ATLAS_APIKEY:-}
+      SR_TARGET_EXTSERVICE_ENABLED: ${SR_TARGET_EXTSERVICE_ENABLED:-true}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  # ---- 4. Nginx Reverse Proxy (Gateway Port 6031) ----
   nginx:
     image: nginx:alpine
     container_name: middleware-wso2-nginx
@@ -64,8 +149,14 @@ services:
       - "${NGINX_HTTP_PORT:-6031}:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./doc:/usr/share/nginx/html/docs:ro
     depends_on:
-      - middleware-wso2-api
+      - branch-service
+      - customer-service
+      - vehicle-service
+      - vendor-service
+      - spk-service
+      - service-request-service
 
 volumes:
   mariadb_data:

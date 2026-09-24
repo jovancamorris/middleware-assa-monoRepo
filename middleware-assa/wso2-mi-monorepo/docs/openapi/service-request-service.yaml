@@ -1,0 +1,403 @@
+openapi: 3.0.3
+info:
+  title: Service Request & Background Worker API
+  description: |
+    API integrasi penerimaan Service Request (Fan-out Paralel ke External Service & ATLAS)
+    serta pemicu operasional Background Retry Worker melalui WSO2 Integrator: MI.
+    Sesuai standar `API_DEVELOPMENT_GUIDE.md` pada repository `wso2-mi-monorepo`.
+  version: 1.0.0
+
+servers:
+  - url: https://devmiddleware1.assa.id
+    description: Server Dev ASSA Gateway (HTTPS)
+  - url: http://devmiddleware1.assa.id:6031
+    description: Server Dev ASSA (Nginx Port 6031)
+  - url: http://10.3.20.197:6031
+    description: Server Dev ASSA (Nginx IP Internal)
+  - url: http://localhost:8295
+    description: Local Docker Compose (Direct Port 8295)
+
+tags:
+  - name: Service Request
+    description: Penerimaan tiket perawatan kendaraan dan fan-out paralel
+  - name: Background Worker
+    description: Pemrosesan ulang otomatis transaksi tertunda/gagal
+  - name: Health
+    description: Probe liveness dan readiness container
+
+paths:
+  /api/service-requests:
+    post:
+      tags:
+        - Service Request
+      operationId: createServiceRequest
+      summary: Membuat tiket Service Request baru (Fan-out Paralel)
+      description: |
+        Menerima pembuatan tiket perawatan berkala / insiden kendaraan dari kanal Omnichannel.
+        Middleware mengeksekusi **Fan-out Paralel**:
+        1. Mengirim payload ke ASSA External Services (`assa-ext-services.assa.id`).
+        2. Mengirim payload ke sistem ATLAS FMS (jika toggle aktif).
+        3. Mencatat status audit transaksi ke database MariaDB.
+
+        **Mekanisme Idempotency**:
+        Sertakan header `X-Transaction-Id` untuk mencegah duplikasi tiket.
+      security:
+        - bearerAuth:
+            - service_requests
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/TransactionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceRequestPayload'
+      responses:
+        '200':
+          description: Tiket service request berhasil diproses oleh seluruh downstream
+          headers:
+            X-Transaction-Id:
+              schema:
+                type: string
+            X-Correlation-Id:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestSuccessResponse'
+        '207':
+          description: Multi-Status — sebagian target downstream berhasil, sebagian gagal dan masuk antrean retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          description: Seluruh target downstream gagal merespons setelah proses retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/worker/retry:
+    get:
+      tags:
+        - Background Worker
+      operationId: triggerRetryWorkerGet
+      summary: Memicu pemrosesan manual Background Retry Worker (GET)
+      description: |
+        Menjalankan sequence pemrosesan antrean transaksi tertunda (*PENDING/FAILED*) pada tabel retry MariaDB
+        untuk dikirimkan ulang ke sistem downstream.
+      security: []
+      responses:
+        '200':
+          description: Retry worker berhasil dieksekusi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags:
+        - Background Worker
+      operationId: triggerRetryWorkerPost
+      summary: Memicu pemrosesan manual Background Retry Worker (POST)
+      description: |
+        Menjalankan sequence pemrosesan antrean transaksi tertunda via HTTP POST.
+      security: []
+      responses:
+        '200':
+          description: Retry worker berhasil dieksekusi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /health/service-request:
+    get:
+      tags:
+        - Health
+      operationId: getServiceRequestHealth
+      summary: Health check liveness Service Request & Worker
+      description: Memeriksa apakah service WSO2 MI hidup dan responsif.
+      security: []
+      responses:
+        '200':
+          description: Service hidup (Liveness probe sukses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /readiness/service-request:
+    get:
+      tags:
+        - Health
+      operationId: getServiceRequestReadiness
+      summary: Health check readiness Service Request & Worker
+      description: Memeriksa kesiapan service menerima traffic.
+      security: []
+      responses:
+        '200':
+          description: Service siap (Readiness probe sukses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Masukkan Bearer Token aplikasi yang memiliki scope `service_requests` (misal Token Omnichannel).
+        Token dibaca dari environment/secret lokal.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: ID korelasi unik untuk tracing log end-to-end
+      schema:
+        type: string
+        maxLength: 128
+        example: corr-sr-001
+    TransactionId:
+      name: X-Transaction-Id
+      in: header
+      required: false
+      description: ID unik transaksi untuk proteksi Idempotency Guard
+      schema:
+        type: string
+        example: SR-TRX-20260924-001
+    IdempotencyKey:
+      name: X-Idempotency-Key
+      in: header
+      required: false
+      description: Alias alternatif untuk X-Transaction-Id
+      schema:
+        type: string
+        example: SR-TRX-20260924-001
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+
+    ReadinessResponse:
+      type: object
+      required:
+        - status
+        - backend
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: READY
+        backend:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Bad Request
+        detail:
+          type: string
+          example: Missing required field app_id.
+        transactionId:
+          type: string
+          nullable: true
+          example: TRX-20260924150000001
+
+    WorkerResponse:
+      type: object
+      properties:
+        worker:
+          type: string
+          example: RetryWorker
+        status:
+          type: string
+          example: COMPLETED
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+        message:
+          type: string
+          example: Background retry worker executed successfully.
+
+    ServiceRequestPayload:
+      type: object
+      required:
+        - app_id
+        - reff_number
+        - branch_code
+        - license_plate
+        - ticket_no
+      properties:
+        app_id:
+          type: string
+          example: sr_app_omnichannel
+        reff_number:
+          type: string
+          example: REF-SR-20260917-001
+        branch_code:
+          type: string
+          example: JKT01
+        equipment_number:
+          type: string
+          example: EQ-998877
+        license_plate:
+          type: string
+          example: B-1234-SSA
+        customer_code:
+          type: string
+          example: CUST-00123
+        customer_name:
+          type: string
+          example: PT Maju Bersama ASSA
+        channel:
+          type: string
+          example: Omnichannel-Web
+        cp_title:
+          type: string
+          example: Bpk
+        cp_name:
+          type: string
+          example: Ahmad Fauzi
+        cp_phone:
+          type: string
+          example: '081234567890'
+        cp_email:
+          type: string
+          format: email
+          example: ahmad.fauzi@example.com
+        cp_address:
+          type: string
+          example: Jl. Gatot Subroto No. 45 Jakarta
+        km:
+          type: string
+          example: '25000'
+        description:
+          type: string
+          example: Perawatan berkala 25.000 KM dan pengecekan rem
+        service_datetime:
+          type: string
+          example: '2026-09-20 10:00:00'
+        service_location:
+          type: string
+          example: Bengkel Resmi ASSA Sunter
+        jenis_permintaan:
+          type: string
+          example: Service Berkala
+        incident_datetime:
+          type: string
+          example: '2026-09-17 09:00:00'
+        tipe_tiket:
+          type: string
+          example: Regular
+        judul:
+          type: string
+          example: Service Berkala Kendaraan Operasional
+        created_datetime:
+          type: string
+          example: '17-09-2026'
+        created_by:
+          type: string
+          example: omnichannel_agent
+        ticket_no:
+          type: string
+          example: TICKET-SR-99901
+
+    ServiceRequestSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Service Request processed successfully
+        transactionId:
+          type: string
+          example: SR-TRX-20260924-001
+        ticket_no:
+          type: string
+          example: TICKET-SR-99901
+        downstreamStatus:
+          type: object
+          properties:
+            externalService:
+              type: string
+              example: SUCCESS
+            atlasService:
+              type: string
+              example: SUCCESS
+
+  responses:
+    BadRequest:
+      description: Payload tidak valid atau parameter wajib kosong
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Token tidak ada atau salah
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Token valid tetapi tidak memiliki scope `service_requests`
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Transaksi dengan ID ini sedang diproses (409 Conflict)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Terjadi kesalahan internal pada runtime WSO2 MI
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -1,8 +1,8 @@
 # Panduan Penggunaan Postman Collection: ASSA Middleware Server Dev
-## Server Port: 6031 (devmiddleware1.assa.id:6031 / 10.3.20.197:6031)
+## Server Port: 6031 (`<DEV_HOST>:6031`)
 
 Dokumentasi ini adalah panduan lengkap (*User & Testing Guide*) untuk penggunaan file Postman Collection:
-📁 [`ASSA Middleware Server Dev (devmiddleware1.assa.id-6031).postman_collection.json`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/notes/ASSA%20Middleware%20Server%20Dev%20%28devmiddleware1.assa.id-6031%29.postman_collection.json)
+📁 [`ASSA Middleware Server Dev.postman_collection.json`]
 
 Panduan ini mencakup penjelasan arsitektur environment, manajemen variabel & token otentikasi, alur pengujian otomatis (*Pre-request Script & Tests*), penjelasan fungsional untuk **setiap 33 request**, serta alternatif perintah **cURL** siap pakai.
 
@@ -38,8 +38,8 @@ Pada lingkungan server pengembangan (**Server Dev ASSA**), seluruh microservice 
                                          │
                                          ▼ HTTP Port 6031
 +───────────────────────────────────────────────────────────────────────────────────+
-|  Nginx Reverse Proxy (Container: mi-nginx, Server Dev: 10.3.20.197:6031)          |
-|  - devmiddleware1.assa.id:6031                                                    |
+|  Nginx Reverse Proxy (Container: <NGINX_CONTAINER>, Server Dev: <DEV_HOST>:6031)  |
+|  - <DEV_HOST>:6031                                                               |
 +───────────────────────────────────────────────────────────────────────────────────+
        │                     │                     │                     │
        ▼ /health/*           ▼ /api/branches/*     ▼ /api/vehicles/*     ▼ /api/vendors/*
@@ -51,13 +51,13 @@ Pada lingkungan server pengembangan (**Server Dev ASSA**), seluruh microservice 
           │                                                    │
           ▼ SQL                                                ▼ XML over FTP
 +───────────────────────+                            +──────────────────────────────+
-| MariaDB (mi-mariadb)  |                            | Dev QA FTP Server            |
-| Port Internal: 3306   |                            | devqaxmlpool.assa.id:21      |
+| MariaDB (<DB_CONTAINER>) |                          | Dev QA FTP Server            |
+| Port Internal: <DB_PORT> |                          | <FTP_HOST>:<FTP_PORT>       |
 +───────────────────────+                            +──────────────────────────────+
 ```
 
 ### Keuntungan Port Tunggal (6031):
-- **Satu Pintu Masuk**: Anda tidak perlu berganti-ganti port 8290, 8291, 8292, dst. Semua request diarahkan ke `http://10.3.20.197:6031` atau `http://devmiddleware1.assa.id:6031`.
+- **Satu Pintu Masuk**: Anda tidak perlu berganti-ganti port 8290, 8291, 8292, dst. Semua request diarahkan ke `<DEV_BASE_URL>`.
 - **Rute Path Presisi**: Nginx memetakan path seperti `/api/branches/`, `/api/customers/`, `/api/vehicles/`, `/api/vendors/`, `/api/spk/`, `/api/service-requests/`, dan `/api/worker/` langsung ke backend WSO2 MI secara transparan.
 
 ---
@@ -70,15 +70,15 @@ Koleksi ini menggunakan **Collection Variables** bawaan sehingga dapat langsung 
 
 | Nama Variabel | Nilai Default Koleksi | Keterangan | Alternatif Direct Local |
 |---|---|---|---|
-| `baseUrlBranch` | `http://10.3.20.197:6031` | Endpoint Branch Service & Health | `http://localhost:8290` |
-| `baseUrlCustomer` | `http://10.3.20.197:6031` | Endpoint Customer Service | `http://localhost:8291` |
-| `baseUrlVehicle` | `http://10.3.20.197:6031` | Endpoint Vehicle Service & Atlas | `http://localhost:8292` |
-| `baseUrlVendor` | `http://10.3.20.197:6031` | Endpoint Vendor Create (VMD) | `http://localhost:8293` |
-| `baseUrlSPK` | `http://10.3.20.197:6031` | Endpoint SPK Duelist | `http://localhost:8294` |
-| `baseUrlSR` | `http://10.3.20.197:6031` | Endpoint Service Request & Worker | `http://localhost:8295` |
+| `baseUrlBranch` | `<DEV_BASE_URL>` | Endpoint Branch Service & Health | `http://localhost:8290` |
+| `baseUrlCustomer` | `<DEV_BASE_URL>` | Endpoint Customer Service | `http://localhost:8291` |
+| `baseUrlVehicle` | `<DEV_BASE_URL>` | Endpoint Vehicle Service & Atlas | `http://localhost:8292` |
+| `baseUrlVendor` | `<DEV_BASE_URL>` | Endpoint Vendor Create (VMD) | `http://localhost:8293` |
+| `baseUrlSPK` | `<DEV_BASE_URL>` | Endpoint SPK Duelist | `http://localhost:8294` |
+| `baseUrlSR` | `<DEV_BASE_URL>` | Endpoint Service Request & Worker | `http://localhost:8295` |
 
 > [!TIP]
-> Jika server dapat diakses melalui domain internal DNS ASSA, Anda dapat mengubah nilai variabel di atas menjadi `http://devmiddleware1.assa.id:6031`.
+> Jika server dapat diakses melalui domain internal DNS, Anda dapat mengubah nilai variabel di atas menjadi `<DEV_BASE_URL>:6031`.
 
 ### 2.2. Token Otentikasi & Hak Akses (Scope Matrix)
 
@@ -86,20 +86,20 @@ Middleware ASSA menerapkan pengamanan ganda: **Auth Guard** (verifikasi token te
 
 | Nama Variabel | Nilai Token (Bearer) | Scope yang Dimiliki | Boleh Mengakses |
 |---|---|---|---|
-| `token_app_a` | `3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` | `branches`, `customers` | Branch & Customer API |
-| `token_app_b` | `988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` | `vehicles` | Vehicle API saja |
-| `token_qa` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` | `vehicles`, `vendors`, `spk` | Vehicle, Vendor, SPK API |
-| `token_omnichannel` | `14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12` | `service_requests` | Service Request API |
-| *(Token Palsu)* | `token-palsu-ngawur` | *(Tidak ada)* | Digunakan untuk tes respons `401 Unauthorized` |
+| `token_app_a` | `<TOKEN_APP_A>` | `branches`, `customers` | Branch & Customer API |
+| `token_app_b` | `<TOKEN_APP_B>` | `vehicles` | Vehicle API saja |
+| `token_qa` | `<TOKEN_QA>` | `vehicles`, `vendors`, `spk` | Vehicle, Vendor, SPK API |
+| `token_omnichannel` | `<TOKEN_OMNICHANNEL>` | `service_requests` | Service Request API |
+| *(Token Palsu)* | `<INVALID_TOKEN>` | *(Tidak ada)* | Digunakan untuk tes respons `401 Unauthorized` |
 
 ### 2.3. Variabel Data & Transaksi
 
 | Nama Variabel | Nilai Awal | Keterangan |
 |---|---|---|
-| `companyCode` | `1000` | Kode entitas perusahaan ASSA default |
-| `vendor_trx_id` | `TRX-VENDOR-INIT-001` | Di-update otomatis saat request Vendor Create dijalankan |
-| `spk_trx_id` | `TRX-SPK-INIT-001` | Di-update otomatis saat request SPK Duelist dijalankan |
-| `sr_trx_id` | `TRX-SR-INIT-001` | Di-update otomatis saat request Service Request dijalankan |
+| `companyCode` | `<COMPANY_CODE>` | Kode entitas perusahaan default |
+| `vendor_trx_id` | `<TRANSACTION_ID>` | Di-update otomatis saat request Vendor Create dijalankan |
+| `spk_trx_id` | `<TRANSACTION_ID>` | Di-update otomatis saat request SPK Duelist dijalankan |
+| `sr_trx_id` | `<TRANSACTION_ID>` | Di-update otomatis saat request Service Request dijalankan |
 
 ---
 
@@ -140,12 +140,12 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `200 OK` (`{"status":"UP", ...}`)
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/health/branch"
+  curl -X GET "<DEV_BASE_URL>/health/branch"
   ```
   *(Direct Local: `curl -X GET "http://localhost:8290/health/branch"`)*
 
 > [!NOTE]
-> Pada URL raw Postman Request 1.1 tertulis `{{baseUrlBranch}}health/branch`. Pastikan variabel `baseUrlBranch` memiliki trailing slash `/` di akhir (misal `http://10.3.20.197:6031/`) jika path tidak diawali garis miring.
+> Pada URL raw Postman Request 1.1 tertulis `{{baseUrlBranch}}health/branch`. Pastikan variabel `baseUrlBranch` memiliki trailing slash `/` di akhir jika path tidak diawali garis miring.
 
 #### 1.2. Health Check - Readiness (8290)
 - **Fungsi**: Memeriksa kesiapan WSO2 MI menerima traffic routing.
@@ -155,7 +155,7 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/health/ready"
+  curl -X GET "<DEV_BASE_URL>/health/ready"
   ```
 
 #### 1.3. Health Check - Customer Service (8291)
@@ -166,7 +166,7 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/health/customer"
+  curl -X GET "<DEV_BASE_URL>/health/customer"
   ```
 
 #### 1.4. Health Check - Vehicle Service (8292)
@@ -177,7 +177,7 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/health/vehicle"
+  curl -X GET "<DEV_BASE_URL>/health/vehicle"
   ```
 
 #### 1.5. Health Check - Vendor Service (8293)
@@ -188,7 +188,7 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/health/vendor"
+  curl -X GET "<DEV_BASE_URL>/health/vendor"
   ```
 
 #### 1.6. Health Check - SPK Service (8294)
@@ -199,7 +199,7 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/health/spk"
+  curl -X GET "<DEV_BASE_URL>/health/spk"
   ```
 
 #### 1.7. Health Check - Service Request (8295)
@@ -210,7 +210,7 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/health/service-request"
+  curl -X GET "<DEV_BASE_URL>/health/service-request"
   ```
 
 ---
@@ -224,16 +224,16 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Headers**:
   - `X-Correlation-Id: corr-branch-001`
 - **Query Params**:
-  - `companyCode`: `1000` (dari variabel `{{companyCode}}`)
+  - `companyCode`: `<COMPANY_CODE>` (dari variabel `{{companyCode}}`)
   - `dateStart`: `2020-01-01`
-  - `dateEnd`: `2026-09-11`
+  - `dateEnd`: `<END_DATE>`
   - `page`: `1`
   - `perPage`: `10`
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" \
-    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" \
+  curl -X GET "<DEV_BASE_URL>/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>&dateStart=<START_DATE>&dateEnd=<END_DATE>&page=1&perPage=10" \
+    -H "Authorization: Bearer <TOKEN_APP_A>" \
     -H "X-Correlation-Id: corr-branch-001"
   ```
 
@@ -248,16 +248,16 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Headers**:
   - `X-Correlation-Id: corr-cust-001`
 - **Query Params**:
-  - `companyCode`: `1000`
+  - `companyCode`: `<COMPANY_CODE>`
   - `dateStart`: `2020-01-01`
-  - `dateEnd`: `2026-09-11`
+  - `dateEnd`: `<END_DATE>`
   - `page`: `1`
   - `perPage`: `10`
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" \
-    -H "Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" \
+  curl -X GET "<DEV_BASE_URL>/api/customers/getByCreateDate?companyCode=<COMPANY_CODE>&dateStart=<START_DATE>&dateEnd=<END_DATE>&page=1&perPage=10" \
+    -H "Authorization: Bearer <TOKEN_APP_A>" \
     -H "X-Correlation-Id: corr-cust-001"
   ```
 
@@ -270,12 +270,12 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Method / Path**: `GET /api/vehicles/getByLicensePlate`
 - **Auth**: `Bearer {{token_app_b}}`
 - **Query Params**:
-  - `plate_no`: `DD-8112`
+  - `plate_no`: `<PLATE_NUMBER>`
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/vehicles/getByLicensePlate?plate_no=DD-8112" \
-    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
+  curl -X GET "<DEV_BASE_URL>/api/vehicles/getByLicensePlate?plate_no=<PLATE_NUMBER>" \
+    -H "Authorization: Bearer <TOKEN_APP_B>"
   ```
 
 #### 4.2. Get Vehicle Atlas (QA Token)
@@ -283,12 +283,12 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Method / Path**: `GET /api/vehicles/vehicleatlas`
 - **Auth**: `Bearer {{token_qa}}`
 - **Query Params**:
-  - `plate_no`: `DD-8112`
+  - `plate_no`: `<PLATE_NUMBER>`
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/vehicles/vehicleatlas?plate_no=DD-8112" \
-    -H "Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d"
+  curl -X GET "<DEV_BASE_URL>/api/vehicles/vehicleatlas?plate_no=<PLATE_NUMBER>" \
+    -H "Authorization: Bearer <TOKEN_QA>"
   ```
 
 #### 4.3. Vehicle Tanpa Parameter (Expect 400 Bad Request)
@@ -296,12 +296,12 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Method / Path**: `GET /api/vehicles/getByLicensePlate`
 - **Auth**: `Bearer {{token_app_b}}`
 - **Query Params**:
-  - `companyCode`: `1000` *(tanpa `plate_no`)*
+  - `companyCode`: `<COMPANY_CODE>` *(tanpa `plate_no`)*
 - **Expected Status**: `400 Bad Request`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/vehicles/getByLicensePlate?companyCode=1000" \
-    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
+  curl -X GET "<DEV_BASE_URL>/api/vehicles/getByLicensePlate?companyCode=<COMPANY_CODE>" \
+    -H "Authorization: Bearer <TOKEN_APP_B>"
   ```
 
 ---
@@ -309,8 +309,8 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 ### Folder 5 — Vendor Service (Port 8293)
 
 #### 5.1. Vendor Create - Valid Payload (201 Created)
-- **Fungsi**: Menerima 17 field data master vendor V2 ATLAS, membentuk file XML (`Transaction` -> `Header` Key2=VMD + `TransactionDatas`), menyimpannya ke database MariaDB, dan mengunggahnya ke server FTP inbound SAP (`devqaxmlpool.assa.id:/vmd`).
-- **Pre-request Script**: Membangkitkan `vendor_trx_id` baru (misal `TRX-POSTMAN-1727163000000`).
+- **Fungsi**: Menerima 17 field data master vendor V2 ATLAS, membentuk file XML (`Transaction` -> `Header` Key2=VMD + `TransactionDatas`), menyimpannya ke database MariaDB, dan mengunggahnya ke server FTP inbound SAP (`<FTP_HOST>:/vmd`).
+- **Pre-request Script**: Membangkitkan `vendor_trx_id` baru (misal `TRX-POSTMAN-<TIMESTAMP>`).
 - **Method / Path**: `POST /api/vendors/create`
 - **Auth**: `Bearer {{token_qa}}`
 - **Headers**:
@@ -320,50 +320,50 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
   ```json
   {
     "companyTitle": "PT",
-    "companyName": "PT Adi Sarana Armada Tbk",
+    "companyName": "Example Company Ltd",
     "otv": "No",
     "paymentCycle": "Monthly",
-    "accountNumber": "1200010978489",
-    "accountName": "Robby Yulianto Setiawan",
-    "bankName": "Mandiri",
-    "hoEmail": "assa@assarent.co.id",
-    "hoPhone": "082246605199",
-    "hoAddress": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
-    "contactName": "Robby Contact",
-    "contactPhone": "08224660189",
-    "npwp": "3173080209920003",
+    "accountNumber": "<ACCOUNT_NUMBER>",
+    "accountName": "Example Account Holder",
+    "bankName": "Example Bank",
+    "hoEmail": "vendor@example.invalid",
+    "hoPhone": "<PHONE_NUMBER>",
+    "hoAddress": "<BUSINESS_ADDRESS>",
+    "contactName": "Example Contact",
+    "contactPhone": "<CONTACT_PHONE>",
+    "npwp": "<TAX_ID>",
     "accountGroup": "V010",
     "top": "T014",
-    "glAccount": "2121000000",
-    "documentNumber": "VENDOR-ATLAS-000123"
+    "glAccount": "<GL_ACCOUNT>",
+    "documentNumber": "<VENDOR_DOCUMENT_ID>"
   }
   ```
 - **Expected Status**: `201 Created`
 - **Alternatif cURL**:
   ```bash
   TRX="TRX-VMD-$(date +%s)"
-  curl -X POST "http://10.3.20.197:6031/api/vendors/create" \
-    -H "Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" \
+  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
+    -H "Authorization: Bearer <TOKEN_QA>" \
     -H "Content-Type: application/json" \
     -H "X-Transaction-Id: $TRX" \
     -d '{
       "companyTitle": "PT",
-      "companyName": "PT Adi Sarana Armada Tbk",
+      "companyName": "Example Company Ltd",
       "otv": "No",
       "paymentCycle": "Monthly",
-      "accountNumber": "1200010978489",
-      "accountName": "Robby Yulianto Setiawan",
-      "bankName": "Mandiri",
-      "hoEmail": "assa@assarent.co.id",
-      "hoPhone": "082246605199",
-      "hoAddress": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
-      "contactName": "Robby Contact",
-      "contactPhone": "08224660189",
-      "npwp": "3173080209920003",
+      "accountNumber": "<ACCOUNT_NUMBER>",
+      "accountName": "Example Account Holder",
+      "bankName": "Example Bank",
+      "hoEmail": "vendor@example.invalid",
+      "hoPhone": "<PHONE_NUMBER>",
+      "hoAddress": "<BUSINESS_ADDRESS>",
+      "contactName": "Example Contact",
+      "contactPhone": "<CONTACT_PHONE>",
+      "npwp": "<TAX_ID>",
       "accountGroup": "V010",
       "top": "T014",
-      "glAccount": "2121000000",
-      "documentNumber": "VENDOR-ATLAS-000123"
+      "glAccount": "<GL_ACCOUNT>",
+      "documentNumber": "<VENDOR_DOCUMENT_ID>"
     }'
   ```
 
@@ -379,8 +379,8 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Alternatif cURL**:
   ```bash
   # Menggunakan nilai $TRX yang sama dari eksekusi sebelumnya:
-  curl -X POST "http://10.3.20.197:6031/api/vendors/create" \
-    -H "Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" \
+  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
+    -H "Authorization: Bearer <TOKEN_QA>" \
     -H "Content-Type: application/json" \
     -H "X-Transaction-Id: $TRX" \
     -d '{ ...payload sama... }'
@@ -402,8 +402,8 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `400 Bad Request`
 - **Alternatif cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/vendors/create" \
-    -H "Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" \
+  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
+    -H "Authorization: Bearer <TOKEN_QA>" \
     -H "Content-Type: application/json" \
     -d '{"companyTitle": "INVALID_TITLE", "companyName": "PT Test", "otv": "No"}'
   ```
@@ -420,45 +420,45 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Headers**:
   - `Content-Type: application/json`
   - `X-Transaction-Id: {{spk_trx_id}}`
-  - `X-Forwarded-For: 10.20.30.40`
+  - `X-Forwarded-For: <CLIENT_IP>`
   - `X-Validate-Total: true`
 - **Request Body (JSON)**:
   ```json
   {
-    "noSpk": "SPK/2026/09/00003",
+    "noSpk": "<SPK_NUMBER>",
     "type": "Maintenance",
-    "noPolisi": "B-2120-BKZ",
-    "noSr": "SR-000123",
+    "noPolisi": "<PLATE_NUMBER>",
+    "noSr": "<SERVICE_REQUEST_ID>",
     "category": "Maintenance",
     "subCategory": "Adhoc",
-    "vendorReferensi": "0001",
-    "namaVendor": "Bengkel Jaya Motor",
-    "picService": "PIC-001",
-    "namaPicService": "Andi Wijaya",
+    "vendorReferensi": "<VENDOR_REFERENCE>",
+    "namaVendor": "Example Workshop",
+    "picService": "<SERVICE_CONTACT_ID>",
+    "namaPicService": "Example Service Contact",
     "spkRework": "No",
-    "totalPrice": 1850000,
-    "createdAt": "2026-09-17 14:46:11",
-    "createdBy": "atlas.user",
-    "poSpkNumber": "PO-4500012345",
-    "invoiceNumber": "INV_BKL_00001",
-    "invoiceDate": "2026-09-17",
-    "invoiceAmount": 1850000,
-    "memo": "Perbaikan kendaraan",
-    "taxInvoiceNumber": "314650102340592",
-    "taxInvoiceDate": "2026-09-17",
-    "businessArea": "1101",
+    "totalPrice": 1000,
+    "createdAt": "<CREATED_AT>",
+    "createdBy": "<CREATED_BY>",
+    "poSpkNumber": "<PO_NUMBER>",
+    "invoiceNumber": "<INVOICE_NUMBER>",
+    "invoiceDate": "<INVOICE_DATE>",
+    "invoiceAmount": 1000,
+    "memo": "Example repair",
+    "taxInvoiceNumber": "<TAX_INVOICE_NUMBER>",
+    "taxInvoiceDate": "<TAX_INVOICE_DATE>",
+    "businessArea": "<BUSINESS_AREA>",
     "details": [
       {
         "jenis": "Jasa",
-        "description": "Jasa Perbaikan AC",
+        "description": "Example service",
         "qty": 1,
-        "price": 150000
+        "price": 100
       },
       {
         "jenis": "Parts",
-        "description": "Filter AC",
+        "description": "Example part",
         "qty": 1,
-        "price": 1700000
+        "price": 900
       }
     ]
   }
@@ -467,20 +467,20 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Alternatif cURL**:
   ```bash
   SPK_TRX="SPK-$(date +%s)"
-  curl -X POST "http://10.3.20.197:6031/api/spk/duelist" \
-    -H "Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" \
+  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
+    -H "Authorization: Bearer <TOKEN_QA>" \
     -H "Content-Type: application/json" \
     -H "X-Transaction-Id: $SPK_TRX" \
-    -H "X-Forwarded-For: 10.20.30.40" \
+    -H "X-Forwarded-For: <CLIENT_IP>" \
     -H "X-Validate-Total: true" \
     -d '{
-      "noSpk": "SPK/2026/09/00003",
+      "noSpk": "<SPK_NUMBER>",
       "type": "Maintenance",
-      "noPolisi": "B-2120-BKZ",
-      "totalPrice": 1850000,
+      "noPolisi": "<PLATE_NUMBER>",
+      "totalPrice": 1000,
       "details": [
-        {"jenis": "Jasa", "description": "Jasa Perbaikan AC", "qty": 1, "price": 150000},
-        {"jenis": "Parts", "description": "Filter AC", "qty": 1, "price": 1700000}
+         {"jenis": "Jasa", "description": "Example service", "qty": 1, "price": 100},
+         {"jenis": "Parts", "description": "Example part", "qty": 1, "price": 900}
       ]
     }'
   ```
@@ -500,36 +500,36 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
   ```json
   {
     "type": "Maintenance",
-    "noPolisi": "B-2120-BKZ",
+    "noPolisi": "<PLATE_NUMBER>",
     "details": []
   }
   ```
 - **Expected Status**: `400 Bad Request`
 - **Alternatif cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/spk/duelist" \
-    -H "Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" \
+  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
+    -H "Authorization: Bearer <TOKEN_QA>" \
     -H "Content-Type: application/json" \
-    -d '{"type": "Maintenance", "noPolisi": "B-2120-BKZ", "details": []}'
+    -d '{"type": "Maintenance", "noPolisi": "<PLATE_NUMBER>", "details": []}'
   ```
 
 #### 6.4. SPK Duelist - Total Mismatch (400 Bad Request)
-- **Fungsi**: Uji validasi header `X-Validate-Total: true`. Request ditolak jika `totalPrice` (`1850001`) tidak sama dengan total rincian `details` (`1850000`).
+- **Fungsi**: Uji validasi header `X-Validate-Total: true`. Request ditolak jika `totalPrice` (`1001`) tidak sama dengan total rincian `details` (`1000`).
 - **Method / Path**: `POST /api/spk/duelist`
 - **Auth**: `Bearer {{token_qa}}`
 - **Headers**: `X-Validate-Total: true`
 - **Request Body (JSON)**:
   ```json
   {
-    "noSpk": "SPK/2026/09/00002",
+    "noSpk": "<SPK_NUMBER>",
     "type": "Maintenance",
-    "totalPrice": 1850001,
+    "totalPrice": 1001,
     "details": [
       {
         "jenis": "Jasa",
-        "description": "Jasa AC",
+        "description": "Example service",
         "qty": 1,
-        "price": 1850000
+        "price": 1000
       }
     ]
   }
@@ -537,15 +537,15 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Expected Status**: `400 Bad Request`
 - **Alternatif cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/spk/duelist" \
-    -H "Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" \
+  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
+    -H "Authorization: Bearer <TOKEN_QA>" \
     -H "Content-Type: application/json" \
     -H "X-Validate-Total: true" \
     -d '{
-      "noSpk": "SPK/2026/09/00002",
+      "noSpk": "<SPK_NUMBER>",
       "type": "Maintenance",
-      "totalPrice": 1850001,
-      "details": [{"jenis": "Jasa", "description": "Jasa AC", "qty": 1, "price": 1850000}]
+      "totalPrice": 1001,
+      "details": [{"jenis": "Jasa", "description": "Example service", "qty": 1, "price": 1000}]
     }'
   ```
 
@@ -555,7 +555,7 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 
 #### 7.1. Service Request - Valid Fan-out Paralel (200 OK)
 - **Fungsi**: Menerima tiket perawatan/perbaikan dari Omnichannel, lalu melakukan **Fan-out Paralel**:
-  1. Mengirim data ke External Service (`assa-ext-services.assa.id`).
+  1. Mengirim data ke External Service (`<EXTERNAL_SERVICE_HOST>`).
   2. Mengirim data ke sistem ATLAS (jika toggle aktif).
   3. Mencatat riwayat ke MariaDB.
 - **Pre-request Script**: Membangkitkan `sr_trx_id` baru.
@@ -567,53 +567,53 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Request Body (JSON)**:
   ```json
   {
-    "app_id": "sr_app_omnichannel",
-    "reff_number": "REF-SR-20260917-001",
-    "branch_code": "JKT01",
-    "equipment_number": "EQ-998877",
-    "license_plate": "B-1234-SSA",
-    "customer_code": "CUST-00123",
-    "customer_name": "PT Maju Bersama ASSA",
+    "app_id": "<APPLICATION_ID>",
+    "reff_number": "<REFERENCE_NUMBER>",
+    "branch_code": "<BRANCH_CODE>",
+    "equipment_number": "<EQUIPMENT_NUMBER>",
+    "license_plate": "<PLATE_NUMBER>",
+    "customer_code": "<CUSTOMER_CODE>",
+    "customer_name": "Example Customer",
     "channel": "Omnichannel-Web",
     "cp_title": "Bpk",
-    "cp_name": "Ahmad Fauzi",
-    "cp_phone": "081234567890",
-    "cp_email": "ahmad.fauzi@example.com",
-    "cp_address": "Jl. Gatot Subroto No. 45 Jakarta",
-    "km": "25000",
-    "description": "Perawatan berkala 25.000 KM dan pengecekan rem",
-    "service_datetime": "2026-09-20 10:00:00",
-    "service_location": "Bengkel Resmi ASSA Sunter",
+    "cp_name": "Example Contact",
+    "cp_phone": "<CONTACT_PHONE>",
+    "cp_email": "contact@example.invalid",
+    "cp_address": "<CONTACT_ADDRESS>",
+    "km": "<ODOMETER_READING>",
+    "description": "Example scheduled maintenance request",
+    "service_datetime": "<SERVICE_DATETIME>",
+    "service_location": "<SERVICE_LOCATION>",
     "jenis_permintaan": "Service Berkala",
-    "incident_datetime": "2026-09-17 09:00:00",
+    "incident_datetime": "<INCIDENT_DATETIME>",
     "tipe_tiket": "Regular",
     "judul": "Service Berkala Kendaraan Operasional",
-    "nama_kunjungan": "Ahmad Fauzi",
-    "telepon_kunjungan": "081234567890",
-    "alamat_kunjungan": "Jl. Danau Sunter Barat Blok A",
-    "pool_name": "Pool Sunter",
-    "area_bengkel": "Jakarta Utara",
-    "task": "Ganti Oli Mesin dan Filter Oli",
-    "created_datetime": "17-09-2026",
-    "created_by": "omnichannel_agent",
-    "ticket_no": "TICKET-SR-99901"
+    "nama_kunjungan": "Example Contact",
+    "telepon_kunjungan": "<CONTACT_PHONE>",
+    "alamat_kunjungan": "<VISIT_ADDRESS>",
+    "pool_name": "<POOL_NAME>",
+    "area_bengkel": "<SERVICE_AREA>",
+    "task": "Example maintenance task",
+    "created_datetime": "<CREATED_DATE>",
+    "created_by": "<CREATED_BY>",
+    "ticket_no": "<TICKET_NUMBER>"
   }
   ```
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
   SR_TRX="SR-$(date +%s)"
-  curl -X POST "http://10.3.20.197:6031/api/service-requests" \
-    -H "Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" \
+  curl -X POST "<DEV_BASE_URL>/api/service-requests" \
+    -H "Authorization: Bearer <TOKEN_OMNICHANNEL>" \
     -H "Content-Type: application/json" \
     -H "X-Transaction-Id: $SR_TRX" \
     -d '{
-      "app_id": "sr_app_omnichannel",
-      "reff_number": "REF-SR-001",
-      "branch_code": "JKT01",
-      "equipment_number": "EQ-998877",
-      "license_plate": "B-1234-SSA",
-      "ticket_no": "TICKET-SR-99901"
+      "app_id": "<APPLICATION_ID>",
+      "reff_number": "<REFERENCE_NUMBER>",
+      "branch_code": "<BRANCH_CODE>",
+      "equipment_number": "<EQUIPMENT_NUMBER>",
+      "license_plate": "<PLATE_NUMBER>",
+      "ticket_no": "<TICKET_NUMBER>"
     }'
   ```
 
@@ -630,18 +630,18 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 - **Request Body (JSON)**:
   ```json
   {
-    "reff_number": "REF01",
-    "branch_code": "JKT01",
-    "ticket_no": "TCK01"
+    "reff_number": "<REFERENCE_NUMBER>",
+    "branch_code": "<BRANCH_CODE>",
+    "ticket_no": "<TICKET_NUMBER>"
   }
   ```
 - **Expected Status**: `400 Bad Request`
 - **Alternatif cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/service-requests" \
-    -H "Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" \
+  curl -X POST "<DEV_BASE_URL>/api/service-requests" \
+    -H "Authorization: Bearer <TOKEN_OMNICHANNEL>" \
     -H "Content-Type: application/json" \
-    -d '{"reff_number": "REF01", "branch_code": "JKT01", "ticket_no": "TCK01"}'
+    -d '{"reff_number": "<REFERENCE_NUMBER>", "branch_code": "<BRANCH_CODE>", "ticket_no": "<TICKET_NUMBER>"}'
   ```
 
 ---
@@ -650,44 +650,44 @@ Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
 Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ilegal dan pelanggaran otorisasi scope.
 
 #### 8.1. Branch - Missing Token (401 Unauthorized)
-- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=1000`
+- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=<COMPANY_CODE>`
 - **Auth**: *(Tanpa Header Authorization)*
 - **Expected Status**: `401 Unauthorized`
 - **cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/branches/getByCreateDate?companyCode=1000"
+  curl -X GET "<DEV_BASE_URL>/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>"
   ```
 
 #### 8.2. Branch - Invalid Fake Token (401 Unauthorized)
-- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=1000`
-- **Auth**: `Bearer token-palsu-ngawur`
+- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=<COMPANY_CODE>`
+- **Auth**: `Bearer <INVALID_TOKEN>`
 - **Expected Status**: `401 Unauthorized`
 - **cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/branches/getByCreateDate?companyCode=1000" \
-    -H "Authorization: Bearer token-palsu-ngawur"
+  curl -X GET "<DEV_BASE_URL>/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>" \
+    -H "Authorization: Bearer <INVALID_TOKEN>"
   ```
 
 #### 8.3. Branch - App B Access Branch (403 Forbidden)
 - **Keterangan**: App B hanya memiliki scope `vehicles`. Akses ke Branch ditolak.
-- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=1000`
+- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=<COMPANY_CODE>`
 - **Auth**: `Bearer {{token_app_b}}`
 - **Expected Status**: `403 Forbidden`
 - **cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/branches/getByCreateDate?companyCode=1000" \
-    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
+  curl -X GET "<DEV_BASE_URL>/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>" \
+    -H "Authorization: Bearer <TOKEN_APP_B>"
   ```
 
 #### 8.4. Customer - App B Access Customer (403 Forbidden)
 - **Keterangan**: App B tidak memiliki scope `customers`.
-- **Method / Path**: `GET /api/customers/getByCreateDate?companyCode=1000`
+- **Method / Path**: `GET /api/customers/getByCreateDate?companyCode=<COMPANY_CODE>`
 - **Auth**: `Bearer {{token_app_b}}`
 - **Expected Status**: `403 Forbidden`
 - **cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/customers/getByCreateDate?companyCode=1000" \
-    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881"
+  curl -X GET "<DEV_BASE_URL>/api/customers/getByCreateDate?companyCode=<COMPANY_CODE>" \
+    -H "Authorization: Bearer <TOKEN_APP_B>"
   ```
 
 #### 8.5. Vendor - Missing Token (401 Unauthorized)
@@ -696,7 +696,7 @@ Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ileg
 - **Expected Status**: `401 Unauthorized`
 - **cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/vendors/create" \
+  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
     -H "Content-Type: application/json" \
     -d "{}"
   ```
@@ -708,8 +708,8 @@ Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ileg
 - **Expected Status**: `403 Forbidden`
 - **cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/vendors/create" \
-    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" \
+  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
+    -H "Authorization: Bearer <TOKEN_APP_B>" \
     -H "Content-Type: application/json" \
     -d "{}"
   ```
@@ -720,7 +720,7 @@ Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ileg
 - **Expected Status**: `401 Unauthorized`
 - **cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/spk/duelist" \
+  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
     -H "Content-Type: application/json" \
     -d "{}"
   ```
@@ -731,8 +731,8 @@ Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ileg
 - **Expected Status**: `403 Forbidden`
 - **cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/spk/duelist" \
-    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" \
+  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
+    -H "Authorization: Bearer <TOKEN_APP_B>" \
     -H "Content-Type: application/json" \
     -d "{}"
   ```
@@ -743,7 +743,7 @@ Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ileg
 - **Expected Status**: `401 Unauthorized`
 - **cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/service-requests" \
+  curl -X POST "<DEV_BASE_URL>/api/service-requests" \
     -H "Content-Type: application/json" \
     -d "{}"
   ```
@@ -754,8 +754,8 @@ Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ileg
 - **Expected Status**: `403 Forbidden`
 - **cURL**:
   ```bash
-  curl -X POST "http://10.3.20.197:6031/api/service-requests" \
-    -H "Authorization: Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" \
+  curl -X POST "<DEV_BASE_URL>/api/service-requests" \
+    -H "Authorization: Bearer <TOKEN_APP_B>" \
     -H "Content-Type: application/json" \
     -d "{}"
   ```
@@ -772,7 +772,7 @@ Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ileg
 - **Expected Status**: `200 OK`
 - **Alternatif cURL**:
   ```bash
-  curl -X GET "http://10.3.20.197:6031/api/worker/retry"
+  curl -X GET "<DEV_BASE_URL>/api/worker/retry"
   ```
 
 ---
@@ -782,8 +782,8 @@ Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ileg
 ### 5.1. Cara Import ke Postman GUI
 1. Buka aplikasi **Postman**.
 2. Klik tombol **Import** di pojok kiri atas.
-3. Seret (*drag & drop*) file [`ASSA Middleware Server Dev (devmiddleware1.assa.id-6031).postman_collection.json`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/notes/ASSA%20Middleware%20Server%20Dev%20%28devmiddleware1.assa.id-6031%29.postman_collection.json) atau browse melalui file dialog.
-4. Klik **Import**. Koleksi akan muncul dengan nama `ASSA Middleware Server Dev (devmiddleware1.assa.id:6031)`.
+3. Seret (*drag & drop*) file [`ASSA Middleware Server Dev (sanitized).postman_collection.json`] atau browse melalui file dialog.
+4. Klik **Import**. Koleksi akan muncul dengan nama `ASSA Middleware Server Dev (sanitized)`.
 5. *(Opsional)* Jika ingin menguji lokal, ubah variabel `baseUrl...` menjadi `http://localhost:829x` atau buat Postman Environment baru.
 
 ### 5.2. Menjalankan Seluruh Koleksi (Collection Runner)
@@ -801,7 +801,7 @@ Bila ingin menjalankan pengujian otomatis di server Linux atau terminal CI/CD:
 npm install -g newman
 
 # Jalankan pengujian langsung dari file koleksi
-newman run "notes/ASSA Middleware Server Dev (devmiddleware1.assa.id-6031).postman_collection.json" \
+newman run "ASSA Middleware Server Dev (sanitized).postman_collection.json" \
   --reporters cli,junit \
   --reporter-junit-export report.xml
 ```
@@ -812,9 +812,9 @@ newman run "notes/ASSA Middleware Server Dev (devmiddleware1.assa.id-6031).postm
 
 | Gejala Error | Penyebab | Solusi |
 |---|---|---|
-| `Connection refused` ke port `6031` | Container Nginx belum berjalan atau port 6031 diblokir firewall server. | Di server dev, jalankan `docker compose ps` di `/var/www/devmiddleware/` dan pastikan container `mi-nginx` berstatus `Up`. |
+| `Connection refused` ke port `6031` | Container Nginx belum berjalan atau port 6031 diblokir firewall server. | Di server dev, jalankan `docker compose ps` di direktori deployment dan pastikan container Nginx berstatus `Up`. |
 | `502 Bad Gateway` dari Nginx | Container `middleware-api` (WSO2 MI) belum selesai startup atau restart mendadak. | Tunggu 30-60 detik saat inisialisasi awal WSO2 MI. Periksa log: `docker compose logs -f middleware-api`. |
 | `401 Unauthorized` pada Request Positif | Token Bearer terhapus atau variabel token tidak terbaca. | Pastikan variabel `token_app_a`, `token_app_b`, `token_qa`, atau `token_omnichannel` di Postman terisi sesuai tabel Section 2.2. |
 | `403 Forbidden` pada Request Positif | Token yang digunakan tidak memiliki scope untuk service terkait. | Sesuaikan token dengan hak aksesnya (misal: Branch wajib `token_app_a`, Vendor wajib `token_qa`). |
 | `400 Bad Request` pada Idempotency Replay | Header `X-Transaction-Id` kosong. | Pastikan request Create dijalankan lebih dulu agar `Pre-request Script` mengisi variabel `trx_id`. |
-| Respon FTP Error pada Vendor/SPK | Koneksi FTP ke `devqaxmlpool.assa.id:21` bermasalah. | Pastikan server dev memiliki rute egress jaringan ke server FTP dan kredensial FTP di `.env` sudah benar. |
+| Respon FTP Error pada Vendor/SPK | Koneksi FTP ke `<FTP_HOST>:<FTP_PORT>` bermasalah. | Pastikan server dev memiliki rute egress jaringan ke server FTP dan kredensial FTP di `.env` sudah benar. |
