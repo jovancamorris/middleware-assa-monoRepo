@@ -1,16 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <api context="/api/service-requests" name="ServiceRequestAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Service Request API (Omnichannel Parallel Fan-Out Interface)      -->
-    <!-- Referensi: GUIDE_SR.md                                            -->
-    <!-- ================================================================= -->
     <resource methods="POST" uri-template="/">
         <inSequence>
-            <!-- 1. Mandatory Token Authentication (Auth Guard with scope: service_requests) -->
             <property name="requiredScope" value="service_requests" scope="default" type="STRING"/>
             <sequence key="AuthGuardSeq"/>
-
-            <!-- 2. Domain Orchestration Sequence (Fan-out to ATLAS & External Services) -->
             <sequence key="ServiceRequestSeq"/>
         </inSequence>
         <faultSequence>

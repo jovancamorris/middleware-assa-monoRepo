@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <endpoint name="ExtServicePostEndpoint" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- HTTP POST Dynamic Endpoint for ASSA External Services             -->
-    <!-- Referensi: GUIDE_SR.md (Target 2 input_service_request)           -->
-    <!-- ================================================================= -->
     <http method="POST" uri-template="{+uri.var.extBackendUrl}">
         <timeout>
             <duration>30000</duration>

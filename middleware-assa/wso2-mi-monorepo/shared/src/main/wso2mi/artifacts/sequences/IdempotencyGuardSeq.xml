@@ -1,68 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="IdempotencyGuardSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- 1. Extract / Generate Transaction ID & Idempotency Key            -->
-    <!-- ================================================================= -->
     <property name="transactionId" expression="$trp:X-Transaction-Id" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:transactionId) = 0">
-        <then>
-            <property name="transactionId" expression="$trp:X-Idempotency-Key" scope="default" type="STRING"/>
-        </then>
-    </filter>
-    <filter xpath="string-length($ctx:transactionId) = 0">
-        <then>
-            <property name="transactionId" expression="fn:concat('TRX-', get-property('SYSTEM_DATE', 'yyyyMMddHHmmssSSS'))" scope="default" type="STRING"/>
-        </then>
-    </filter>
-    
-    <!-- Echo Transaction ID in outgoing transport headers -->
+    <filter xpath="string-length($ctx:transactionId) = 0"><then><property name="transactionId" expression="$trp:X-Idempotency-Key" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:transactionId) = 0"><then><property name="transactionId" expression="fn:concat('TRX-', get-property('SYSTEM_DATE', 'yyyyMMddHHmmssSSS'))" scope="default" type="STRING"/></then></filter>
     <header name="X-Transaction-Id" expression="$ctx:transactionId" scope="transport"/>
-
     <property name="idempotencyKey" expression="$trp:X-Idempotency-Key" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:idempotencyKey) = 0">
-        <then>
-            <property name="idempotencyKey" expression="$ctx:transactionId" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <!-- Initialize Attempt Counter & Retry Policy -->
+    <filter xpath="string-length($ctx:idempotencyKey) = 0"><then><property name="idempotencyKey" expression="$ctx:transactionId" scope="default" type="STRING"/></then></filter>
     <property name="currentAttempt" value="1" scope="default" type="STRING"/>
     <property name="maxAttempts" expression="get-property('file', 'retry.max.attempts')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:maxAttempts) = 0">
-        <then>
-            <property name="maxAttempts" value="3" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
+    <filter xpath="string-length($ctx:maxAttempts) = 0"><then><property name="maxAttempts" value="3" scope="default" type="STRING"/></then></filter>
     <property name="retryIntervalSec" expression="get-property('file', 'retry.interval.seconds')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:retryIntervalSec) = 0">
-        <then>
-            <property name="retryIntervalSec" value="60" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
+    <filter xpath="string-length($ctx:retryIntervalSec) = 0"><then><property name="retryIntervalSec" value="60" scope="default" type="STRING"/></then></filter>
     <property name="httpMethod" expression="$axis2:HTTP_METHOD" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:httpMethod) = 0">
-        <then>
-            <property name="httpMethod" value="GET" scope="default" type="STRING"/>
-        </then>
-    </filter>
+    <filter xpath="string-length($ctx:httpMethod) = 0"><then><property name="httpMethod" value="GET" scope="default" type="STRING"/></then></filter>
 
-    <!-- ================================================================= -->
-    <!-- 2. Idempotency Check via MariaDB lookup                           -->
-    <!-- ================================================================= -->
     <property name="existingStatus" value="" scope="default" type="STRING"/>
     <property name="cachedResponsePayload" value="" scope="default" type="STRING"/>
-
     <dblookup>
-        <connection>
-            <pool>
-                <driver>org.mariadb.jdbc.Driver</driver>
-                <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
-                <user>root</user>
-                <password/>
-            </pool>
-        </connection>
+        <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
         <statement>
             <sql>SELECT status, response_payload FROM api_transaction WHERE transaction_id = ?</sql>
             <parameter expression="$ctx:transactionId" type="VARCHAR"/>
@@ -71,98 +26,43 @@
         </statement>
     </dblookup>
 
-    <!-- Case 1: Transaction already SUCCESS (Duplicate Request / Replay) -->
     <filter xpath="$ctx:existingStatus = 'SUCCESS'">
         <then>
-            <log level="custom">
-                <property name="IDEMPOTENCY_NOTICE" expression="fn:concat('Duplicate transaction detected for ID: ', $ctx:transactionId, '. Replaying cached response without hitting backend.')"/>
-            </log>
             <header name="X-Idempotent-Replay" value="true" scope="transport"/>
             <header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/>
             <property name="messageType" value="application/json" scope="axis2"/>
             <property name="ContentType" value="application/json" scope="axis2"/>
-            
             <filter xpath="string-length($ctx:cachedResponsePayload) &gt; 0">
-                <then>
-                    <payloadFactory media-type="json">
-                        <format>$1</format>
-                        <args>
-                            <arg evaluator="xml" expression="$ctx:cachedResponsePayload"/>
-                        </args>
-                    </payloadFactory>
-                </then>
-                <else>
-                    <payloadFactory media-type="json">
-                        <format>
-                            {
-                                "idempotent": true,
-                                "transaction_id": "$1",
-                                "status": "SUCCESS",
-                                "message": "Transaction previously processed successfully."
-                            }
-                        </format>
-                        <args>
-                            <arg evaluator="xml" expression="$ctx:transactionId"/>
-                        </args>
-                    </payloadFactory>
-                </else>
+                <then><payloadFactory media-type="json"><format>$1</format><args><arg evaluator="xml" expression="$ctx:cachedResponsePayload"/></args></payloadFactory></then>
+                <else><payloadFactory media-type="json"><format>{"idempotent": true, "transaction_id": "$1", "status": "SUCCESS"}</format><args><arg evaluator="xml" expression="$ctx:transactionId"/></args></payloadFactory></else>
             </filter>
             <respond/>
         </then>
     </filter>
-
-    <!-- Case 2: Transaction currently PROCESSING (In-Flight Concurrency Conflict) -->
     <filter xpath="$ctx:existingStatus = 'PROCESSING'">
         <then>
             <property name="ERROR_CODE" value="409" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Conflict" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" expression="fn:concat('Transaksi dengan ID: ', $ctx:transactionId, ' sedang dalam proses. Silakan tunggu beberapa saat.')" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" expression="fn:concat('Transaction ', $ctx:transactionId, ' is already being processed.')" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
-
-    <!-- Case 3: Transaction FAILED or RETRY (Allow Re-processing / Retry) -->
     <filter xpath="$ctx:existingStatus = 'FAILED' or $ctx:existingStatus = 'RETRY'">
         <then>
             <dbreport>
-                <connection>
-                    <pool>
-                        <driver>org.mariadb.jdbc.Driver</driver>
-                        <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
-                        <user>root</user>
-                        <password/>
-                    </pool>
-                </connection>
-                <statement>
-                    <sql>UPDATE api_transaction SET status = 'PROCESSING', updated_at = NOW() WHERE transaction_id = ?</sql>
-                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
-                </statement>
+                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <statement><sql>UPDATE api_transaction SET status = 'PROCESSING', updated_at = NOW() WHERE transaction_id = ?</sql><parameter expression="$ctx:transactionId" type="VARCHAR"/></statement>
             </dbreport>
         </then>
     </filter>
-
-    <!-- Case 4: Brand New Transaction (Insert initial record) -->
     <filter xpath="string-length($ctx:existingStatus) = 0">
         <then>
             <dbreport>
-                <connection>
-                    <pool>
-                        <driver>org.mariadb.jdbc.Driver</driver>
-                        <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
-                        <user>root</user>
-                        <password/>
-                    </pool>
-                </connection>
+                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
                 <statement>
                     <sql>INSERT INTO api_transaction (transaction_id, idempotency_key, endpoint, http_method, request_payload, status, attempt_count, max_attempts, retry_interval_seconds, created_at) VALUES (?, ?, ?, ?, ?, 'PROCESSING', 0, ?, ?, NOW())</sql>
-                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
-                    <parameter expression="$ctx:idempotencyKey" type="VARCHAR"/>
-                    <parameter expression="$ctx:api.endpoint" type="VARCHAR"/>
-                    <parameter expression="$ctx:httpMethod" type="VARCHAR"/>
-                    <parameter expression="$ctx:api.params" type="VARCHAR"/>
-                    <parameter expression="$ctx:maxAttempts" type="INTEGER"/>
-                    <parameter expression="$ctx:retryIntervalSec" type="INTEGER"/>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/><parameter expression="$ctx:idempotencyKey" type="VARCHAR"/><parameter expression="$ctx:api.endpoint" type="VARCHAR"/><parameter expression="$ctx:httpMethod" type="VARCHAR"/><parameter expression="$ctx:api.params" type="VARCHAR"/><parameter expression="$ctx:maxAttempts" type="INTEGER"/><parameter expression="$ctx:retryIntervalSec" type="INTEGER"/>
                 </statement>
             </dbreport>
         </then>

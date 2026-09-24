@@ -1,86 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="ResolveBaseUrlSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- 4-Layer Resolution Chain: ENV -> System -> File -> Fallback       -->
-    <!-- Sesuai CLEAN_ARCHITECTURE.md Bagian 4.6                           -->
-    <!-- ================================================================= -->
-
-    <!-- Default config keys if not explicitly supplied by calling sequence -->
-    <filter xpath="string-length($ctx:baseUrlConfigKey) = 0">
-        <then>
-            <property name="baseUrlConfigKey" value="sap.core.base.url" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
+    <filter xpath="string-length($ctx:baseUrlConfigKey) = 0"><then><property name="baseUrlConfigKey" value="sap.core.base.url" scope="default" type="STRING"/></then></filter>
     <property name="resolvedBaseUrl" value="" scope="default" type="STRING"/>
-
-    <!-- Optional Override Header for testing / chaos engineering -->
     <property name="backendOverrideHeader" expression="$trp:X-Target-Backend-Url" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:backendOverrideHeader) &gt; 0">
-        <then>
-            <property name="resolvedBaseUrl" expression="$ctx:backendOverrideHeader" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <!-- Layer 1: Check Environment Variable -->
+    <filter xpath="string-length($ctx:backendOverrideHeader) &gt; 0"><then><property name="resolvedBaseUrl" expression="$ctx:backendOverrideHeader" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:resolvedBaseUrl) = 0 and boolean($ctx:envVarKey)">
         <then>
             <property name="envVal" expression="get-property('env', $ctx:envVarKey)" scope="default" type="STRING"/>
-            <filter xpath="string-length($ctx:envVal) &gt; 0">
-                <then>
-                    <property name="resolvedBaseUrl" expression="$ctx:envVal" scope="default" type="STRING"/>
-                </then>
-            </filter>
+            <filter xpath="string-length($ctx:envVal) &gt; 0"><then><property name="resolvedBaseUrl" expression="$ctx:envVal" scope="default" type="STRING"/></then></filter>
         </then>
     </filter>
-
-    <!-- Layer 2: Check System Parameter (deployment.toml [system.parameter]) -->
-    <filter xpath="string-length($ctx:resolvedBaseUrl) = 0">
-        <then>
-            <property name="resolvedBaseUrl" expression="get-property('system', $ctx:baseUrlConfigKey)" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <!-- Layer 3: Check File Configuration (config.properties) -->
-    <filter xpath="string-length($ctx:resolvedBaseUrl) = 0">
-        <then>
-            <property name="resolvedBaseUrl" expression="get-property('file', $ctx:baseUrlConfigKey)" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <!-- Layer 4: Fallback to safety default from file -->
-    <filter xpath="string-length($ctx:resolvedBaseUrl) = 0">
-        <then>
-            <property name="resolvedBaseUrl" expression="get-property('file', 'sap.core.base.url.dev')" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <!-- Layer 5: Fallback to built-in system defaults from config.properties -->
+    <filter xpath="string-length($ctx:resolvedBaseUrl) = 0"><then><property name="resolvedBaseUrl" expression="get-property('system', $ctx:baseUrlConfigKey)" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:resolvedBaseUrl) = 0"><then><property name="resolvedBaseUrl" expression="get-property('file', $ctx:baseUrlConfigKey)" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:resolvedBaseUrl) = 0"><then><property name="resolvedBaseUrl" expression="get-property('file', 'sap.core.base.url.dev')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:resolvedBaseUrl) = 0">
         <then>
             <filter xpath="$ctx:baseUrlConfigKey = 'sap.core.customer.base.url'">
-                <then>
-                    <property name="resolvedBaseUrl" value="https://sapcoreapi.assa.id" scope="default" type="STRING"/>
-                </then>
+                <then><property name="resolvedBaseUrl" value="https://sapcoreapi.assa.id" scope="default" type="STRING"/></then>
                 <else>
                     <filter xpath="$ctx:baseUrlConfigKey = 'assa.ext.base.url'">
-                        <then>
-                            <property name="resolvedBaseUrl" value="https://assa-ext-services.assa.id/qa" scope="default" type="STRING"/>
-                        </then>
-                        <else>
-                            <property name="resolvedBaseUrl" value="https://devsapcoreapi.assa.id" scope="default" type="STRING"/>
-                        </else>
+                        <then><property name="resolvedBaseUrl" value="https://assa-ext-services.assa.id/qa" scope="default" type="STRING"/></then>
+                        <else><property name="resolvedBaseUrl" value="https://devsapcoreapi.assa.id" scope="default" type="STRING"/></else>
                     </filter>
                 </else>
             </filter>
         </then>
     </filter>
-
     <filter xpath="string-length($ctx:resolvedBaseUrl) = 0">
         <then>
             <property name="ERROR_CODE" value="500" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Configuration Error" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" expression="fn:concat('Base URL backend tidak dapat diresolusi untuk konfigurasi: ', $ctx:baseUrlConfigKey)" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" expression="fn:concat('Backend base URL cannot be resolved for: ', $ctx:baseUrlConfigKey)" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>

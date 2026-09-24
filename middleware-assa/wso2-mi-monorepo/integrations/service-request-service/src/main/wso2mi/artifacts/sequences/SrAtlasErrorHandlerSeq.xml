@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="SrAtlasErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Error Handler for Service Request ATLAS Branch                    -->
-    <!-- Referensi: GUIDE_SR.md                                            -->
-    <!-- ================================================================= -->
     <log level="custom">
         <property name="BRANCH" value="SrToAtlasSeq"/>
         <property name="STATUS" value="FAILED"/>
@@ -11,13 +7,11 @@
         <property name="ERROR_MESSAGE" expression="$ctx:ERROR_MESSAGE"/>
         <property name="ERROR_DETAIL" expression="$ctx:ERROR_DETAIL"/>
     </log>
-
     <property name="responseStatus" value="502" scope="default" type="STRING"/>
     <property name="errorMessage" expression="fn:concat('ATLAS Error: ', $ctx:ERROR_MESSAGE)" scope="default" type="STRING"/>
     <property name="responseBody" expression="$ctx:ERROR_DETAIL" scope="default" type="STRING"/>
     <property name="durationMs" value="0" scope="default" type="STRING"/>
     <property name="currentAttempt" value="1" scope="default" type="STRING"/>
-
     <filter xpath="string-length($ctx:api.endpoint) = 0">
         <then>
             <property name="api.endpoint" expression="$ctx:uri.var.atlasBackendUrl" scope="default" type="STRING"/>
@@ -28,11 +22,7 @@
             <property name="api.params" value="service_request_json" scope="default" type="STRING"/>
         </then>
     </filter>
-
-    <!-- Record failed attempt in api_transaction_log -->
     <sequence key="DbRecordAttemptLogSeq"/>
-
-    <!-- Set XML payload for Aggregator (Do NOT call drop or respond) -->
     <payloadFactory media-type="xml">
         <format>
             <srResult xmlns="">

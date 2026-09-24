@@ -75,9 +75,9 @@ wso2-mi-monorepo/
 │   ├── branch-service/                           # Domain Branch (SAP Core)
 │   │   ├── Dockerfile  ├── pom.xml
 │   │   └── src/main/wso2mi/artifacts/
-│   │       ├── apis/       (BranchAPI, HealthAPI)
+    │   │       ├── apis/       (BranchAPI, BranchHealthAPI, BranchReadinessAPI)
 │   │       ├── sequences/  (BranchGetByCreateDateSeq)
-│   │       └── endpoints/  (SapCoreDynamicEndpoint)
+    │   │       └── endpoints/  (service-specific endpoints)
 │   ├── customer-service/                         # Domain Customer (CustomerAPI + CustomerGetByCreateDateSeq)
 │   ├── vehicle-service/                          # Domain Vehicle (VehicleAPI + VehicleGetByLicensePlateSeq + ExtServiceDynamicEndpoint)
 │   ├── vendor-service/                           # Vendor Master Data (VMD) → XML → FTP   [kerangka]
@@ -135,7 +135,7 @@ wso2-mi-monorepo/
 - **Peran**: Menjalankan TCP forwarder `127.0.0.1:3307 → ${DB_HOST}:${DB_PORT}` sehingga config aplikasi tetap menunjuk `localhost:3307` tanpa diubah antar-environment.
 
 #### 3. `platform/k8s/base-deployment.yaml`
-- **Fungsi**: Base manifest Kubernetes (Deployment + Service) dengan probe `/health` & `/health/ready`.
+- **Fungsi**: Base manifest Kubernetes (Deployment + Service) dengan probe service-specific `/health/<service>` & `/readiness/<service>`.
 - **Peran**: Di-render per service (`__SERVICE_NAME__`, `__IMAGE__`) lalu `kubectl apply`.
 
 #### 4. `<service>/deployment/libs/mariadb-java-client-3.3.3.jar`
@@ -163,9 +163,9 @@ Setiap file di folder ini merepresentasikan satu grup endpoint REST:
 - **Fungsi**: Menerima request terkait data armada mobil (contoh: `/getByLicensePlate`).
 - **Korelasi**: Memanggil `AuthGuardSeq` untuk cek scope `vehicles`, lalu ke `VehicleGetByLicensePlateSeq`.
 
-#### 4. `HealthAPI.xml`
-- **Context**: `/health`
-- **Fungsi**: Endpoint probe liveness (`/health`) dan readiness (`/health/ready`).
+#### 4. `HealthAPI.xml` and `ReadinessAPI.xml`
+- **Contexts**: `/health/<service>` and `/readiness/<service>`
+- **Fungsi**: Separate, service-specific MI liveness and readiness endpoints.
 - **Keistimewaan**: Endpoint ini **bebas token** agar Kubernetes / AWS Load Balancer bisa memantau kesehatan server setiap detik tanpa otentikasi.
 
 #### 5. `WorkerAPI.xml`
@@ -178,9 +178,9 @@ Setiap file di folder ini merepresentasikan satu grup endpoint REST:
 
 Endpoint adalah koneksi keluar menuju server external:
 
-#### 1. `SapCoreDynamicEndpoint.xml`
+#### 1. `shared/SapCoreDynamicEndpoint.xml`
 - **URL Template**: `{+uri.var.sapBackendUrl}`
-- **Fungsi**: Satu-satunya pintu keluar HTTP menuju server SAP Core ASSA.
+- **Fungsi**: Shared and single HTTP exit point toward SAP Core ASSA for branch and customer services.
 - **Mengapa Dinamis?**: Tidak ada URL yang di-hardcode. Tanda `+` mencegah WSO2 melakukan double-encode pada tanda tanya `?` atau `&` di URL.
 
 #### 2. `ExtServiceDynamicEndpoint.xml`

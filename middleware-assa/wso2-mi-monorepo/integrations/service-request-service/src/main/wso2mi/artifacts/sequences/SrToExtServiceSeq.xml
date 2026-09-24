@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="SrToExtServiceSeq" onError="SrExtServiceErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Service Request Branch 2: ASSA External Services                  -->
-    <!-- POST https://assa-ext-services.assa.id/dev/service/input_service_request -->
-    <!-- Referensi: GUIDE_SR.md (Target 2)                                 -->
-    <!-- ================================================================= -->
-
-    <!-- 1. Check Toggle: sr.target.extservice.enabled -->
     <property name="extEnabled" expression="get-property('file', 'sr.target.extservice.enabled')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:extEnabled) = 0">
         <then>
@@ -33,7 +26,6 @@
             </payloadFactory>
         </then>
         <else>
-            <!-- 2. Resolve Base URL & Endpoint Path -->
             <property name="srResolvedBaseUrl" expression="get-property('env', 'ASSA_EXT_SR_BASE_URL')" scope="default" type="STRING"/>
             <filter xpath="string-length($ctx:srResolvedBaseUrl) = 0">
                 <then>
@@ -73,7 +65,6 @@
                 </then>
             </filter>
 
-            <!-- 3. Resolve API Key -->
             <property name="srApiKey" expression="get-property('env', 'ASSA_EXT_SR_APIKEY')" scope="default" type="STRING"/>
             <filter xpath="string-length($ctx:srApiKey) = 0">
                 <then>
@@ -91,7 +82,6 @@
             <property name="api.params" value="service_request_urlencoded" scope="default" type="STRING"/>
             <property name="currentAttempt" value="1" scope="default" type="STRING"/>
 
-            <!-- 4. Format XML Root for XFormURLEncodedFormatter serialization (30 Fields) -->
             <payloadFactory media-type="xml">
                 <format>
                     <root xmlns="">
@@ -160,8 +150,6 @@
                     <arg evaluator="xml" expression="$ctx:sr_ticket_no"/>
                 </args>
             </payloadFactory>
-
-            <!-- 5. Set Transport Headers for application/x-www-form-urlencoded -->
             <header name="Authorization" action="remove" scope="transport"/>
             <header name="x-api-key" expression="$ctx:srApiKey" scope="transport"/>
             <header name="Content-Type" value="application/x-www-form-urlencoded" scope="transport"/>
@@ -170,13 +158,10 @@
             <property name="HTTP_METHOD" value="POST" scope="axis2"/>
             <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
 
-            <!-- 6. Call Backend with Call Mediator -->
             <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
             <call>
                 <endpoint key="ExtServicePostEndpoint"/>
             </call>
-
-            <!-- 7. Record Attempt Latency & Status -->
             <property name="callEndTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
             <property name="rawDurationMs" expression="number($ctx:callEndTime) - number($ctx:callStartTime)" scope="default" type="STRING"/>
             <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
@@ -185,21 +170,15 @@
                     <property name="durationMs" value="0" scope="default" type="STRING"/>
                 </then>
             </filter>
-
             <property name="responseStatus" expression="$axis2:HTTP_SC" scope="default" type="STRING"/>
             <filter xpath="string-length($ctx:responseStatus) = 0">
                 <then>
                     <property name="responseStatus" value="200" scope="default" type="STRING"/>
                 </then>
             </filter>
-
             <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
             <property name="errorMessage" value="None" scope="default" type="STRING"/>
-            
-            <!-- Record Attempt to api_transaction_log -->
             <sequence key="DbRecordAttemptLogSeq"/>
-
-            <!-- 8. Format Result XML for Aggregator -->
             <filter xpath="number($ctx:responseStatus) &gt;= 200 and number($ctx:responseStatus) &lt; 300">
                 <then>
                     <payloadFactory media-type="xml">

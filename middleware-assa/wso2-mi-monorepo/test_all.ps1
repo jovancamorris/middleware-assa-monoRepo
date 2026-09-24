@@ -1,6 +1,6 @@
 # ==============================================================================
 # ASSA Middleware - Automated Manual Test Runner (PowerShell)
-# Menjalankan seluruh skenario pengujian API ke port service lokal 8290-8295
+# Menjalankan seluruh skenario pengujian API pada satu WSO2 MI runtime
 # ==============================================================================
 
 Write-Host "`n========================================================" -ForegroundColor Cyan
@@ -24,25 +24,40 @@ if (Test-Path $envFile) {
     }
 }
 
-$baseUrl  = if ($env:BASE_URL)  { $env:BASE_URL }  else { "http://localhost:8290" }
-$baseUrl1 = if ($env:BASE_URL1) { $env:BASE_URL1 } else { "http://localhost:8291" }
-$baseUrl2 = if ($env:BASE_URL2) { $env:BASE_URL2 } else { "http://localhost:8292" }
-$baseUrl3 = if ($env:BASE_URL3) { $env:BASE_URL3 } else { "http://localhost:8293" }
-$baseUrl4 = if ($env:BASE_URL4) { $env:BASE_URL4 } else { "http://localhost:8294" }
-$baseUrl5 = if ($env:BASE_URL5) { $env:BASE_URL5 } else { "http://localhost:8295" }
-$tokenAppA = if ($env:AUTH_APP_A_TOKEN) { $env:AUTH_APP_A_TOKEN } else { "3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" }
-$tokenAppB = if ($env:AUTH_APP_B_TOKEN) { $env:AUTH_APP_B_TOKEN } else { "988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" }
-$tokenQA   = if ($env:AUTH_APP_QA_TOKEN) { $env:AUTH_APP_QA_TOKEN } else { "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" }
-$tokenOmnichannel = if ($env:AUTH_APP_OMNICHANNEL_TOKEN) { $env:AUTH_APP_OMNICHANNEL_TOKEN } else { "14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" }
+$baseUrl = if ($env:BASE_URL) { $env:BASE_URL } else { "http://localhost:8290" }
+$baseUrlCustomer = if ($env:BASE_URL1) { $env:BASE_URL1 } else { "http://localhost:8291" }
+$baseUrlVehicle = if ($env:BASE_URL2) { $env:BASE_URL2 } else { "http://localhost:8292" }
+$baseUrlVendor = if ($env:BASE_URL3) { $env:BASE_URL3 } else { "http://localhost:8293" }
+$baseUrlSpk = if ($env:BASE_URL4) { $env:BASE_URL4 } else { "http://localhost:8294" }
+$baseUrlServiceRequest = if ($env:BASE_URL5) { $env:BASE_URL5 } else { "http://localhost:8295" }
+$baseUrl = $baseUrl.TrimEnd('/')
+$baseUrlCustomer = $baseUrlCustomer.TrimEnd('/')
+$baseUrlVehicle = $baseUrlVehicle.TrimEnd('/')
+$baseUrlVendor = $baseUrlVendor.TrimEnd('/')
+$baseUrlSpk = $baseUrlSpk.TrimEnd('/')
+$baseUrlServiceRequest = $baseUrlServiceRequest.TrimEnd('/')
+$baseUri = [System.Uri]$baseUrl
+$baseHost = $baseUri.Host
+$basePort = if ($baseUri.Port -gt 0) {
+    $baseUri.Port
+} elseif ($baseUri.Scheme -eq "https") {
+    443
+} else {
+    80
+}
+$tokenAppA = if ($env:AUTH_APP_A_TOKEN) { $env:AUTH_APP_A_TOKEN } 
+$tokenAppB = if ($env:AUTH_APP_B_TOKEN) { $env:AUTH_APP_B_TOKEN } 
+$tokenQA   = if ($env:AUTH_APP_QA_TOKEN) { $env:AUTH_APP_QA_TOKEN } 
+$tokenOmnichannel = if ($env:AUTH_APP_OMNICHANNEL_TOKEN) { $env:AUTH_APP_OMNICHANNEL_TOKEN } 
 
 
 # 1. Cek Koneksi Server
-Write-Host "[1/10] Memeriksa apakah WSO2 MI aktif di port 8290..." -NoNewline
+Write-Host "[1/10] Memeriksa apakah WSO2 MI aktif di $baseHost`:$basePort..." -NoNewline
 try {
-    $conn = Test-NetConnection -ComputerName localhost -Port 8290 -InformationLevel Quiet -WarningAction SilentlyContinue
+    $conn = Test-NetConnection -ComputerName $baseHost -Port $basePort -InformationLevel Quiet -WarningAction SilentlyContinue
     if (-not $conn) {
         Write-Host " GAGAL!" -ForegroundColor Red
-        Write-Host "Server WSO2 MI belum aktif di port 8290." -ForegroundColor Yellow
+        Write-Host "Server WSO2 MI belum aktif di $baseHost`:$basePort." -ForegroundColor Yellow
         Write-Host "Silakan jalankan server terlebih dahulu di terminal:" -ForegroundColor Yellow
         Write-Host '`$env:JAVA_HOME = "C:\Users\eksad\tools\jdk-21.0.3+9"' -ForegroundColor White
         Write-Host '& "C:\Users\eksad\.wso2-mi\micro-integrator\wso2mi-4.6.0\bin\micro-integrator.bat"`n' -ForegroundColor White
@@ -120,24 +135,34 @@ function Run-Test {
 }
 
 # Run All Tests
-Run-Test -TestNumber "TEST 1" -TestName "Health Check (Liveness)" -Url "$baseUrl/health" -ExpectedStatus 200
-Run-Test -TestNumber "TEST 2" -TestName "Health Check (Readiness)" -Url "$baseUrl/health/ready" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 1" -TestName "Branch Health Check (Liveness)" -Url "$baseUrl/health/branch" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 2" -TestName "Branch Readiness Check" -Url "$baseUrl/readiness/branch" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 3" -TestName "Customer Health Check (Liveness)" -Url "$baseUrlCustomer/health/customer" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 4" -TestName "Customer Readiness Check" -Url "$baseUrlCustomer/readiness/customer" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 5" -TestName "Vehicle Health Check (Liveness)" -Url "$baseUrlVehicle/health/vehicle" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 6" -TestName "Vehicle Readiness Check" -Url "$baseUrlVehicle/readiness/vehicle" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 7" -TestName "Vendor Health Check (Liveness)" -Url "$baseUrlVendor/health/vendor" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 8" -TestName "Vendor Readiness Check" -Url "$baseUrlVendor/readiness/vendor" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 9" -TestName "SPK Health Check (Liveness)" -Url "$baseUrlSpk/health/spk" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 10" -TestName "SPK Readiness Check" -Url "$baseUrlSpk/readiness/spk" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 11" -TestName "Service Request Health Check (Liveness)" -Url "$baseUrlServiceRequest/health/service-request" -ExpectedStatus 200
+Run-Test -TestNumber "HEALTH 12" -TestName "Service Request Readiness Check" -Url "$baseUrlServiceRequest/readiness/service-request" -ExpectedStatus 200
 Run-Test -TestNumber "TEST 3" -TestName "Auth Guard: Tanpa Token (Harus 401)" -Url "$baseUrl/api/branches/getByCreateDate?companyCode=1000" -ExpectedStatus 401
 Run-Test -TestNumber "TEST 4" -TestName "Auth Guard: Token Palsu (Harus 401)" -Url "$baseUrl/api/branches/getByCreateDate?companyCode=1000" -Token "token-palsu-ngawur" -ExpectedStatus 401
 Run-Test -TestNumber "TEST 5" -TestName "Scope Guard: App B panggil Branch (Harus 403)" -Url "$baseUrl/api/branches/getByCreateDate?companyCode=1000" -Token $tokenAppB -ExpectedStatus 403
-Run-Test -TestNumber "TEST 6" -TestName "Scope Guard: App B panggil Customer (Harus 403)" -Url "$baseUrl1/api/customers/getByCreateDate?companyCode=1000" -Token $tokenAppB -ExpectedStatus 403
-Run-Test -TestNumber "TEST 7" -TestName "Validasi Parameter: Vehicle tanpa parameter pencarian (Harus 400)" -Url "$baseUrl2/api/vehicles/getByLicensePlate?companyCode=1000" -Token $tokenAppB -ExpectedStatus 400
-Run-Test -TestNumber "TEST 8" -TestName "Vehicle Service Atlas /getByLicensePlate (App B Token, plate_no)" -Url "$baseUrl2/api/vehicles/getByLicensePlate?plate_no=DD-8112" -Token $tokenAppB -ExpectedStatus 200
-Run-Test -TestNumber "TEST 9" -TestName "Vehicle Service Atlas /vehicleatlas (QA Token, plate_no)" -Url "$baseUrl2/api/vehicles/vehicleatlas?plate_no=DD-8112" -Token $tokenQA -ExpectedStatus 200
-Run-Test -TestNumber "TEST 10" -TestName "Customer Service (App A Token)" -Url "$baseUrl1/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -Token $tokenAppA -ExpectedStatus 200
+Run-Test -TestNumber "TEST 6" -TestName "Scope Guard: App B panggil Customer (Harus 403)" -Url "$baseUrlCustomer/api/customers/getByCreateDate?companyCode=1000" -Token $tokenAppB -ExpectedStatus 403
+Run-Test -TestNumber "TEST 7" -TestName "Validasi Parameter: Vehicle tanpa parameter pencarian (Harus 400)" -Url "$baseUrlVehicle/api/vehicles/getByLicensePlate?companyCode=1000" -Token $tokenAppB -ExpectedStatus 400
+Run-Test -TestNumber "TEST 8" -TestName "Vehicle Service Atlas /getByLicensePlate (App B Token, plate_no)" -Url "$baseUrlVehicle/api/vehicles/getByLicensePlate?plate_no=DD-8112" -Token $tokenAppB -ExpectedStatus 200
+Run-Test -TestNumber "TEST 9" -TestName "Vehicle Service Atlas /vehicleatlas (QA Token, plate_no)" -Url "$baseUrlVehicle/api/vehicles/vehicleatlas?plate_no=DD-8112" -Token $tokenQA -ExpectedStatus 200
+Run-Test -TestNumber "TEST 10" -TestName "Customer Service (App A Token)" -Url "$baseUrlCustomer/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -Token $tokenAppA -ExpectedStatus 200
 Run-Test -TestNumber "TEST 11" -TestName "Branch Service (App A Token)" -Url "$baseUrl/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -Token $tokenAppA -ExpectedStatus 200
 
 # Vendor Create Tests (GUIDE_VENDOR_CREATE_XML_FTP_V2.md)
-Run-Test -TestNumber "TEST 12" -TestName "Vendor Create: Tanpa Token (Harus 401)" -Url "$baseUrl3/api/vendors/create" -Method "POST" -Body "{}" -ExpectedStatus 401
-Run-Test -TestNumber "TEST 13" -TestName "Vendor Create: App B Token tanpa scope 'vendors' (Harus 403)" -Url "$baseUrl3/api/vendors/create" -Method "POST" -Token $tokenAppB -Body "{}" -ExpectedStatus 403
+Run-Test -TestNumber "TEST 12" -TestName "Vendor Create: Tanpa Token (Harus 401)" -Url "$baseUrlVendor/api/vendors/create" -Method "POST" -Body "{}" -ExpectedStatus 401
+Run-Test -TestNumber "TEST 13" -TestName "Vendor Create: App B Token tanpa scope 'vendors' (Harus 403)" -Url "$baseUrlVendor/api/vendors/create" -Method "POST" -Token $tokenAppB -Body "{}" -ExpectedStatus 403
 
 $invalidVendorJson = '{"companyTitle":"INVALID","companyName":"PT Test","otv":"No","paymentCycle":"Monthly","accountNumber":"123","accountName":"Test","bankName":"BCA","hoEmail":"test@assa.id","hoPhone":"08123","hoAddress":"Jakarta","npwp":"12345","accountGroup":"V010","top":"T014","glAccount":"2121000000","documentNumber":"DOC-01"}'
-Run-Test -TestNumber "TEST 14" -TestName "Vendor Create: Validasi Gagal companyTitle invalid (Harus 400)" -Url "$baseUrl3/api/vendors/create" -Method "POST" -Token $tokenQA -Body $invalidVendorJson -ExpectedStatus 400
+Run-Test -TestNumber "TEST 14" -TestName "Vendor Create: Validasi Gagal companyTitle invalid (Harus 400)" -Url "$baseUrlVendor/api/vendors/create" -Method "POST" -Token $tokenQA -Body $invalidVendorJson -ExpectedStatus 400
 
 $uniqueTrxId = "TRX-SUITE-" + (Get-Date -Format "yyyyMMddHHmmss")
 $validVendorJson = @{
@@ -160,13 +185,13 @@ $validVendorJson = @{
     documentNumber = "VENDOR-ATLAS-000123"
 } | ConvertTo-Json
 
-Run-Test -TestNumber "TEST 15" -TestName "Vendor Create: Valid Payload ke FTP devqaxmlpool.assa.id (Harus 201)" -Url "$baseUrl3/api/vendors/create" -Method "POST" -Token $tokenQA -Body $validVendorJson -ExtraHeaders @{ "X-Transaction-Id" = $uniqueTrxId } -ExpectedStatus 201
+Run-Test -TestNumber "TEST 15" -TestName "Vendor Create: Valid Payload ke FTP devqaxmlpool.assa.id (Harus 201)" -Url "$baseUrlVendor/api/vendors/create" -Method "POST" -Token $tokenQA -Body $validVendorJson -ExtraHeaders @{ "X-Transaction-Id" = $uniqueTrxId } -ExpectedStatus 201
 
-Run-Test -TestNumber "TEST 16" -TestName "Vendor Create: Idempotency Replay (Harus 200 replay)" -Url "$baseUrl3/api/vendors/create" -Method "POST" -Token $tokenQA -Body $validVendorJson -ExtraHeaders @{ "X-Transaction-Id" = $uniqueTrxId } -ExpectedStatus 200
+Run-Test -TestNumber "TEST 16" -TestName "Vendor Create: Idempotency Replay (Harus 200 replay)" -Url "$baseUrlVendor/api/vendors/create" -Method "POST" -Token $tokenQA -Body $validVendorJson -ExtraHeaders @{ "X-Transaction-Id" = $uniqueTrxId } -ExpectedStatus 200
 
 # SPK Duelist Tests (GUIDE_SPK_DUELIST_XML_FTP_V2.md)
-Run-Test -TestNumber "TEST 17" -TestName "SPK Duelist: Tanpa Token (Harus 401)" -Url "$baseUrl4/api/spk/duelist" -Method "POST" -Body "{}" -ExpectedStatus 401
-Run-Test -TestNumber "TEST 18" -TestName "SPK Duelist: App B tanpa scope 'spk' (Harus 403)" -Url "$baseUrl4/api/spk/duelist" -Method "POST" -Token $tokenAppB -Body "{}" -ExpectedStatus 403
+Run-Test -TestNumber "TEST 17" -TestName "SPK Duelist: Tanpa Token (Harus 401)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Body "{}" -ExpectedStatus 401
+Run-Test -TestNumber "TEST 18" -TestName "SPK Duelist: App B tanpa scope 'spk' (Harus 403)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Token $tokenAppB -Body "{}" -ExpectedStatus 403
 
 $invalidSpkJson = @{
     type = "Maintenance"
@@ -181,7 +206,7 @@ $invalidSpkJson = @{
         @{ jenis = "Jasa"; description = "Jasa Perbaikan AC"; qty = 1; price = 1850000 }
     )
 } | ConvertTo-Json -Depth 10
-Run-Test -TestNumber "TEST 19" -TestName "SPK Duelist: Validasi noSpk wajib (Harus 400)" -Url "$baseUrl4/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $invalidSpkJson -ExpectedStatus 400
+Run-Test -TestNumber "TEST 19" -TestName "SPK Duelist: Validasi noSpk wajib (Harus 400)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $invalidSpkJson -ExpectedStatus 400
 
 $invalidTotalSpkJson = @{
     noSpk = "SPK/2026/09/00002"
@@ -197,7 +222,7 @@ $invalidTotalSpkJson = @{
         @{ jenis = "Jasa"; description = "Jasa Perbaikan AC"; qty = 1; price = 1850000 }
     )
 } | ConvertTo-Json -Depth 10
-Run-Test -TestNumber "TEST 20" -TestName "SPK Duelist: Total validation via X-Validate-Total (Harus 400)" -Url "$baseUrl4/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $invalidTotalSpkJson -ExtraHeaders @{ "X-Validate-Total" = "true" } -ExpectedStatus 400
+Run-Test -TestNumber "TEST 20" -TestName "SPK Duelist: Total validation via X-Validate-Total (Harus 400)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $invalidTotalSpkJson -ExtraHeaders @{ "X-Validate-Total" = "true" } -ExpectedStatus 400
 
 $spkTrxId = "SPK-SUITE-" + (Get-Date -Format "yyyyMMddHHmmss")
 $validSpkJson = @{
@@ -228,12 +253,12 @@ $validSpkJson = @{
         @{ jenis = "Parts"; description = "Filter AC"; qty = 1; price = 1700000 }
     )
 } | ConvertTo-Json -Depth 10
-Run-Test -TestNumber "TEST 21" -TestName "SPK Duelist: Valid Payload + Total Validation ke FTP (Harus 201)" -Url "$baseUrl4/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $validSpkJson -ExtraHeaders @{ "X-Transaction-Id" = $spkTrxId; "X-Forwarded-For" = "10.20.30.40"; "X-Validate-Total" = "true" } -ExpectedStatus 201
-Run-Test -TestNumber "TEST 22" -TestName "SPK Duelist: Idempotency Replay (Harus 200 replay)" -Url "$baseUrl4/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $validSpkJson -ExtraHeaders @{ "X-Transaction-Id" = $spkTrxId; "X-Forwarded-For" = "10.20.30.40"; "X-Validate-Total" = "true" } -ExpectedStatus 200
+Run-Test -TestNumber "TEST 21" -TestName "SPK Duelist: Valid Payload + Total Validation ke FTP (Harus 201)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $validSpkJson -ExtraHeaders @{ "X-Transaction-Id" = $spkTrxId; "X-Forwarded-For" = "10.20.30.40"; "X-Validate-Total" = "true" } -ExpectedStatus 201
+Run-Test -TestNumber "TEST 22" -TestName "SPK Duelist: Idempotency Replay (Harus 200 replay)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $validSpkJson -ExtraHeaders @{ "X-Transaction-Id" = $spkTrxId; "X-Forwarded-For" = "10.20.30.40"; "X-Validate-Total" = "true" } -ExpectedStatus 200
 
 # Service Request (SR) Tests (GUIDE_SR.md)
-Run-Test -TestNumber "TEST 23" -TestName "Service Request: Tanpa Token (Harus 401)" -Url "$baseUrl5/api/service-requests" -Method "POST" -Body "{}" -ExpectedStatus 401
-Run-Test -TestNumber "TEST 24" -TestName "Service Request: App B tanpa scope 'service_requests' (Harus 403)" -Url "$baseUrl5/api/service-requests" -Method "POST" -Token $tokenAppB -Body "{}" -ExpectedStatus 403
+Run-Test -TestNumber "TEST 23" -TestName "Service Request: Tanpa Token (Harus 401)" -Url "$baseUrlServiceRequest/api/service-requests" -Method "POST" -Body "{}" -ExpectedStatus 401
+Run-Test -TestNumber "TEST 24" -TestName "Service Request: App B tanpa scope 'service_requests' (Harus 403)" -Url "$baseUrlServiceRequest/api/service-requests" -Method "POST" -Token $tokenAppB -Body "{}" -ExpectedStatus 403
 
 $invalidSrJson = @{
     reff_number = "REF01"
@@ -242,7 +267,7 @@ $invalidSrJson = @{
     created_by = "admin"
     ticket_no = "TCK01"
 } | ConvertTo-Json
-Run-Test -TestNumber "TEST 25" -TestName "Service Request: Validasi app_id wajib (Harus 400)" -Url "$baseUrl5/api/service-requests" -Method "POST" -Token $tokenOmnichannel -Body $invalidSrJson -ExpectedStatus 400
+Run-Test -TestNumber "TEST 25" -TestName "Service Request: Validasi app_id wajib (Harus 400)" -Url "$baseUrlServiceRequest/api/service-requests" -Method "POST" -Token $tokenOmnichannel -Body $invalidSrJson -ExpectedStatus 400
 
 $srTrxId = "TRX-SR-SUITE-" + (Get-Date -Format "yyyyMMddHHmmss")
 $validSrJson = @{
@@ -278,12 +303,12 @@ $validSrJson = @{
     ticket_no = "TICKET-SR-99901"
 } | ConvertTo-Json
 
-Run-Test -TestNumber "TEST 26" -TestName "Service Request: Valid Fan-out Paralel (Harus 200)" -Url "$baseUrl5/api/service-requests" -Method "POST" -Token $tokenOmnichannel -Body $validSrJson -ExtraHeaders @{ "X-Transaction-Id" = $srTrxId } -ExpectedStatus 200
-Run-Test -TestNumber "TEST 27" -TestName "Service Request: Idempotency Replay (Harus 200 replay)" -Url "$baseUrl5/api/service-requests" -Method "POST" -Token $tokenOmnichannel -Body $validSrJson -ExtraHeaders @{ "X-Transaction-Id" = $srTrxId } -ExpectedStatus 200
+Run-Test -TestNumber "TEST 26" -TestName "Service Request: Valid Fan-out Paralel (Harus 200)" -Url "$baseUrlServiceRequest/api/service-requests" -Method "POST" -Token $tokenOmnichannel -Body $validSrJson -ExtraHeaders @{ "X-Transaction-Id" = $srTrxId } -ExpectedStatus 200
+Run-Test -TestNumber "TEST 27" -TestName "Service Request: Idempotency Replay (Harus 200 replay)" -Url "$baseUrlServiceRequest/api/service-requests" -Method "POST" -Token $tokenOmnichannel -Body $validSrJson -ExtraHeaders @{ "X-Transaction-Id" = $srTrxId } -ExpectedStatus 200
 
 # Background Worker Tests (GUIDE / Retry Worker)
-Run-Test -TestNumber "TEST 28" -TestName "Background Worker: Manual Trigger Retry Worker (Harus 200)" -Url "$baseUrl5/api/worker/retry" -Method "GET" -ExpectedStatus 200
+Run-Test -TestNumber "TEST 28" -TestName "Background Worker: Manual Trigger Retry Worker (Harus 200)" -Url "$baseUrlServiceRequest/api/worker/retry" -Method "GET" -ExpectedStatus 200
 
 Write-Host "`n========================================================" -ForegroundColor Cyan
-Write-Host "     SELURUH PENGUJIAN SELESAI (28 SKENARIO)!" -ForegroundColor Cyan
+Write-Host "     SELURUH PENGUJIAN SELESAI (38 SKENARIO)!" -ForegroundColor Cyan
 Write-Host "========================================================`n" -ForegroundColor Cyan

@@ -1,147 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="ApiCallErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Error Handler & Retry Loop for SafeApiCallWithRetrySeq            -->
-    <!-- ================================================================= -->
     <property name="callEndTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
     <property name="rawDurationMs" expression="number($ctx:callEndTime) - number($ctx:callStartTime)" scope="default" type="STRING"/>
     <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0">
-        <then>
-            <property name="durationMs" value="0" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <!-- Map HTTP Status Code for Attempt Log -->
+    <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0"><then><property name="durationMs" value="0" scope="default" type="STRING"/></then></filter>
     <property name="rawResponseStatus" value="500" scope="default" type="STRING"/>
     <filter xpath="boolean($ctx:ERROR_CODE) and number($ctx:ERROR_CODE) &gt;= 400 and number($ctx:ERROR_CODE) &lt;= 599">
-        <then>
-            <property name="rawResponseStatus" expression="$ctx:ERROR_CODE" scope="default" type="STRING"/>
-        </then>
+        <then><property name="rawResponseStatus" expression="$ctx:ERROR_CODE" scope="default" type="STRING"/></then>
         <else>
             <filter xpath="$ctx:ERROR_CODE = '101503' or $ctx:ERROR_CODE = '101505' or $ctx:ERROR_CODE = '101506' or $ctx:ERROR_CODE = '101507'">
-                <then>
-                    <property name="rawResponseStatus" value="502" scope="default" type="STRING"/>
-                </then>
-                <else>
-                    <filter xpath="$ctx:ERROR_CODE = '101504' or $ctx:ERROR_CODE = '101508'">
-                        <then>
-                            <property name="rawResponseStatus" value="504" scope="default" type="STRING"/>
-                        </then>
-                        <else>
-                            <property name="rawResponseStatus" value="500" scope="default" type="STRING"/>
-                        </else>
-                    </filter>
-                </else>
+                <then><property name="rawResponseStatus" value="502" scope="default" type="STRING"/></then>
+                <else><filter xpath="$ctx:ERROR_CODE = '101504' or $ctx:ERROR_CODE = '101508'"><then><property name="rawResponseStatus" value="504" scope="default" type="STRING"/></then></filter></else>
             </filter>
         </else>
     </filter>
     <property name="responseStatus" expression="fn:substring-before(fn:concat($ctx:rawResponseStatus, '.'), '.')" scope="default" type="STRING"/>
-
     <property name="errorMessage" expression="$ctx:ERROR_MESSAGE" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:errorMessage) = 0">
-        <then>
-            <property name="errorMessage" value="Unknown backend error" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
+    <filter xpath="string-length($ctx:errorMessage) = 0"><then><property name="errorMessage" value="Unknown backend error" scope="default" type="STRING"/></then></filter>
     <property name="responseBody" expression="$ctx:ERROR_DETAIL" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:responseBody) = 0">
-        <then>
-            <property name="responseBody" expression="$ctx:errorMessage" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <!-- Record this failed attempt in api_transaction_log -->
+    <filter xpath="string-length($ctx:responseBody) = 0"><then><property name="responseBody" expression="$ctx:errorMessage" scope="default" type="STRING"/></then></filter>
     <sequence key="DbRecordAttemptLogSeq"/>
-
-    <!-- Sanitize Attempt Counter & Retry Limit -->
     <property name="cleanCurrentAttempt" expression="fn:substring-before(fn:concat($ctx:currentAttempt, '.'), '.')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:cleanCurrentAttempt) = 0">
-        <then>
-            <property name="cleanCurrentAttempt" value="1" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
+    <filter xpath="string-length($ctx:cleanCurrentAttempt) = 0"><then><property name="cleanCurrentAttempt" value="1" scope="default" type="STRING"/></then></filter>
     <property name="cleanMaxAttempts" expression="fn:substring-before(fn:concat($ctx:maxAttempts, '.'), '.')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:cleanMaxAttempts) = 0">
-        <then>
-            <property name="cleanMaxAttempts" value="3" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
+    <filter xpath="string-length($ctx:cleanMaxAttempts) = 0"><then><property name="cleanMaxAttempts" value="3" scope="default" type="STRING"/></then></filter>
     <property name="cleanRetryIntervalSec" expression="fn:substring-before(fn:concat($ctx:retryIntervalSec, '.'), '.')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:cleanRetryIntervalSec) = 0">
-        <then>
-            <property name="cleanRetryIntervalSec" value="1" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <!-- Check if cleanCurrentAttempt < cleanMaxAttempts -->
+    <filter xpath="string-length($ctx:cleanRetryIntervalSec) = 0"><then><property name="cleanRetryIntervalSec" value="1" scope="default" type="STRING"/></then></filter>
     <filter xpath="number($ctx:cleanCurrentAttempt) &lt; number($ctx:cleanMaxAttempts)">
         <then>
-            <!-- Log Retry Notification -->
-            <log level="custom">
-                <property name="RETRY_NOTICE" expression="fn:concat(
-                    'Transaction ID: ', $ctx:transactionId, 
-                    ' - Percobaan ke-', $ctx:cleanCurrentAttempt, ' gagal (Status: ', $ctx:responseStatus, ', Error: ', $ctx:errorMessage, '). ',
-                    'Menunggu jeda ', $ctx:cleanRetryIntervalSec, ' detik sebelum mencoba kembali (Attempt ', number($ctx:cleanCurrentAttempt) + 1, ' of ', $ctx:cleanMaxAttempts, ')...'
-                )"/>
-            </log>
-
-            <!-- Increment Attempt Number -->
             <property name="rawNextAttempt" expression="number($ctx:cleanCurrentAttempt) + 1" scope="default" type="STRING"/>
             <property name="currentAttempt" expression="fn:substring-before(fn:concat($ctx:rawNextAttempt, '.'), '.')" scope="default" type="STRING"/>
-
-            <!-- Sleep / Wait Interval (Non-hardcoded) via MariaDB Native DO SLEEP -->
             <dbreport>
-                <connection>
-                    <pool>
-                        <driver>org.mariadb.jdbc.Driver</driver>
-                        <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
-                        <user>root</user>
-                        <password/>
-                    </pool>
-                </connection>
-                <statement>
-                    <sql>DO SLEEP(?)</sql>
-                    <parameter expression="$ctx:cleanRetryIntervalSec" type="INTEGER"/>
-                </statement>
+                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <statement><sql>DO SLEEP(?)</sql><parameter expression="$ctx:cleanRetryIntervalSec" type="INTEGER"/></statement>
             </dbreport>
-
-            <!-- Re-attempt API Call -->
             <sequence key="SafeApiCallWithRetrySeq"/>
         </then>
         <else>
-            <!-- Max Attempts (3x) Exhausted -> Final Status = FAILED -->
-            <log level="custom">
-                <property name="ALERT_TRANSACTION_FAILED" expression="fn:concat(
-                    '[ALERT MONITORING] Transaksi ID: ', $ctx:transactionId, 
-                    ' GAGAL setelah ', $ctx:maxAttempts, 'x percobaan. ',
-                    'Status akhir: FAILED. Dimasukkan ke Asynchronous Retry Queue (MariaDB).'
-                )"/>
-            </log>
-
             <property name="currentAttempt" expression="$ctx:cleanMaxAttempts" scope="default" type="STRING"/>
             <property name="trxStatus" value="FAILED" scope="default" type="STRING"/>
             <sequence key="DbRecordTransactionSeq"/>
-
-            <!-- Return standard error response to client -->
             <property name="ERROR_CODE" value="502" scope="default" type="STRING"/>
-            <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint'">
-                <then>
-                    <property name="ERROR_MESSAGE" value="Bad Gateway" scope="default" type="STRING"/>
-                    <property name="ERROR_DETAIL" expression="fn:concat('Gagal mengirim file ke FTP setelah ', $ctx:cleanMaxAttempts, 'x percobaan')" scope="default" type="STRING"/>
-                </then>
-                <else>
-                    <property name="ERROR_MESSAGE" value="Bad Gateway - Max Retries Exhausted" scope="default" type="STRING"/>
-                    <property name="ERROR_DETAIL" expression="fn:concat(
-                        'External API gagal diakses setelah ', $ctx:maxAttempts, 'x percobaan berturut-turut. ',
-                        'Transaksi (ID: ', $ctx:transactionId, ') telah dicatat dengan status FAILED dan masuk ke antrean retry asinkron.'
-                    )" scope="default" type="STRING"/>
-                </else>
-            </filter>
-            
+            <property name="ERROR_MESSAGE" value="Bad Gateway - Max Retries Exhausted" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" expression="fn:concat('External API failed after ', $ctx:maxAttempts, ' attempts.')" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </else>

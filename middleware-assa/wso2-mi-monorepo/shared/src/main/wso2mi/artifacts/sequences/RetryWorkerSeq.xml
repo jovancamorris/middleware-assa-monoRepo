@@ -1,77 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="RetryWorkerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Asynchronous Background Worker: Poll & Retry Failed Transactions  -->
-    <!-- ================================================================= -->
     <property name="workerTrxId" value="" scope="default" type="STRING"/>
     <property name="workerEndpoint" value="" scope="default" type="STRING"/>
     <property name="workerParams" value="" scope="default" type="STRING"/>
-
     <dblookup>
-        <connection>
-            <pool>
-                <driver>org.mariadb.jdbc.Driver</driver>
-                <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
-                <user>root</user>
-                <password/>
-            </pool>
-        </connection>
+        <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
         <statement>
             <sql>SELECT transaction_id, endpoint, request_payload FROM api_transaction WHERE status IN ('FAILED', 'RETRY') AND (next_retry_at IS NULL OR next_retry_at &lt;= NOW()) ORDER BY updated_at ASC LIMIT 1</sql>
-            <result name="workerTrxId" column="transaction_id"/>
-            <result name="workerEndpoint" column="endpoint"/>
-            <result name="workerParams" column="request_payload"/>
+            <result name="workerTrxId" column="transaction_id"/><result name="workerEndpoint" column="endpoint"/><result name="workerParams" column="request_payload"/>
         </statement>
     </dblookup>
-
     <filter xpath="string-length($ctx:workerTrxId) &gt; 0">
         <then>
-            <log level="custom">
-                <property name="WORKER_EVENT" expression="fn:concat(
-                    '[BACKGROUND WORKER] Menemukan transaksi tertunda dalam Retry Queue: ID=', $ctx:workerTrxId, 
-                    ', Endpoint=', $ctx:workerEndpoint, ', Params=', $ctx:workerParams, 
-                    '. Memproses antrean retry asinkron...'
-                )"/>
-            </log>
-
-            <!-- Update status to RETRY with exponential backoff schedule (5 menit) -->
             <dbreport>
-                <connection>
-                    <pool>
-                        <driver>org.mariadb.jdbc.Driver</driver>
-                        <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
-                        <user>root</user>
-                        <password/>
-                    </pool>
-                </connection>
-                <statement>
-                    <sql>UPDATE api_transaction SET status = 'RETRY', next_retry_at = DATE_ADD(NOW(), INTERVAL 300 SECOND), updated_at = NOW() WHERE transaction_id = ?</sql>
-                    <parameter expression="$ctx:workerTrxId" type="VARCHAR"/>
-                </statement>
+                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <statement><sql>UPDATE api_transaction SET status = 'RETRY', next_retry_at = DATE_ADD(NOW(), INTERVAL 300 SECOND), updated_at = NOW() WHERE transaction_id = ?</sql><parameter expression="$ctx:workerTrxId" type="VARCHAR"/></statement>
             </dbreport>
-
-            <!-- Audit Log: Catat aktivitas worker ke api_transaction_log -->
             <dbreport>
-                <connection>
-                    <pool>
-                        <driver>org.mariadb.jdbc.Driver</driver>
-                        <url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url>
-                        <user>root</user>
-                        <password/>
-                    </pool>
-                </connection>
-                <statement>
-                    <sql>INSERT INTO api_transaction_log (transaction_id, attempt_number, endpoint, request_payload, response_status, response_body, error_message, duration_ms, created_at) VALUES (?, 0, ?, ?, 202, 'Accepted for asynchronous retry by Background Worker', 'Worker Scheduled', 0, NOW())</sql>
-                    <parameter expression="$ctx:workerTrxId" type="VARCHAR"/>
-                    <parameter expression="$ctx:workerEndpoint" type="VARCHAR"/>
-                    <parameter expression="$ctx:workerParams" type="VARCHAR"/>
-                </statement>
+                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <statement><sql>INSERT INTO api_transaction_log (transaction_id, attempt_number, endpoint, request_payload, response_status, response_body, error_message, duration_ms, created_at) VALUES (?, 0, ?, ?, 202, 'Accepted for asynchronous retry by Background Worker', 'Worker Scheduled', 0, NOW())</sql><parameter expression="$ctx:workerTrxId" type="VARCHAR"/><parameter expression="$ctx:workerEndpoint" type="VARCHAR"/><parameter expression="$ctx:workerParams" type="VARCHAR"/></statement>
             </dbreport>
         </then>
-        <else>
-            <log level="custom">
-                <property name="WORKER_STATUS" value="[BACKGROUND WORKER] Tidak ada antrean transaksi tertunda di Retry Queue (Status OK)."/>
-            </log>
-        </else>
     </filter>
 </sequence>

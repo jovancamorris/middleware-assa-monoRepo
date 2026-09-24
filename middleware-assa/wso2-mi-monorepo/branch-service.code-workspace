@@ -1,0 +1,33 @@
+{
+	"folders": [
+		{
+			"name": "shared",
+			"path": "shared"
+		},
+		{
+			"name": "branch-service",
+			"path": "integrations/branch-service"
+		},
+		{
+			"name": "customer-service",
+			"path": "integrations/customer-service"
+		},
+		{
+			"name": "service-request-service",
+			"path": "integrations/service-request-service"
+		},
+		{
+			"name": "spk-service",
+			"path": "integrations/spk-service"
+		},
+		{
+			"name": "vehicle-service",
+			"path": "integrations/vehicle-service"
+		},
+		{
+			"name": "vendor-service",
+			"path": "integrations/vendor-service"
+		}
+	],
+	"settings": {}
+}

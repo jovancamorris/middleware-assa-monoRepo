@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <endpoint name="AtlasPostEndpoint" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- HTTP POST Dynamic Endpoint for ATLAS Service Request API          -->
-    <!-- Referensi: GUIDE_SR.md (Target 1 API ATLAS)                       -->
-    <!-- ================================================================= -->
     <http method="POST" uri-template="{+uri.var.atlasBackendUrl}">
         <timeout>
             <duration>30000</duration>

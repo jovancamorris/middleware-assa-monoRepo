@@ -1,18 +1,10 @@
--- ==============================================================================
--- ASSA Middleware — MariaDB Database Schema
--- Database: assa_middleware_db (Target: MariaDB localhost:3307)
--- Standar: Idempotency, Transaction Tracking, 3x Retry Log, Async Retry Queue
--- ==============================================================================
-
+-- ASSA Middleware MariaDB schema for idempotency and transaction tracking.
 CREATE DATABASE IF NOT EXISTS assa_middleware_db
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
 USE assa_middleware_db;
 
--- ------------------------------------------------------------------------------
--- 1. Tabel Transaksi Utama (api_transaction)
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS api_transaction (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     transaction_id VARCHAR(100) NOT NULL,
@@ -33,9 +25,6 @@ CREATE TABLE IF NOT EXISTS api_transaction (
     INDEX idx_idempotency (idempotency_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ------------------------------------------------------------------------------
--- 2. Tabel Log Attempt Percobaan Hit (api_transaction_log)
--- ------------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS api_transaction_log (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     transaction_id VARCHAR(100) NOT NULL,

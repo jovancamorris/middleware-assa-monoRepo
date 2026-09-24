@@ -1,55 +1,48 @@
 #!/bin/bash
 set -e
 
-# Target DB (defaults to host.docker.internal:3307 for host MariaDB, or mariadb:3306 for compose MariaDB)
 TARGET_HOST="${DB_HOST:-host.docker.internal}"
 TARGET_PORT="${DB_PORT:-3307}"
 
 echo "[ENTRYPOINT] Starting DB forwarder: 127.0.0.1:3307 -> ${TARGET_HOST}:${TARGET_PORT}..."
-python3 - << 'EOF' &
-import socket, threading, os
+python3 - << 'PYTHON' &
+import os
+import socket
+import threading
 
-src_port = 3307
-dst_host = os.environ.get("DB_HOST", "host.docker.internal")
-dst_port = int(os.environ.get("DB_PORT", "3307"))
+source_port = 3307
+target_host = os.environ.get("DB_HOST", "host.docker.internal")
+target_port = int(os.environ.get("DB_PORT", "3307"))
 
-def forward(src, dst):
+def forward(source, target):
     try:
         while True:
-            data = src.recv(4096)
-            if not data: break
-            dst.sendall(data)
+            data = source.recv(4096)
+            if not data:
+                break
+            target.sendall(data)
     except Exception:
         pass
     finally:
-        try: src.close()
-        except: pass
-        try: dst.close()
-        except: pass
+        source.close()
+        target.close()
 
 def handle(client):
     try:
-        remote = socket.create_connection((dst_host, dst_port), timeout=10)
-        t1 = threading.Thread(target=forward, args=(client, remote), daemon=True)
-        t2 = threading.Thread(target=forward, args=(remote, client), daemon=True)
-        t1.start()
-        t2.start()
-    except Exception as e:
-        try: client.close()
-        except: pass
+        server = socket.create_connection((target_host, target_port), timeout=10)
+        threading.Thread(target=forward, args=(client, server), daemon=True).start()
+        threading.Thread(target=forward, args=(server, client), daemon=True).start()
+    except Exception:
+        client.close()
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server.bind(("127.0.0.1", src_port))
-server.listen(100)
+listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+listener.bind(("127.0.0.1", source_port))
+listener.listen(100)
 
 while True:
-    try:
-        client, _ = server.accept()
-        threading.Thread(target=handle, args=(client,), daemon=True).start()
-    except Exception:
-        break
-EOF
+    client, _ = listener.accept()
+    threading.Thread(target=handle, args=(client,), daemon=True).start()
+PYTHON
 
-# Delegate to original WSO2 entrypoint
 exec /home/wso2carbon/docker-entrypoint.sh "$@"

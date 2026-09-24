@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<api context="/health" name="HealthAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- Liveness Probe -->
+<api context="/health/spk" name="SpkHealthAPI" xmlns="http://ws.apache.org/ns/synapse">
     <resource methods="GET" uri-template="/">
         <inSequence>
             <property name="checkType" value="liveness" scope="default" type="STRING"/>
@@ -11,14 +10,4 @@
         </faultSequence>
     </resource>
 
-    <!-- Readiness Probe -->
-    <resource methods="GET" uri-template="/ready">
-        <inSequence>
-            <property name="checkType" value="readiness" scope="default" type="STRING"/>
-            <sequence key="HealthCheckSeq"/>
-        </inSequence>
-        <faultSequence>
-            <sequence key="ErrorResponseSeq"/>
-        </faultSequence>
-    </resource>
 </api>

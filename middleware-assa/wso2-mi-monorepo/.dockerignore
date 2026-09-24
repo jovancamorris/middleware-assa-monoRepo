@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+**/.env
+target/
+**/target/
+.wso2mi/
+**/.wso2mi/
+**/.mvn/
+mvnw
+mvnw.cmd
+**/mvnw
+**/mvnw.cmd
+*.log
+*.tmp
+*.bak
+node_modules/

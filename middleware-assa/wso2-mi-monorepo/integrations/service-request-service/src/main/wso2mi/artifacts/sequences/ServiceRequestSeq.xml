@@ -1,13 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="ServiceRequestSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Orchestrator Sequence: Service Request Parallel Fan-Out           -->
-    <!-- Referensi: GUIDE_SR.md                                            -->
-    <!-- Consumer : Omnichannel                                            -->
-    <!-- Targets  : API ATLAS (Target 1) + ASSA External Services (Target 2)-->
-    <!-- ================================================================= -->
-
-    <!-- 1. Extract 30 Fields from Incoming JSON -->
     <property name="sr_app_id" expression="json-eval($.app_id)" scope="default" type="STRING"/>
     <property name="sr_reff_number" expression="json-eval($.reff_number)" scope="default" type="STRING"/>
     <property name="sr_branch_code" expression="json-eval($.branch_code)" scope="default" type="STRING"/>
@@ -41,8 +33,6 @@
 
     <property name="originalRequestJson" expression="json-eval($)" scope="default" type="STRING"/>
 
-    <!-- 2. Fail-Fast Validation for 6 Required Fields (GUIDE_SR.md Bagian 5) -->
-    <!-- Validation 1: app_id -->
     <filter xpath="string-length($ctx:sr_app_id) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
@@ -52,8 +42,6 @@
             <drop/>
         </then>
     </filter>
-
-    <!-- Validation 2: reff_number -->
     <filter xpath="string-length($ctx:sr_reff_number) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
@@ -63,8 +51,6 @@
             <drop/>
         </then>
     </filter>
-
-    <!-- Validation 3: branch_code -->
     <filter xpath="string-length($ctx:sr_branch_code) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
@@ -74,8 +60,6 @@
             <drop/>
         </then>
     </filter>
-
-    <!-- Validation 4: created_datetime -->
     <filter xpath="string-length($ctx:sr_created_datetime) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
@@ -85,8 +69,6 @@
             <drop/>
         </then>
     </filter>
-
-    <!-- Validation 5: created_by -->
     <filter xpath="string-length($ctx:sr_created_by) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
@@ -96,8 +78,6 @@
             <drop/>
         </then>
     </filter>
-
-    <!-- Validation 6: ticket_no -->
     <filter xpath="string-length($ctx:sr_ticket_no) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
@@ -108,20 +88,17 @@
         </then>
     </filter>
 
-    <!-- 3. Observability Logging & Idempotency Guard -->
     <property name="api.endpoint" value="/api/service-requests" scope="default" type="STRING"/>
     <property name="httpMethod" value="POST" scope="default" type="STRING"/>
     <property name="api.params" expression="$ctx:originalRequestJson" scope="default" type="STRING"/>
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>
 
-    <!-- 4. Parallel Fan-Out via Clone Mediator -->
     <clone id="SR_FANOUT" continueParent="false">
         <target sequence="SrToAtlasSeq"/>
         <target sequence="SrToExtServiceSeq"/>
     </clone>
 
-    <!-- 5. Aggregation Mediator -->
     <aggregate id="SR_FANOUT">
         <completeCondition timeout="35">
             <messageCount min="2" max="2"/>

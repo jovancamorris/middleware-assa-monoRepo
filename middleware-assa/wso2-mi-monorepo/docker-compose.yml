@@ -1,13 +1,6 @@
-# ==============================================================================
-# WSO2 MI Monorepo — Local Orchestration (SEMUA service sekaligus)
-# Setiap service integrasi punya image & container sendiri, berbagi 1 MariaDB.
-# Jalankan: docker compose up --build
-# ==============================================================================
 name: middleware-assa
 
 services:
-
-  # ---- Shared Database ----
   mariadb:
     image: ${DB_IMAGE:-mariadb:11}
     container_name: mi-mariadb
@@ -27,11 +20,10 @@ services:
       retries: 10
       start_period: 20s
 
-  # ---- Integration Service: Branch ----
   branch-service:
     build:
-      context: .
-      dockerfile: integrations/branch-service/Dockerfile
+      context: ./integrations/branch-service/deployment/docker
+      dockerfile: Dockerfile
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/branch-service:1.0.0
@@ -59,11 +51,10 @@ services:
       retries: 5
       start_period: 30s
 
-  # ---- Integration Service: Customer ----
   customer-service:
     build:
-      context: .
-      dockerfile: integrations/customer-service/Dockerfile
+      context: ./integrations/customer-service/deployment/docker
+      dockerfile: Dockerfile
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/customer-service:1.0.0
@@ -75,11 +66,10 @@ services:
       - "8291:8290"
     environment: *common-env
 
-  # ---- Integration Service: Vehicle ----
   vehicle-service:
     build:
-      context: .
-      dockerfile: integrations/vehicle-service/Dockerfile
+      context: ./integrations/vehicle-service/deployment/docker
+      dockerfile: Dockerfile
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/vehicle-service:1.0.0
@@ -93,11 +83,10 @@ services:
       <<: *common-env
       ASSA_EXT_VEHICLE_APIKEY: ${ASSA_EXT_VEHICLE_APIKEY:-}
 
-  # ---- Integration Service: Vendor (VMD → FTP) ----
   vendor-service:
     build:
-      context: .
-      dockerfile: integrations/vendor-service/Dockerfile
+      context: ./integrations/vendor-service/deployment/docker
+      dockerfile: Dockerfile
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/vendor-service:1.0.0
@@ -115,11 +104,10 @@ services:
       FTP_SAP_USERNAME: ${FTP_SAP_USERNAME:-middlewaredev}
       FTP_SAP_PASSWORD: ${FTP_SAP_PASSWORD:-}
 
-  # ---- Integration Service: SPK Duelist (→ FTP) ----
   spk-service:
     build:
-      context: .
-      dockerfile: integrations/spk-service/Dockerfile
+      context: ./integrations/spk-service/deployment/docker
+      dockerfile: Dockerfile
       args:
         BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/spk-service:1.0.0
@@ -137,13 +125,12 @@ services:
       FTP_SPK_USERNAME: ${FTP_SPK_USERNAME:-middlewaredev}
       FTP_SPK_PASSWORD: ${FTP_SPK_PASSWORD:-}
 
-  # ---- Integration Service: Service Request (fan-out ATLAS + Ext) ----
   service-request-service:
     build:
-      context: .
-      dockerfile: integrations/service-request-service/Dockerfile
+      context: ./integrations/service-request-service/deployment/docker
+      dockerfile: Dockerfile
       args:
-        BASE_IMAGE: wso2/wso2mi:4.6.0
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
     image: assa/service-request-service:1.0.0
     container_name: service-request-service
     restart: unless-stopped

@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="BranchGetByCreateDateSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- 1. Parameter Extraction with Defaults from Configuration          -->
-    <!-- ================================================================= -->
     <property name="companyCode" expression="$url:companyCode" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:companyCode) = 0">
         <then>
@@ -54,24 +51,15 @@
         </then>
     </filter>
 
-    <!-- ================================================================= -->
-    <!-- 2. Observability Logging & Idempotency Guard                      -->
-    <!-- ================================================================= -->
     <property name="api.endpoint" value="/api/branches/getByCreateDate" scope="default" type="STRING"/>
     <property name="api.params" expression="fn:concat('companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd)" scope="default" type="STRING"/>
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>
 
-    <!-- ================================================================= -->
-    <!-- 3. Base URL Resolution (4-Layer: ENV -> System -> File -> Default)-->
-    <!-- ================================================================= -->
     <property name="baseUrlConfigKey" value="sap.core.base.url" scope="default" type="STRING"/>
     <property name="envVarKey" value="SAP_CORE_BASE_URL" scope="default" type="STRING"/>
     <sequence key="ResolveBaseUrlSeq"/>
 
-    <!-- ================================================================= -->
-    <!-- 4. Path from Configuration & Compose Target Backend URL           -->
-    <!-- ================================================================= -->
     <property name="sapApiPath" expression="get-property('file', 'sap.api.path.branch.getByCreateDate')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:sapApiPath) = 0">
         <then>
@@ -80,10 +68,6 @@
     </filter>
 
     <property name="uri.var.sapBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:sapApiPath, '?companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd)" scope="default" type="STRING"/>
-
-    <!-- ================================================================= -->
-    <!-- 5. Invoke SapCoreDynamicEndpoint with 3x Retry & DB Logging       -->
-    <!-- ================================================================= -->
     <property name="targetEndpointKey" value="SapCoreDynamicEndpoint" scope="default" type="STRING"/>
     <sequence key="SafeApiCallWithRetrySeq"/>
 </sequence>
