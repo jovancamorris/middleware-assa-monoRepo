@@ -16,9 +16,9 @@ USER root
 # Selalu salin shared artifacts CAR ke runtime
 COPY --from=build /app/shared/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-
-# Salin JDBC Driver MariaDB ke library WSO2 MI runtime
-COPY --from=build /app/libs/*.jar ${WSO2_SERVER_HOME}/lib/
+# The shared DB sequences use the MariaDB driver at runtime.
+COPY --from=build /app/integrations/branch-service/deployment/docker/libs/mariadb-java-client-*.jar \
+    ${WSO2_SERVER_HOME}/lib/
 
 # Salin SSL certificates, entrypoint forwarder & skema SQL
 COPY --from=build /app/platform/docker/resources/*.jks ${WSO2_SERVER_HOME}/repository/resources/security/

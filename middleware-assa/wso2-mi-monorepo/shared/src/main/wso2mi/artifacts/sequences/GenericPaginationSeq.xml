@@ -1,7 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="GenericPaginationSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <filter xpath="string($ctx:paginationEnabled) = 'true'">
+        <then>
+            <script language="js"><![CDATA[
+                var payload = mc.getPayloadJSON();
+                var records = null;
+                var total = null;
+                if (Array.isArray(payload)) {
+                    records = payload;
+                } else if (payload && Array.isArray(payload.data)) {
+                    records = payload.data;
+                    total = Number(payload.total);
+                } else if (payload && Array.isArray(payload.values)) {
+                    records = payload.values;
+                    total = Number(payload.total);
+                } else if (payload && (payload.message === "Empty!" || payload.message === "No data")) {
+                    records = [];
+                }
+
+                if (records !== null) {
+                    var page = parseInt(mc.getProperty("page"), 10);
+                    var perPage = parseInt(mc.getProperty("perPage"), 10);
+                    if (!(page > 0)) page = 1;
+                    if (!(perPage > 0)) perPage = 10;
+                    if (total === null || isNaN(total) || total < 0) total = records.length;
+
+                    mc.setPayloadJSON({
+                        success: true,
+                        total: total,
+                        page: page,
+                        perPage: perPage,
+                        data: records.slice((page - 1) * perPage, page * perPage)
+                    });
+                }
+            ]]></script>
+        </then>
+    </filter>
     <property name="messageType" value="application/json" scope="axis2"/>
     <property name="ContentType" value="application/json" scope="axis2"/>
     <filter xpath="boolean($ctx:correlationId)"><then><header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/></then></filter>
-    <respond/>
 </sequence>

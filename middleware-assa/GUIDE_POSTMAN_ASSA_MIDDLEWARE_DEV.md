@@ -1,820 +1,545 @@
-# Panduan Penggunaan Postman Collection: ASSA Middleware Server Dev
-## Server Port: 6031 (`<DEV_HOST>:6031`)
+# Panduan Postman ASSA Middleware
 
-Dokumentasi ini adalah panduan lengkap (*User & Testing Guide*) untuk penggunaan file Postman Collection:
-📁 [`ASSA Middleware Server Dev.postman_collection.json`]
+Panduan ini menjelaskan cara menggunakan koleksi Postman untuk menguji kontrak HTTP ASSA Middleware pada lingkungan development. 
 
-Panduan ini mencakup penjelasan arsitektur environment, manajemen variabel & token otentikasi, alur pengujian otomatis (*Pre-request Script & Tests*), penjelasan fungsional untuk **setiap 33 request**, serta alternatif perintah **cURL** siap pakai.
+Koleksi yang dirujuk adalah:
 
----
+```text
+ASSA Middleware Server Dev.
+postman_collection.json
+```
+
+Koleksi saat ini berisi 33 request dalam 9 folder. Koleksi adalah alat smoke test, bukan pengganti spesifikasi OpenAPI. Jika koleksi, API XML, sequence, dan dokumentasi berbeda, runtime pada API XML dan sequence adalah source of truth.
+
+> [!WARNING]
+> Jangan menaruh token, password, API key, URL backend internal, atau data pribadi nyata pada dokumentasi, collection file, atau repository. Gunakan Postman Environment lokal/secret variable dan data sintetis.
 
 ## Daftar Isi
-1. [Arsitektur & Konteks Server Dev (Port 6031)](#1-arsitektur--konteks-server-dev-port-6031)
-2. [Konfigurasi Environment & Variabel Koleksi](#2-konfigurasi-environment--variabel-koleksi)
-3. [Mekanisme Otomasi Koleksi (Scripts & Guards)](#3-mekanisme-otomasi-koleksi-scripts--guards)
-4. [Katalog Lengkap Request & Alternatif cURL](#4-katalog-lengkap-request--alternatif-curl)
-   - [Folder 1 — Health & Readiness (All Services)](#folder-1--health--readiness-all-services)
-   - [Folder 2 — Branch Service (Port 8290)](#folder-2--branch-service-port-8290)
-   - [Folder 3 — Customer Service (Port 8291)](#folder-3--customer-service-port-8291)
-   - [Folder 4 — Vehicle Service (Port 8292)](#folder-4--vehicle-service-port-8292)
-   - [Folder 5 — Vendor Service (Port 8293)](#folder-5--vendor-service-port-8293)
-   - [Folder 6 — SPK Service (Port 8294)](#folder-6--spk-service-port-8294)
-   - [Folder 7 — Service Request Service (Port 8295)](#folder-7--service-request-service-port-8295)
-   - [Folder 8 — Security & Negative Tests (401 & 403 Guards)](#folder-8--security--negative-tests-401--403-guards)
-   - [Folder 9 — Background Retry Worker (Port 8295)](#folder-9--background-retry-worker-port-8295)
-5. [Panduan Eksekusi (Postman GUI & Newman CLI)](#5-panduan-eksekusi-postman-gui--newman-cli)
-6. [Troubleshooting & Solusi Error Umum](#6-troubleshooting--solusi-error-umum)
 
----
+1. [Ruang Lingkup dan Source of Truth](#1-ruang-lingkup-dan-source-of-truth)
+2. [Base URL dan Environment](#2-base-url-dan-environment)
+3. [Authentication, Scope, dan Header](#3-authentication-scope-dan-header)
+4. [Inventaris Endpoint](#4-inventaris-endpoint)
+5. [Skenario Request](#5-skenario-request)
+6. [Menjalankan Postman dan Newman](#6-menjalankan-postman-dan-newman)
+7. [Perbedaan Koleksi Saat Ini](#7-perbedaan-koleksi-saat-ini)
+8. [Troubleshooting](#8-troubleshooting)
+9. [Checklist Perubahan API](#9-checklist-perubahan-api)
 
-## 1. Arsitektur & Konteks Server Dev (Port 6031)
+## 1. Ruang Lingkup dan Source of Truth
 
-Pada lingkungan server pengembangan (**Server Dev ASSA**), seluruh microservice WSO2 MI dikemas ke dalam satu kontainer monorepo (`middleware-api`) dan dilayani oleh **Nginx Reverse Proxy** pada port **6031**:
+Postman digunakan untuk memverifikasi:
 
-```
-+-----------------------------------------------------------------------------------+
-|  Client (Postman / cURL / Frontend ATLAS / Omnichannel)                           |
-+-----------------------------------------------------------------------------------+
-                                         │
-                                         ▼ HTTP Port 6031
-+───────────────────────────────────────────────────────────────────────────────────+
-|  Nginx Reverse Proxy (Container: <NGINX_CONTAINER>, Server Dev: <DEV_HOST>:6031)  |
-|  - <DEV_HOST>:6031                                                               |
-+───────────────────────────────────────────────────────────────────────────────────+
-       │                     │                     │                     │
-       ▼ /health/*           ▼ /api/branches/*     ▼ /api/vehicles/*     ▼ /api/vendors/*
-       ▼ /api/customers/*    ▼ /api/spk/*          ▼ /api/service-req/*  ▼ /api/worker/*
-+───────────────────────────────────────────────────────────────────────────────────+
-|  WSO2 Micro Integrator Monorepo (Container: middleware-api :8290)                 |
-|  - Seluruh CApp aktif dalam satu runtime engine WSO2 MI                           |
-+───────────────────────────────────────────────────────────────────────────────────+
-          │                                                    │
-          ▼ SQL                                                ▼ XML over FTP
-+───────────────────────+                            +──────────────────────────────+
-| MariaDB (<DB_CONTAINER>) |                          | Dev QA FTP Server            |
-| Port Internal: <DB_PORT> |                          | <FTP_HOST>:<FTP_PORT>       |
-+───────────────────────+                            +──────────────────────────────+
+- liveness dan readiness setiap service;
+- authentication dan scope guard;
+- query parameter dan validasi request body;
+- idempotency dan replay response;
+- fan-out Service Request;
+- worker retry operasional;
+- status HTTP pada happy path dan negative path.
+
+Urutan verifikasi ketika endpoint berubah:
+
+1. API XML pada `integrations/<service>/src/main/wso2mi/artifacts/apis/` untuk context, method, route, dan sequence.
+2. Domain sequence untuk parameter, header, payload, validation, dan response.
+3. Shared sequence untuk auth, scope, correlation, idempotency, retry, dan error.
+4. `wso2-mi-monorepo/test_all.ps1` untuk contoh request yang dapat dieksekusi.
+5. Feature guide untuk konteks bisnis setelah behavior runtime dikonfirmasi.
+
+## 2. Base URL dan Environment
+
+### 2.1 Deployment
+
+Pada server development melalui reverse proxy, gunakan satu base URL untuk semua service:
+
+```text
+http://<DEV_HOST>:<PORT_HOST>
 ```
 
-### Keuntungan Port Tunggal (6031):
-- **Satu Pintu Masuk**: Anda tidak perlu berganti-ganti port 8290, 8291, 8292, dst. Semua request diarahkan ke `<DEV_BASE_URL>`.
-- **Rute Path Presisi**: Nginx memetakan path seperti `/api/branches/`, `/api/customers/`, `/api/vehicles/`, `/api/vendors/`, `/api/spk/`, `/api/service-requests/`, dan `/api/worker/` langsung ke backend WSO2 MI secara transparan.
+Nilai `baseUrl...` tidak boleh diakhiri `/`. URL request kemudian dibentuk, misalnya:
 
----
+```text
+{{baseUrlBranch}}/api/branches/getByCreateDate
+```
 
-## 2. Konfigurasi Environment & Variabel Koleksi
+### 2.2 Variable yang diperlukan
 
-Koleksi ini menggunakan **Collection Variables** bawaan sehingga dapat langsung dijalankan setelah di-import tanpa perlu konfigurasi environment eksternal tambahan.
+Buat Postman Environment lokal dengan variable berikut. Isi token dari secret manager atau administrator environment, bukan dari dokumen ini.
 
-### 2.1. Variabel Base URL
+| Variable | Kegunaan |
+|---|---|
+| `baseUrlBranch` | Base URL Branch |
+| `baseUrlCustomer` | Base URL Customer |
+| `baseUrlVehicle` | Base URL Vehicle |
+| `baseUrlVendor` | Base URL Vendor |
+| `baseUrlSPK` | Base URL SPK |
+| `baseUrlSR` | Base URL Service Request dan Worker |
+| `token_app_a` | Token dengan scope Branch dan Customer |
+| `token_app_b` | Token dengan scope Vehicle |
+| `token_qa` | Token dengan scope yang disetujui untuk pengujian QA |
+| `token_omnichannel` | Token dengan scope Service Request |
+| `companyCode` | Contoh kode perusahaan sintetis |
+| `vendor_trx_id` | Transaction ID Vendor, diisi script create |
+| `spk_trx_id` | Transaction ID SPK, diisi script create |
+| `sr_trx_id` | Transaction ID Service Request, diisi script create |
 
-| Nama Variabel | Nilai Default Koleksi | Keterangan | Alternatif Direct Local |
-|---|---|---|---|
-| `baseUrlBranch` | `<DEV_BASE_URL>` | Endpoint Branch Service & Health | `http://localhost:8290` |
-| `baseUrlCustomer` | `<DEV_BASE_URL>` | Endpoint Customer Service | `http://localhost:8291` |
-| `baseUrlVehicle` | `<DEV_BASE_URL>` | Endpoint Vehicle Service & Atlas | `http://localhost:8292` |
-| `baseUrlVendor` | `<DEV_BASE_URL>` | Endpoint Vendor Create (VMD) | `http://localhost:8293` |
-| `baseUrlSPK` | `<DEV_BASE_URL>` | Endpoint SPK Duelist | `http://localhost:8294` |
-| `baseUrlSR` | `<DEV_BASE_URL>` | Endpoint Service Request & Worker | `http://localhost:8295` |
+Nama variable pada tabel harus sama dengan nama yang dirujuk collection. Environment variable memiliki prioritas lebih tinggi daripada collection variable di Postman.
 
-> [!TIP]
-> Jika server dapat diakses melalui domain internal DNS, Anda dapat mengubah nilai variabel di atas menjadi `<DEV_BASE_URL>:6031`.
+### 2.3 Keamanan collection
 
-### 2.2. Token Otentikasi & Hak Akses (Scope Matrix)
+Export collection harus diperiksa sebelum commit atau dibagikan:
 
-Middleware ASSA menerapkan pengamanan ganda: **Auth Guard** (verifikasi token terdaftar) dan **Scope Guard** (hak akses per-service).
+- hapus nilai token dari collection variable;
+- ganti email, nomor telepon, alamat, nomor rekening, NPWP, nomor polisi, dan nama orang dengan data sintetis;
+- gunakan `example.invalid` untuk domain email contoh;
+- jangan masukkan credential FTP, password database, atau URL backend;
+- gunakan Postman secret/environment variable untuk nilai sensitif.
 
-| Nama Variabel | Nilai Token (Bearer) | Scope yang Dimiliki | Boleh Mengakses |
-|---|---|---|---|
-| `token_app_a` | `<TOKEN_APP_A>` | `branches`, `customers` | Branch & Customer API |
-| `token_app_b` | `<TOKEN_APP_B>` | `vehicles` | Vehicle API saja |
-| `token_qa` | `<TOKEN_QA>` | `vehicles`, `vendors`, `spk` | Vehicle, Vendor, SPK API |
-| `token_omnichannel` | `<TOKEN_OMNICHANNEL>` | `service_requests` | Service Request API |
-| *(Token Palsu)* | `<INVALID_TOKEN>` | *(Tidak ada)* | Digunakan untuk tes respons `401 Unauthorized` |
+## 3. Authentication, Scope, dan Header
 
-### 2.3. Variabel Data & Transaksi
+### 3.1 Bearer token dan scope
 
-| Nama Variabel | Nilai Awal | Keterangan |
+Business API menggunakan header berikut:
+
+```http
+Authorization: Bearer <TOKEN_ENVIRONMENT>
+```
+
+| Scope | Endpoint |
+|---|---|
+| `branches` | Branch |
+| `customers` | Customer |
+| `vehicles` | Vehicle |
+| `vendors` | Vendor |
+| `spk` | SPK Duelist |
+| `service_requests` | Service Request |
+
+Health dan readiness tidak menggunakan token. Worker adalah endpoint operasional; security requirement-nya harus dipastikan pada deployment sebelum endpoint dipublikasikan atau dipanggil dari CI.
+
+### 3.2 Header standar
+
+| Header | Arah | Kegunaan |
 |---|---|---|
-| `companyCode` | `<COMPANY_CODE>` | Kode entitas perusahaan default |
-| `vendor_trx_id` | `<TRANSACTION_ID>` | Di-update otomatis saat request Vendor Create dijalankan |
-| `spk_trx_id` | `<TRANSACTION_ID>` | Di-update otomatis saat request SPK Duelist dijalankan |
-| `sr_trx_id` | `<TRANSACTION_ID>` | Di-update otomatis saat request Service Request dijalankan |
+| `Authorization` | Request | Bearer token untuk business API |
+| `X-Correlation-Id` | Request/response | Tracing; middleware membuat nilai jika kosong |
+| `X-Transaction-Id` | Request/response | Kunci transaction dan idempotency |
+| `X-Idempotency-Key` | Request | Alias yang didukung untuk idempotency |
+| `X-Idempotent-Replay` | Response | `true` jika response berasal dari replay cache |
+| `X-Validate-Total` | Request SPK | Mengaktifkan validasi `qty * price` terhadap `totalPrice` |
+| `X-Forwarded-For` | Request Vendor/SPK | Metadata asal request bila dibutuhkan deployment |
+| `X-Retry-Interval-Seconds` | Request operasional/internal | Override interval retry jika sequence mendukung |
 
----
+Untuk request create, gunakan `X-Transaction-Id` yang unik. Jika header kosong, sequence dapat membuat ID otomatis, tetapi pengujian replay harus memakai ID yang sama secara eksplisit.
 
-## 3. Mekanisme Otomasi Koleksi (Scripts & Guards)
+### 3.3 Error response
 
-Koleksi Postman ini dirancang untuk dapat diuji secara mandiri maupun beruntun (*Collection Runner*) berkat script otomatis berikut:
+Format error umum runtime adalah:
 
-### 3.1. Pre-request Script (Otomasi Idempotency Key)
-Pada request pembuatan data (`Vendor Create`, `SPK Duelist`, dan `Service Request`), terdapat skrip yang otomatis membangkitkan transaction ID unik berbasis timestamp sebelum request dikirim:
-```javascript
-// Contoh pada Vendor Create:
-const trxId = 'TRX-POSTMAN-' + Date.now();
-pm.collectionVariables.set('vendor_trx_id', trxId);
+```json
+{
+  "error": true,
+  "message": "Forbidden",
+  "detail": "Application does not have the required scope."
+}
 ```
-Dengan skrip ini:
-1. **Request 1 (Create)** mengirim ID baru `TRX-POSTMAN-xxxx` -> Server memproses dan mengembalikan `201 Created`.
-2. **Request 2 (Idempotency Replay)** menggunakan variabel `vendor_trx_id` yang sama persis tanpa mengubah nilainya -> Server mendeteksi duplikasi transaksi dan mengembalikan cache `200 OK` (Replay).
 
-### 3.2. Tests Script (Validasi Otomatis)
-Setiap request dilengkapi assertion pengujian otomatis untuk memvalidasi:
-- **HTTP Status Code**: Memastikan respon sesuai (`200`, `201`, `400`, `401`, `403`).
-- **Health Status**: Memastikan payload JSON berstatus `UP` (`pm.expect(jsonData.status).to.eql('UP')`).
+Nilai `detail` bergantung pada error. Header `X-Correlation-Id` digunakan untuk tracing. Jangan menganggap field internal seperti `transactionId`, payload backend, atau detail credential selalu muncul di response; verifikasi terhadap `ErrorResponseSeq.xml`.
 
----
+Status yang perlu diuji:
 
-## 4. Katalog Lengkap Request & Alternatif cURL
+| Status | Arti |
+|---:|---|
+| `200` | Success atau idempotency replay |
+| `201` | Request create berhasil diterima |
+| `207` | Sebagian target fan-out berhasil |
+| `400` | Parameter, payload, atau validasi gagal |
+| `401` | Authorization tidak ada, format salah, atau token tidak dikenal |
+| `403` | Token valid tetapi scope tidak cukup |
+| `409` | Transaction dengan idempotency key masih diproses |
+| `502` | Backend gagal setelah retry atau seluruh fan-out gagal |
+| `504` | Timeout jika dikembalikan runtime |
 
----
+## 4. Inventaris Endpoint
 
-### Folder 1 — Health & Readiness (All Services)
-Fungsi: Memeriksa kesiapan container, modul WSO2 MI, dan database MariaDB.
+Path di bawah ini adalah kontrak client. Jangan membuat path berdasarkan nama sequence internal.
 
-#### 1.1. Health Check - Branch Service (8290)
-- **Fungsi**: Memeriksa liveness modul Branch Service.
-- **Method / Path**: `GET /health/branch`
-- **URL Postman**: `{{baseUrlBranch}}health/branch`
-- **Auth**: None
-- **Expected Status**: `200 OK` (`{"status":"UP", ...}`)
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/health/branch"
-  ```
-  *(Direct Local: `curl -X GET "http://localhost:8290/health/branch"`)*
+| Service | Port lokal | Method | Path | Auth/scope |
+|---|---:|---|---|---|
+| Branch | 8290 | GET | `/api/branches/getByCreateDate` | Bearer, `branches` |
+| Customer | 8291 | GET | `/api/customers/getByCreateDate` | Bearer, `customers` |
+| Vehicle | 8292 | GET | `/api/vehicles/getByLicensePlate` | Bearer, `vehicles` |
+| Vehicle alias | 8292 | GET | `/api/vehicles/vehicleatlas` | Bearer, `vehicles` |
+| Vendor | 8293 | POST | `/api/vendors/create` | Bearer, `vendors` |
+| SPK | 8294 | POST | `/api/spk/duelist` | Bearer, `spk` |
+| Service Request | 8295 | POST | `/api/service-requests` | Bearer, `service_requests` |
+| Worker | 8295 | GET, POST | `/api/worker/retry` | Operasional; verifikasi deployment |
+| Setiap service | service-specific | GET | `/health/<service>` | Tanpa token |
+| Setiap service | service-specific | GET | `/readiness/<service>` | Tanpa token |
 
-> [!NOTE]
-> Pada URL raw Postman Request 1.1 tertulis `{{baseUrlBranch}}health/branch`. Pastikan variabel `baseUrlBranch` memiliki trailing slash `/` di akhir jika path tidak diawali garis miring.
+Nilai `<service>` untuk probe adalah `branch`, `customer`, `vehicle`, `vendor`, `spk`, dan `service-request`. Validasi trailing slash readiness tetap harus dilakukan terhadap API XML deployment karena resource XML menggunakan `/`.
 
-#### 1.2. Health Check - Readiness (8290)
-- **Fungsi**: Memeriksa kesiapan WSO2 MI menerima traffic routing.
-- **Method / Path**: `GET /health/ready`
-- **URL Postman**: `{{baseUrlBranch}}/health/ready`
-- **Auth**: None
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/health/ready"
-  ```
+`/api/vehicles/vehicleatlas` memakai sequence yang sama dengan pencarian kendaraan dan diperlakukan sebagai alias/legacy sampai keputusan kompatibilitas ditetapkan.
 
-#### 1.3. Health Check - Customer Service (8291)
-- **Fungsi**: Memeriksa status kesehatan modul Customer Service.
-- **Method / Path**: `GET /health/customer`
-- **URL Postman**: `{{baseUrlCustomer}}/health/customer`
-- **Auth**: None
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/health/customer"
-  ```
+## 5. Skenario Request
 
-#### 1.4. Health Check - Vehicle Service (8292)
-- **Fungsi**: Memeriksa modul Vehicle Service & konektivitas backend vehicle.
-- **Method / Path**: `GET /health/vehicle`
-- **URL Postman**: `{{baseUrlVehicle}}/health/vehicle`
-- **Auth**: None
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/health/vehicle"
-  ```
+Bagian ini menjelaskan request yang harus tersedia pada collection. Contoh menggunakan placeholder dan data sintetis.
 
-#### 1.5. Health Check - Vendor Service (8293)
-- **Fungsi**: Memeriksa kesiapan modul Vendor dan koneksi FTP/DB MariaDB.
-- **Method / Path**: `GET /health/vendor`
-- **URL Postman**: `{{baseUrlVendor}}/health/vendor`
-- **Auth**: None
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/health/vendor"
-  ```
+### 5.1 Health dan readiness
 
-#### 1.6. Health Check - SPK Service (8294)
-- **Fungsi**: Memeriksa kesiapan modul SPK Duelist.
-- **Method / Path**: `GET /health/spk`
-- **URL Postman**: `{{baseUrlSPK}}/health/spk`
-- **Auth**: None
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/health/spk"
-  ```
+Jalankan liveness terlebih dahulu, lalu readiness untuk setiap service:
 
-#### 1.7. Health Check - Service Request (8295)
-- **Fungsi**: Memeriksa modul Service Request & background retry worker.
-- **Method / Path**: `GET /health/service-request`
-- **URL Postman**: `{{baseUrlSR}}/health/service-request`
-- **Auth**: None
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/health/service-request"
-  ```
+```http
+GET {{baseUrlBranch}}/health/branch
+GET {{baseUrlBranch}}/readiness/branch
+GET {{baseUrlCustomer}}/health/customer
+GET {{baseUrlCustomer}}/readiness/customer
+GET {{baseUrlVehicle}}/health/vehicle
+GET {{baseUrlVehicle}}/readiness/vehicle
+GET {{baseUrlVendor}}/health/vendor
+GET {{baseUrlVendor}}/readiness/vendor
+GET {{baseUrlSPK}}/health/spk
+GET {{baseUrlSPK}}/readiness/spk
+GET {{baseUrlSR}}/health/service-request
+GET {{baseUrlSR}}/readiness/service-request
+```
 
----
+Ekspektasi umum adalah `200` dan JSON dengan `status: "UP"`. Readiness dapat memuat status backend tambahan.
 
-### Folder 2 — Branch Service (Port 8290)
+Contoh cURL:
 
-#### 2.1. Get Branches by Create Date (App A)
-- **Fungsi**: Mengambil data cabang ASSA dari backend SAP Core berdasarkan rentang tanggal pembuatan dan kode perusahaan.
-- **Method / Path**: `GET /api/branches/getByCreateDate`
-- **Auth**: `Bearer {{token_app_a}}`
-- **Headers**:
-  - `X-Correlation-Id: corr-branch-001`
-- **Query Params**:
-  - `companyCode`: `<COMPANY_CODE>` (dari variabel `{{companyCode}}`)
-  - `dateStart`: `2020-01-01`
-  - `dateEnd`: `<END_DATE>`
-  - `page`: `1`
-  - `perPage`: `10`
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>&dateStart=<START_DATE>&dateEnd=<END_DATE>&page=1&perPage=10" \
-    -H "Authorization: Bearer <TOKEN_APP_A>" \
-    -H "X-Correlation-Id: corr-branch-001"
-  ```
-
----
-
-### Folder 3 — Customer Service (Port 8291)
-
-#### 3.1. Get Customers by Create Date (App A)
-- **Fungsi**: Mengambil data pelanggan dari SAP Core berdasarkan rentang tanggal pembuatan.
-- **Method / Path**: `GET /api/customers/getByCreateDate`
-- **Auth**: `Bearer {{token_app_a}}`
-- **Headers**:
-  - `X-Correlation-Id: corr-cust-001`
-- **Query Params**:
-  - `companyCode`: `<COMPANY_CODE>`
-  - `dateStart`: `2020-01-01`
-  - `dateEnd`: `<END_DATE>`
-  - `page`: `1`
-  - `perPage`: `10`
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/customers/getByCreateDate?companyCode=<COMPANY_CODE>&dateStart=<START_DATE>&dateEnd=<END_DATE>&page=1&perPage=10" \
-    -H "Authorization: Bearer <TOKEN_APP_A>" \
-    -H "X-Correlation-Id: corr-cust-001"
-  ```
-
----
-
-### Folder 4 — Vehicle Service (Port 8292)
-
-#### 4.1. Get Vehicle by License Plate (App B - plate_no)
-- **Fungsi**: Mencari spesifikasi dan status kendaraan berdasarkan nomor plat (`plate_no`) menggunakan Token App B (khusus vehicle).
-- **Method / Path**: `GET /api/vehicles/getByLicensePlate`
-- **Auth**: `Bearer {{token_app_b}}`
-- **Query Params**:
-  - `plate_no`: `<PLATE_NUMBER>`
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/vehicles/getByLicensePlate?plate_no=<PLATE_NUMBER>" \
-    -H "Authorization: Bearer <TOKEN_APP_B>"
-  ```
-
-#### 4.2. Get Vehicle Atlas (QA Token)
-- **Fungsi**: Memanggil endpoint pencarian kendaraan khusus integrasi ATLAS (`/vehicleatlas`) menggunakan Token QA.
-- **Method / Path**: `GET /api/vehicles/vehicleatlas`
-- **Auth**: `Bearer {{token_qa}}`
-- **Query Params**:
-  - `plate_no`: `<PLATE_NUMBER>`
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/vehicles/vehicleatlas?plate_no=<PLATE_NUMBER>" \
-    -H "Authorization: Bearer <TOKEN_QA>"
-  ```
-
-#### 4.3. Vehicle Tanpa Parameter (Expect 400 Bad Request)
-- **Fungsi**: Uji validasi input saat client tidak menyertakan query parameter identitas kendaraan (`plate_no` atau `equipment_no`).
-- **Method / Path**: `GET /api/vehicles/getByLicensePlate`
-- **Auth**: `Bearer {{token_app_b}}`
-- **Query Params**:
-  - `companyCode`: `<COMPANY_CODE>` *(tanpa `plate_no`)*
-- **Expected Status**: `400 Bad Request`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/vehicles/getByLicensePlate?companyCode=<COMPANY_CODE>" \
-    -H "Authorization: Bearer <TOKEN_APP_B>"
-  ```
-
----
-
-### Folder 5 — Vendor Service (Port 8293)
-
-#### 5.1. Vendor Create - Valid Payload (201 Created)
-- **Fungsi**: Menerima 17 field data master vendor V2 ATLAS, membentuk file XML (`Transaction` -> `Header` Key2=VMD + `TransactionDatas`), menyimpannya ke database MariaDB, dan mengunggahnya ke server FTP inbound SAP (`<FTP_HOST>:/vmd`).
-- **Pre-request Script**: Membangkitkan `vendor_trx_id` baru (misal `TRX-POSTMAN-<TIMESTAMP>`).
-- **Method / Path**: `POST /api/vendors/create`
-- **Auth**: `Bearer {{token_qa}}`
-- **Headers**:
-  - `Content-Type: application/json`
-  - `X-Transaction-Id: {{vendor_trx_id}}`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "companyTitle": "PT",
-    "companyName": "Example Company Ltd",
-    "otv": "No",
-    "paymentCycle": "Monthly",
-    "accountNumber": "<ACCOUNT_NUMBER>",
-    "accountName": "Example Account Holder",
-    "bankName": "Example Bank",
-    "hoEmail": "vendor@example.invalid",
-    "hoPhone": "<PHONE_NUMBER>",
-    "hoAddress": "<BUSINESS_ADDRESS>",
-    "contactName": "Example Contact",
-    "contactPhone": "<CONTACT_PHONE>",
-    "npwp": "<TAX_ID>",
-    "accountGroup": "V010",
-    "top": "T014",
-    "glAccount": "<GL_ACCOUNT>",
-    "documentNumber": "<VENDOR_DOCUMENT_ID>"
-  }
-  ```
-- **Expected Status**: `201 Created`
-- **Alternatif cURL**:
-  ```bash
-  TRX="TRX-VMD-$(date +%s)"
-  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
-    -H "Authorization: Bearer <TOKEN_QA>" \
-    -H "Content-Type: application/json" \
-    -H "X-Transaction-Id: $TRX" \
-    -d '{
-      "companyTitle": "PT",
-      "companyName": "Example Company Ltd",
-      "otv": "No",
-      "paymentCycle": "Monthly",
-      "accountNumber": "<ACCOUNT_NUMBER>",
-      "accountName": "Example Account Holder",
-      "bankName": "Example Bank",
-      "hoEmail": "vendor@example.invalid",
-      "hoPhone": "<PHONE_NUMBER>",
-      "hoAddress": "<BUSINESS_ADDRESS>",
-      "contactName": "Example Contact",
-      "contactPhone": "<CONTACT_PHONE>",
-      "npwp": "<TAX_ID>",
-      "accountGroup": "V010",
-      "top": "T014",
-      "glAccount": "<GL_ACCOUNT>",
-      "documentNumber": "<VENDOR_DOCUMENT_ID>"
-    }'
-  ```
-
-#### 5.2. Vendor Create - Idempotency Replay (200 Replay)
-- **Fungsi**: Mengirim ulang payload yang sama dengan `X-Transaction-Id` yang persis sama dari Request 5.1 untuk memverifikasi proteksi Idempotency Guard (transaksi tidak diproses ulang ke FTP, melainkan mengembalikan cache status sukses).
-- **Method / Path**: `POST /api/vendors/create`
-- **Auth**: `Bearer {{token_qa}}`
-- **Headers**:
-  - `Content-Type: application/json`
-  - `X-Transaction-Id: {{vendor_trx_id}}`
-- **Request Body**: Sama seperti 5.1.
-- **Expected Status**: `200 OK` (Replay)
-- **Alternatif cURL**:
-  ```bash
-  # Menggunakan nilai $TRX yang sama dari eksekusi sebelumnya:
-  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
-    -H "Authorization: Bearer <TOKEN_QA>" \
-    -H "Content-Type: application/json" \
-    -H "X-Transaction-Id: $TRX" \
-    -d '{ ...payload sama... }'
-  ```
-
-#### 5.3. Vendor Create - Invalid Payload (400 Bad Request)
-- **Fungsi**: Memastikan validasi skema menolak payload dengan nilai title yang tidak valid (`companyTitle: "INVALID_TITLE"`) atau field wajib yang hilang.
-- **Method / Path**: `POST /api/vendors/create`
-- **Auth**: `Bearer {{token_qa}}`
-- **Headers**: `Content-Type: application/json`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "companyTitle": "INVALID_TITLE",
-    "companyName": "PT Test",
-    "otv": "No"
-  }
-  ```
-- **Expected Status**: `400 Bad Request`
-- **Alternatif cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
-    -H "Authorization: Bearer <TOKEN_QA>" \
-    -H "Content-Type: application/json" \
-    -d '{"companyTitle": "INVALID_TITLE", "companyName": "PT Test", "otv": "No"}'
-  ```
-
----
-
-### Folder 6 — SPK Service (Port 8294)
-
-#### 6.1. SPK Duelist - Valid Payload + Total Check (201 Created)
-- **Fungsi**: Menerima data SPK (Surat Perintah Kerja) Duelist, memvalidasi kesesuaian total harga dengan rincian detail, membentuk file XML SPK, menyimpannya ke MariaDB, dan mengirimkannya ke folder FTP SAP `/spk`.
-- **Pre-request Script**: Membangkitkan `spk_trx_id` baru.
-- **Method / Path**: `POST /api/spk/duelist`
-- **Auth**: `Bearer {{token_qa}}`
-- **Headers**:
-  - `Content-Type: application/json`
-  - `X-Transaction-Id: {{spk_trx_id}}`
-  - `X-Forwarded-For: <CLIENT_IP>`
-  - `X-Validate-Total: true`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "noSpk": "<SPK_NUMBER>",
-    "type": "Maintenance",
-    "noPolisi": "<PLATE_NUMBER>",
-    "noSr": "<SERVICE_REQUEST_ID>",
-    "category": "Maintenance",
-    "subCategory": "Adhoc",
-    "vendorReferensi": "<VENDOR_REFERENCE>",
-    "namaVendor": "Example Workshop",
-    "picService": "<SERVICE_CONTACT_ID>",
-    "namaPicService": "Example Service Contact",
-    "spkRework": "No",
-    "totalPrice": 1000,
-    "createdAt": "<CREATED_AT>",
-    "createdBy": "<CREATED_BY>",
-    "poSpkNumber": "<PO_NUMBER>",
-    "invoiceNumber": "<INVOICE_NUMBER>",
-    "invoiceDate": "<INVOICE_DATE>",
-    "invoiceAmount": 1000,
-    "memo": "Example repair",
-    "taxInvoiceNumber": "<TAX_INVOICE_NUMBER>",
-    "taxInvoiceDate": "<TAX_INVOICE_DATE>",
-    "businessArea": "<BUSINESS_AREA>",
-    "details": [
-      {
-        "jenis": "Jasa",
-        "description": "Example service",
-        "qty": 1,
-        "price": 100
-      },
-      {
-        "jenis": "Parts",
-        "description": "Example part",
-        "qty": 1,
-        "price": 900
-      }
-    ]
-  }
-  ```
-- **Expected Status**: `201 Created`
-- **Alternatif cURL**:
-  ```bash
-  SPK_TRX="SPK-$(date +%s)"
-  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
-    -H "Authorization: Bearer <TOKEN_QA>" \
-    -H "Content-Type: application/json" \
-    -H "X-Transaction-Id: $SPK_TRX" \
-    -H "X-Forwarded-For: <CLIENT_IP>" \
-    -H "X-Validate-Total: true" \
-    -d '{
-      "noSpk": "<SPK_NUMBER>",
-      "type": "Maintenance",
-      "noPolisi": "<PLATE_NUMBER>",
-      "totalPrice": 1000,
-      "details": [
-         {"jenis": "Jasa", "description": "Example service", "qty": 1, "price": 100},
-         {"jenis": "Parts", "description": "Example part", "qty": 1, "price": 900}
-      ]
-    }'
-  ```
-
-#### 6.2. SPK Duelist - Idempotency Replay (200 Replay)
-- **Fungsi**: Memverifikasi idempotency SPK saat request dengan ID yang sama dikirim ulang.
-- **Method / Path**: `POST /api/spk/duelist`
-- **Auth**: `Bearer {{token_qa}}`
-- **Headers**: Sama dengan 6.1 (`X-Transaction-Id: {{spk_trx_id}}`).
-- **Expected Status**: `200 OK` (Replay)
-
-#### 6.3. SPK Duelist - Missing noSpk (400 Bad Request)
-- **Fungsi**: Uji validasi saat field wajib `noSpk` tidak disertakan.
-- **Method / Path**: `POST /api/spk/duelist`
-- **Auth**: `Bearer {{token_qa}}`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "type": "Maintenance",
-    "noPolisi": "<PLATE_NUMBER>",
-    "details": []
-  }
-  ```
-- **Expected Status**: `400 Bad Request`
-- **Alternatif cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
-    -H "Authorization: Bearer <TOKEN_QA>" \
-    -H "Content-Type: application/json" \
-    -d '{"type": "Maintenance", "noPolisi": "<PLATE_NUMBER>", "details": []}'
-  ```
-
-#### 6.4. SPK Duelist - Total Mismatch (400 Bad Request)
-- **Fungsi**: Uji validasi header `X-Validate-Total: true`. Request ditolak jika `totalPrice` (`1001`) tidak sama dengan total rincian `details` (`1000`).
-- **Method / Path**: `POST /api/spk/duelist`
-- **Auth**: `Bearer {{token_qa}}`
-- **Headers**: `X-Validate-Total: true`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "noSpk": "<SPK_NUMBER>",
-    "type": "Maintenance",
-    "totalPrice": 1001,
-    "details": [
-      {
-        "jenis": "Jasa",
-        "description": "Example service",
-        "qty": 1,
-        "price": 1000
-      }
-    ]
-  }
-  ```
-- **Expected Status**: `400 Bad Request`
-- **Alternatif cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
-    -H "Authorization: Bearer <TOKEN_QA>" \
-    -H "Content-Type: application/json" \
-    -H "X-Validate-Total: true" \
-    -d '{
-      "noSpk": "<SPK_NUMBER>",
-      "type": "Maintenance",
-      "totalPrice": 1001,
-      "details": [{"jenis": "Jasa", "description": "Example service", "qty": 1, "price": 1000}]
-    }'
-  ```
-
----
-
-### Folder 7 — Service Request Service (Port 8295)
-
-#### 7.1. Service Request - Valid Fan-out Paralel (200 OK)
-- **Fungsi**: Menerima tiket perawatan/perbaikan dari Omnichannel, lalu melakukan **Fan-out Paralel**:
-  1. Mengirim data ke External Service (`<EXTERNAL_SERVICE_HOST>`).
-  2. Mengirim data ke sistem ATLAS (jika toggle aktif).
-  3. Mencatat riwayat ke MariaDB.
-- **Pre-request Script**: Membangkitkan `sr_trx_id` baru.
-- **Method / Path**: `POST /api/service-requests`
-- **Auth**: `Bearer {{token_omnichannel}}`
-- **Headers**:
-  - `Content-Type: application/json`
-  - `X-Transaction-Id: {{sr_trx_id}}`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "app_id": "<APPLICATION_ID>",
-    "reff_number": "<REFERENCE_NUMBER>",
-    "branch_code": "<BRANCH_CODE>",
-    "equipment_number": "<EQUIPMENT_NUMBER>",
-    "license_plate": "<PLATE_NUMBER>",
-    "customer_code": "<CUSTOMER_CODE>",
-    "customer_name": "Example Customer",
-    "channel": "Omnichannel-Web",
-    "cp_title": "Bpk",
-    "cp_name": "Example Contact",
-    "cp_phone": "<CONTACT_PHONE>",
-    "cp_email": "contact@example.invalid",
-    "cp_address": "<CONTACT_ADDRESS>",
-    "km": "<ODOMETER_READING>",
-    "description": "Example scheduled maintenance request",
-    "service_datetime": "<SERVICE_DATETIME>",
-    "service_location": "<SERVICE_LOCATION>",
-    "jenis_permintaan": "Service Berkala",
-    "incident_datetime": "<INCIDENT_DATETIME>",
-    "tipe_tiket": "Regular",
-    "judul": "Service Berkala Kendaraan Operasional",
-    "nama_kunjungan": "Example Contact",
-    "telepon_kunjungan": "<CONTACT_PHONE>",
-    "alamat_kunjungan": "<VISIT_ADDRESS>",
-    "pool_name": "<POOL_NAME>",
-    "area_bengkel": "<SERVICE_AREA>",
-    "task": "Example maintenance task",
-    "created_datetime": "<CREATED_DATE>",
-    "created_by": "<CREATED_BY>",
-    "ticket_no": "<TICKET_NUMBER>"
-  }
-  ```
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  SR_TRX="SR-$(date +%s)"
-  curl -X POST "<DEV_BASE_URL>/api/service-requests" \
-    -H "Authorization: Bearer <TOKEN_OMNICHANNEL>" \
-    -H "Content-Type: application/json" \
-    -H "X-Transaction-Id: $SR_TRX" \
-    -d '{
-      "app_id": "<APPLICATION_ID>",
-      "reff_number": "<REFERENCE_NUMBER>",
-      "branch_code": "<BRANCH_CODE>",
-      "equipment_number": "<EQUIPMENT_NUMBER>",
-      "license_plate": "<PLATE_NUMBER>",
-      "ticket_no": "<TICKET_NUMBER>"
-    }'
-  ```
-
-#### 7.2. Service Request - Idempotency Replay (200 Replay)
-- **Fungsi**: Mengirim ulang request SR dengan `X-Transaction-Id` sama untuk memastikan tiket tidak di-fanout ganda.
-- **Method / Path**: `POST /api/service-requests`
-- **Auth**: `Bearer {{token_omnichannel}}`
-- **Expected Status**: `200 OK` (Replay)
-
-#### 7.3. Service Request - Missing app_id (400 Bad Request)
-- **Fungsi**: Validasi input saat field wajib `app_id` tidak ada dalam payload JSON.
-- **Method / Path**: `POST /api/service-requests`
-- **Auth**: `Bearer {{token_omnichannel}}`
-- **Request Body (JSON)**:
-  ```json
-  {
-    "reff_number": "<REFERENCE_NUMBER>",
-    "branch_code": "<BRANCH_CODE>",
-    "ticket_no": "<TICKET_NUMBER>"
-  }
-  ```
-- **Expected Status**: `400 Bad Request`
-- **Alternatif cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/service-requests" \
-    -H "Authorization: Bearer <TOKEN_OMNICHANNEL>" \
-    -H "Content-Type: application/json" \
-    -d '{"reff_number": "<REFERENCE_NUMBER>", "branch_code": "<BRANCH_CODE>", "ticket_no": "<TICKET_NUMBER>"}'
-  ```
-
----
-
-### Folder 8 — Security & Negative Tests (401 & 403 Guards)
-Fungsi: Memastikan keandalan sistem keamanan API Gateway WSO2 MI dari akses ilegal dan pelanggaran otorisasi scope.
-
-#### 8.1. Branch - Missing Token (401 Unauthorized)
-- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=<COMPANY_CODE>`
-- **Auth**: *(Tanpa Header Authorization)*
-- **Expected Status**: `401 Unauthorized`
-- **cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>"
-  ```
-
-#### 8.2. Branch - Invalid Fake Token (401 Unauthorized)
-- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=<COMPANY_CODE>`
-- **Auth**: `Bearer <INVALID_TOKEN>`
-- **Expected Status**: `401 Unauthorized`
-- **cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>" \
-    -H "Authorization: Bearer <INVALID_TOKEN>"
-  ```
-
-#### 8.3. Branch - App B Access Branch (403 Forbidden)
-- **Keterangan**: App B hanya memiliki scope `vehicles`. Akses ke Branch ditolak.
-- **Method / Path**: `GET /api/branches/getByCreateDate?companyCode=<COMPANY_CODE>`
-- **Auth**: `Bearer {{token_app_b}}`
-- **Expected Status**: `403 Forbidden`
-- **cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>" \
-    -H "Authorization: Bearer <TOKEN_APP_B>"
-  ```
-
-#### 8.4. Customer - App B Access Customer (403 Forbidden)
-- **Keterangan**: App B tidak memiliki scope `customers`.
-- **Method / Path**: `GET /api/customers/getByCreateDate?companyCode=<COMPANY_CODE>`
-- **Auth**: `Bearer {{token_app_b}}`
-- **Expected Status**: `403 Forbidden`
-- **cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/customers/getByCreateDate?companyCode=<COMPANY_CODE>" \
-    -H "Authorization: Bearer <TOKEN_APP_B>"
-  ```
-
-#### 8.5. Vendor - Missing Token (401 Unauthorized)
-- **Method / Path**: `POST /api/vendors/create`
-- **Auth**: *(Tanpa Token)*
-- **Expected Status**: `401 Unauthorized`
-- **cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
-    -H "Content-Type: application/json" \
-    -d "{}"
-  ```
-
-#### 8.6. Vendor - App B without vendors scope (403 Forbidden)
-- **Keterangan**: Token App B mencoba melakukan create vendor.
-- **Method / Path**: `POST /api/vendors/create`
-- **Auth**: `Bearer {{token_app_b}}`
-- **Expected Status**: `403 Forbidden`
-- **cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/vendors/create" \
-    -H "Authorization: Bearer <TOKEN_APP_B>" \
-    -H "Content-Type: application/json" \
-    -d "{}"
-  ```
-
-#### 8.7. SPK - Missing Token (401 Unauthorized)
-- **Method / Path**: `POST /api/spk/duelist`
-- **Auth**: *(Tanpa Token)*
-- **Expected Status**: `401 Unauthorized`
-- **cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
-    -H "Content-Type: application/json" \
-    -d "{}"
-  ```
-
-#### 8.8. SPK - App B without spk scope (403 Forbidden)
-- **Method / Path**: `POST /api/spk/duelist`
-- **Auth**: `Bearer {{token_app_b}}`
-- **Expected Status**: `403 Forbidden`
-- **cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/spk/duelist" \
-    -H "Authorization: Bearer <TOKEN_APP_B>" \
-    -H "Content-Type: application/json" \
-    -d "{}"
-  ```
-
-#### 8.9. Service Request - Missing Token (401 Unauthorized)
-- **Method / Path**: `POST /api/service-requests`
-- **Auth**: *(Tanpa Token)*
-- **Expected Status**: `401 Unauthorized`
-- **cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/service-requests" \
-    -H "Content-Type: application/json" \
-    -d "{}"
-  ```
-
-#### 8.10. Service Request - App B without scope (403 Forbidden)
-- **Method / Path**: `POST /api/service-requests`
-- **Auth**: `Bearer {{token_app_b}}`
-- **Expected Status**: `403 Forbidden`
-- **cURL**:
-  ```bash
-  curl -X POST "<DEV_BASE_URL>/api/service-requests" \
-    -H "Authorization: Bearer <TOKEN_APP_B>" \
-    -H "Content-Type: application/json" \
-    -d "{}"
-  ```
-
----
-
-### Folder 9 — Background Retry Worker (Port 8295)
-
-#### 9.1. Trigger Manual Retry Worker (200 OK)
-- **Fungsi**: Memicu pemrosesan manual antrean transaksi yang berstatus `PENDING` atau `FAILED` pada tabel database `service_request_retry` / `vendor_transactions` untuk dikirimkan kembali ke target endpoint.
-- **Method / Path**: `GET /api/worker/retry`
-- **URL Postman**: `{{baseUrlSR}}/api/worker/retry`
-- **Auth**: None
-- **Expected Status**: `200 OK`
-- **Alternatif cURL**:
-  ```bash
-  curl -X GET "<DEV_BASE_URL>/api/worker/retry"
-  ```
-
----
-
-## 5. Panduan Eksekusi (Postman GUI & Newman CLI)
-
-### 5.1. Cara Import ke Postman GUI
-1. Buka aplikasi **Postman**.
-2. Klik tombol **Import** di pojok kiri atas.
-3. Seret (*drag & drop*) file [`ASSA Middleware Server Dev (sanitized).postman_collection.json`] atau browse melalui file dialog.
-4. Klik **Import**. Koleksi akan muncul dengan nama `ASSA Middleware Server Dev (sanitized)`.
-5. *(Opsional)* Jika ingin menguji lokal, ubah variabel `baseUrl...` menjadi `http://localhost:829x` atau buat Postman Environment baru.
-
-### 5.2. Menjalankan Seluruh Koleksi (Collection Runner)
-1. Klik kanan pada nama koleksi di Postman, pilih **Run collection**.
-2. Pastikan seluruh 33 request terpilih.
-3. Klik tombol **Run ASSA Middleware Server Dev...**.
-4. Semua pengujian otomatis (*tests*) akan berjalan secara berurutan:
-   - Request Create akan mendahului Request Replay.
-   - Hasil akan menampilkan badge hijau `PASS` untuk semua skenario positif maupun negatif (401/403/400).
-
-### 5.3. Eksekusi Otomatis via Terminal / CI dengan Newman
-Bila ingin menjalankan pengujian otomatis di server Linux atau terminal CI/CD:
 ```bash
-# Pastikan newman terpasang
-npm install -g newman
+curl --fail "$BASE_URL/health/branch"
+curl --fail "$BASE_URL/readiness/branch"
+```
 
-# Jalankan pengujian langsung dari file koleksi
-newman run "ASSA Middleware Server Dev (sanitized).postman_collection.json" \
+### 5.2 Branch dan Customer
+
+Request GET menggunakan query berikut bila didukung sequence:
+
+| Query | Keterangan |
+|---|---|
+| `companyCode` | Kode perusahaan |
+| `dateStart` | Tanggal awal, format `YYYY-MM-DD` |
+| `dateEnd` | Tanggal akhir, format `YYYY-MM-DD` |
+| `page` | Nomor halaman jika pagination diproses runtime |
+| `perPage` | Ukuran halaman jika pagination diproses runtime |
+
+Branch:
+
+```http
+GET {{baseUrlBranch}}/api/branches/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10
+Authorization: Bearer {{token_app_a}}
+X-Correlation-Id: corr-branch-example
+```
+
+Customer memakai pola yang sama dengan `{{baseUrlCustomer}}` dan scope `customers`:
+
+```http
+GET {{baseUrlCustomer}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10
+Authorization: Bearer {{token_app_a}}
+X-Correlation-Id: corr-customer-example
+```
+
+Ekspektasi happy path adalah `200`. Bentuk wrapper response seperti `count`, `data`, atau `pagination` harus diambil dari response runtime, bukan diasumsikan dari collection.
+
+### 5.3 Vehicle
+
+Path utama:
+
+```http
+GET {{baseUrlVehicle}}/api/vehicles/getByLicensePlate?plate_no=<PLATE_NUMBER>
+Authorization: Bearer {{token_app_b}}
+```
+
+Parameter pencarian yang perlu diverifikasi terhadap sequence adalah:
+
+- `plate_no` atau alias legacy `licensePlate`;
+- `equipment_no`;
+- `branch_code`;
+- `limit`, `offset`, `status_id`, dan `color` bila diteruskan ke backend.
+
+Request tanpa parameter pencarian harus diuji dan diharapkan menghasilkan `400`:
+
+```bash
+curl -i "$BASE_URL_VEHICLE/api/vehicles/getByLicensePlate?companyCode=$COMPANY_CODE" \
+  -H "Authorization: Bearer $AUTH_APP_B_TOKEN"
+```
+
+Alias legacy:
+
+```http
+GET {{baseUrlVehicle}}/api/vehicles/vehicleatlas?plate_no=<PLATE_NUMBER>
+Authorization: Bearer {{token_qa}}
+```
+
+Ekspektasi happy path adalah `200`; dokumentasikan perbedaan alias hanya setelah diverifikasi dari runtime.
+
+### 5.4 Vendor
+
+`POST /api/vendors/create` menerima JSON client. Detail internal seperti transformasi XML dan target transport bukan bagian dari request contract.
+
+Header minimum:
+
+```http
+Authorization: Bearer {{token_qa}}
+Content-Type: application/json
+X-Transaction-Id: {{vendor_trx_id}}
+```
+
+Field yang perlu dipetakan dan divalidasi terhadap sequence meliputi:
+
+```json
+{
+  "companyTitle": "PT",
+  "companyName": "Example Company",
+  "otv": "No",
+  "paymentCycle": "Monthly",
+  "accountNumber": "0000000000",
+  "accountName": "Example Account",
+  "bankName": "Example Bank",
+  "hoEmail": "vendor@example.invalid",
+  "hoPhone": "0000000000",
+  "hoAddress": "Synthetic Address",
+  "contactName": "Example Contact",
+  "contactPhone": "0000000000",
+  "npwp": "0000000000000000",
+  "accountGroup": "V010",
+  "top": "T014",
+  "glAccount": "0000000000",
+  "documentNumber": "VENDOR-EXAMPLE-001"
+}
+```
+
+Skenario minimum:
+
+| Skenario | Ekspektasi |
+|---|---:|
+| Payload valid dengan transaction ID baru | `201` |
+| Payload sama dengan transaction ID yang sudah sukses | `200`, replay |
+| Field wajib hilang atau enum invalid | `400` |
+| Tanpa token | `401` |
+| Token tanpa scope `vendors` | `403` |
+
+Jalankan request create sebelum request replay agar `vendor_trx_id` tersedia dan payload replay identik.
+
+### 5.5 SPK Duelist
+
+Header yang relevan:
+
+```http
+Authorization: Bearer {{token_qa}}
+Content-Type: application/json
+X-Transaction-Id: {{spk_trx_id}}
+X-Validate-Total: true
+X-Forwarded-For: <SYNTHETIC_CLIENT_IP>
+```
+
+Body minimum dan detail minimum:
+
+```json
+{
+  "noSpk": "SPK-EXAMPLE-001",
+  "type": "Maintenance",
+  "noPolisi": "B-0000-XXX",
+  "category": "Maintenance",
+  "subCategory": "Adhoc",
+  "vendorReferensi": "VENDOR-001",
+  "totalPrice": 1000,
+  "createdAt": "2026-09-17 14:46:11",
+  "createdBy": "synthetic-user",
+  "details": [
+    {
+      "jenis": "Jasa",
+      "description": "Example service",
+      "qty": 1,
+      "price": 1000
+    }
+  ]
+}
+```
+
+Aturan yang harus diuji:
+
+- `details` minimal satu item;
+- `description` wajib;
+- `qty > 0` dan `price > 0`;
+- `jenis` adalah `Jasa` atau `Parts`;
+- dengan `X-Validate-Total: true`, jumlah `qty * price` harus sama dengan `totalPrice`.
+
+Skenario minimum:
+
+| Skenario | Ekspektasi |
+|---|---:|
+| Payload valid dengan transaction ID baru | `201` |
+| Request identik dengan transaction ID yang sudah sukses | `200`, replay |
+| `noSpk` hilang atau detail tidak valid | `400` |
+| Total detail berbeda dari `totalPrice` saat validasi aktif | `400` |
+| Tanpa token | `401` |
+| Token tanpa scope `spk` | `403` |
+
+### 5.6 Service Request
+
+`POST /api/service-requests` melakukan fan-out ke target integrasi. Consumer hanya mengirim JSON contract; target internal tidak ditulis pada collection atau dokumentasi publik.
+
+Field minimum:
+
+```json
+{
+  "app_id": "synthetic-app",
+  "reff_number": "REF-EXAMPLE-001",
+  "branch_code": "BR-001",
+  "created_datetime": "17-09-2026",
+  "created_by": "synthetic-user",
+  "ticket_no": "TICKET-EXAMPLE-001"
+}
+```
+
+Field tambahan dapat mencakup equipment/license plate, customer, contact person, jadwal, lokasi, incident, dan task. Gunakan format tanggal yang benar-benar diterima sequence; format pada collection bukan bukti bahwa format tersebut sudah formal.
+
+Header:
+
+```http
+Authorization: Bearer {{token_omnichannel}}
+Content-Type: application/json
+X-Transaction-Id: {{sr_trx_id}}
+```
+
+Skenario minimum:
+
+| Skenario | Ekspektasi |
+|---|---:|
+| Semua target fan-out berhasil | `200` |
+| Sebagian target fan-out berhasil | `207` jika dikembalikan runtime |
+| Semua target gagal setelah retry | `502` |
+| Field minimum hilang | `400` |
+| Request identik dengan transaction ID yang sudah sukses | `200`, replay |
+| Tanpa token | `401` |
+| Token tanpa scope `service_requests` | `403` |
+
+### 5.7 Worker retry
+
+Worker mendukung method berikut:
+
+```http
+GET  {{baseUrlSR}}/api/worker/retry
+POST {{baseUrlSR}}/api/worker/retry
+```
+
+Response sukses berisi status worker dan diharapkan `200`. Endpoint ini bersifat operasional, bukan business API. Pastikan security deployment sudah ditetapkan sebelum menambahkan request worker ke smoke test publik.
+
+Contoh cURL:
+
+```bash
+curl -i "$BASE_URL_SR/api/worker/retry"
+curl -i -X POST "$BASE_URL_SR/api/worker/retry"
+```
+
+## 6. Menjalankan Postman dan Newman
+
+### 6.1 Import dan konfigurasi
+
+1. Buka Postman dan pilih **Import**.
+2. Import `ASSA Middleware Server Dev.postman_collection.json`.
+3. Buat atau pilih Environment lokal.
+4. Isi semua `baseUrl...` dan token sesuai environment.
+5. Pastikan tidak ada secret pada collection variable atau file yang akan di-commit.
+6. Jalankan health dan readiness sebelum business request.
+
+### 6.2 Urutan Collection Runner
+
+Untuk rangkaian idempotency, jalankan berurutan:
+
+1. Vendor create valid, lalu Vendor replay.
+2. SPK create valid, lalu SPK replay.
+3. Service Request valid, lalu Service Request replay.
+
+Request replay harus memakai transaction ID dan body yang sama. Skenario negative dapat dijalankan terpisah agar tidak mengubah data uji create.
+
+### 6.3 Newman
+
+Gunakan environment file lokal yang tidak disimpan ke repository:
+
+```bash
+npm install -g newman
+newman run "ASSA Middleware Server Dev.postman_collection.json" \
+  --environment postman-dev.local.json \
   --reporters cli,junit \
   --reporter-junit-export report.xml
 ```
 
----
+Sebelum CI dijalankan, pastikan environment file menyediakan token melalui secret store CI dan base URL yang benar. Jangan menaruh token pada command line, log pipeline, atau report artifact.
 
-## 6. Troubleshooting & Solusi Error Umum
+### 6.4 cURL smoke test
 
-| Gejala Error | Penyebab | Solusi |
+Contoh aman dengan token dari environment shell:
+
+```bash
+curl -i "$BASE_URL_BRANCH/api/branches/getByCreateDate?companyCode=<COMPANY_CODE>&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" \
+  -H "Authorization: Bearer $AUTH_APP_A_TOKEN" \
+  -H "X-Correlation-Id: corr-local-001"
+```
+
+Untuk create request, buat transaction ID baru pada setiap percobaan dan simpan ID tersebut jika ingin menguji replay.
+
+## 7. Perbedaan Koleksi Saat Ini
+
+Koleksi yang ada perlu diselaraskan sebelum dianggap sebagai representasi penuh kontrak API:
+
+| Temuan | Dampak | Tindakan |
 |---|---|---|
-| `Connection refused` ke port `6031` | Container Nginx belum berjalan atau port 6031 diblokir firewall server. | Di server dev, jalankan `docker compose ps` di direktori deployment dan pastikan container Nginx berstatus `Up`. |
-| `502 Bad Gateway` dari Nginx | Container `middleware-api` (WSO2 MI) belum selesai startup atau restart mendadak. | Tunggu 30-60 detik saat inisialisasi awal WSO2 MI. Periksa log: `docker compose logs -f middleware-api`. |
-| `401 Unauthorized` pada Request Positif | Token Bearer terhapus atau variabel token tidak terbaca. | Pastikan variabel `token_app_a`, `token_app_b`, `token_qa`, atau `token_omnichannel` di Postman terisi sesuai tabel Section 2.2. |
-| `403 Forbidden` pada Request Positif | Token yang digunakan tidak memiliki scope untuk service terkait. | Sesuaikan token dengan hak aksesnya (misal: Branch wajib `token_app_a`, Vendor wajib `token_qa`). |
-| `400 Bad Request` pada Idempotency Replay | Header `X-Transaction-Id` kosong. | Pastikan request Create dijalankan lebih dulu agar `Pre-request Script` mengisi variabel `trx_id`. |
-| Respon FTP Error pada Vendor/SPK | Koneksi FTP ke `<FTP_HOST>:<FTP_PORT>` bermasalah. | Pastikan server dev memiliki rute egress jaringan ke server FTP dan kredensial FTP di `.env` sudah benar. |
+| Request readiness Branch menggunakan `/health/ready` | Tidak sesuai inventaris endpoint `/readiness/branch` | Ubah URL dan test script setelah trailing slash dikonfirmasi pada runtime |
+| Folder health hanya berisi satu request readiness dan tidak mencakup semua readiness service | Smoke test tidak mencakup 12 probe | Tambahkan readiness untuk `branch`, `customer`, `vehicle`, `vendor`, `spk`, dan `service-request` |
+| Folder worker hanya memiliki `GET` | `POST /api/worker/retry` tidak diuji | Tambahkan request POST setelah security deployment ditetapkan |
+| Vehicle `/vehicleatlas` belum ditandai legacy | Consumer dapat menganggapnya path utama | Tambahkan deskripsi alias/legacy |
+| Collection berisi token dan data contoh yang harus dianggap sensitif | Risiko kebocoran credential atau PII | Sanitasi collection dan pindahkan nilai ke Environment secret |
+| Test script terutama memeriksa status HTTP | Schema response dapat berubah tanpa terdeteksi | Tambahkan assertion schema setelah response runtime diverifikasi |
+| Skenario `207`, `409`, `502`, dan `504` belum lengkap | Failure path tidak seluruhnya diuji | Tambahkan test berdasarkan behavior runtime yang sudah disepakati |
+
+Perbedaan di atas adalah gap dokumentasi/test, bukan alasan untuk menebak behavior baru. Setiap perubahan harus diverifikasi terhadap API XML, sequence, dan service yang berjalan.
+
+## 8. Troubleshooting
+
+| Gejala | Kemungkinan penyebab | Tindakan |
+|---|---|---|
+| `Connection refused` | Host/port salah atau service belum berjalan | Cek base URL dan status deployment |
+| `404` pada readiness | Collection masih memakai path lama atau trailing slash berbeda | Gunakan `/readiness/<service>` dan verifikasi API XML |
+| `401` pada request positif | Token kosong, salah environment, atau token tidak dikenal | Pastikan `Authorization` memakai token environment yang benar |
+| `403` pada request positif | Token tidak memiliki scope endpoint | Gunakan token dengan scope yang sesuai |
+| `400` pada replay | Transaction ID atau payload tidak sama/bernilai kosong | Jalankan create lebih dahulu dan pertahankan ID serta body |
+| `409` | Transaction masih berstatus `PROCESSING` | Tunggu proses selesai atau gunakan transaction ID baru |
+| `502` atau `504` | Backend gagal atau timeout setelah retry | Korelasikan `X-Correlation-Id` dengan log runtime; jangan menaruh credential/log sensitif pada issue |
+| Health `200` tetapi readiness gagal | Service hidup tetapi dependency belum siap | Tunggu dependency siap dan periksa deployment health |
+| Newman gagal menemukan variable | Environment belum dipilih atau nama variable salah | Cocokkan nama variable dengan Section 2.2 |
+
+## 9. Checklist Perubahan API
+
+### Runtime
+
+- [ ] API XML memiliki context, method, dan `uri-template` yang benar.
+- [ ] Sequence memvalidasi parameter dan request body sesuai kontrak.
+- [ ] Auth dan scope sudah diuji.
+- [ ] Error path, idempotency, correlation, dan retry diuji jika relevan.
+- [ ] Status aktual `200`, `201`, `207`, `400`, `401`, `403`, `409`, `502`, dan `504` tidak diklaim tanpa verifikasi.
+
+### Collection dan guide
+
+- [ ] URL Postman sama dengan route API XML.
+- [ ] `Authorization`, scope, query, header, dan request body terdokumentasi.
+- [ ] Create dan replay dijalankan dengan transaction ID yang konsisten.
+- [ ] Alias/legacy route diberi label.
+- [ ] Health dan readiness dibedakan.
+- [ ] Worker method dan security requirement sudah jelas.
+- [ ] Test response menggunakan schema aktual, bukan asumsi wrapper.
+- [ ] Semua contoh memakai data sintetis.
+- [ ] Tidak ada token, password, API key, URL sensitif, atau PII nyata.
+
+### Validasi repository
+
+Jalankan perintah berikut dari direktori `wso2-mi-monorepo`. Lint OpenAPI dijalankan setelah file spesifikasi tersedia.
+
+```powershell
+mvn -B validate
+npx @redocly/cli@1.34.5 lint docs/openapi/branch-service.yaml
+```
+
+Perbarui file OpenAPI service yang sesuai di `wso2-mi-monorepo/docs/openapi/` bila spesifikasi formal sudah dibuat. Perbarui guide ini dan `test_all.ps1` jika behavior consumer berubah.

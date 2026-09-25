@@ -134,6 +134,150 @@ function Run-Test {
     Write-Host $content -ForegroundColor White
 }
 
+function Get-ResponseItemCount {
+    param([string]$Content)
+
+    try {
+        $json = $Content | ConvertFrom-Json
+    } catch {
+        return -1
+    }
+
+    if ($json -is [System.Array]) {
+        return @($json).Count
+    }
+    if ($null -ne $json.data -and $json.data -is [System.Collections.IEnumerable] -and $json.data -isnot [string]) {
+        return @($json.data).Count
+    }
+    if ($null -ne $json.values -and $json.values -is [System.Collections.IEnumerable] -and $json.values -isnot [string]) {
+        return @($json.values).Count
+    }
+
+    return -1
+}
+
+function Get-ResponseHash {
+    param([string]$Content)
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Content)
+        return ([System.BitConverter]::ToString($sha256.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+    } finally {
+        $sha256.Dispose()
+    }
+}
+
+function Get-ResponsePaginationMetadata {
+    param([string]$Content)
+
+    try {
+        $json = $Content | ConvertFrom-Json
+    } catch {
+        return [pscustomobject]@{
+            Count = -1
+            Total = -1
+            Page = -1
+            PerPage = -1
+        }
+    }
+
+    $total = if ($null -ne $json.total) { [int]$json.total } else { -1 }
+    $page = if ($null -ne $json.page) { [int]$json.page } else { -1 }
+    $perPage = if ($null -ne $json.perPage) { [int]$json.perPage } else { -1 }
+
+    return [pscustomobject]@{
+        Count = Get-ResponseItemCount -Content $Content
+        Total = $total
+        Page = $page
+        PerPage = $perPage
+    }
+}
+
+function Invoke-PaginationRequest {
+    param(
+        [string]$Url,
+        [string]$Token
+    )
+
+    $headers = @{
+        "Authorization" = "Bearer $Token"
+        "X-Retry-Interval-Seconds" = "1"
+    }
+
+    try {
+        $response = Invoke-WebRequest -Uri $Url -Headers $headers -Method GET -UseBasicParsing -ErrorAction Stop
+        return [pscustomobject]@{
+            StatusCode = [int]$response.StatusCode
+            Content = $response.Content
+        }
+    } catch {
+        if ($_.Exception.Response) {
+            $statusCode = [int]$_.Exception.Response.StatusCode
+            $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+            try {
+                $content = $reader.ReadToEnd()
+            } finally {
+                $reader.Dispose()
+            }
+            return [pscustomobject]@{
+                StatusCode = $statusCode
+                Content = $content
+            }
+        }
+
+        return [pscustomobject]@{
+            StatusCode = 0
+            Content = "Connection failed: $($_.Exception.Message)"
+        }
+    }
+}
+
+function Run-Pagination-Test {
+    param(
+        [string]$TestNumber,
+        [string]$TestName,
+        [string]$BaseUrl,
+        [string]$Token,
+        [string]$Path
+    )
+
+    $pageOne = Invoke-PaginationRequest -Url "$BaseUrl$Path&page=1&perPage=1" -Token $Token
+    $pageTwo = Invoke-PaginationRequest -Url "$BaseUrl$Path&page=2&perPage=1" -Token $Token
+    $pageTen = Invoke-PaginationRequest -Url "$BaseUrl$Path&page=1&perPage=10" -Token $Token
+
+    $pageOneCount = Get-ResponseItemCount -Content $pageOne.Content
+    $pageTwoCount = Get-ResponseItemCount -Content $pageTwo.Content
+    $pageTenCount = Get-ResponseItemCount -Content $pageTen.Content
+    $pageOneMeta = Get-ResponsePaginationMetadata -Content $pageOne.Content
+    $pageTwoMeta = Get-ResponsePaginationMetadata -Content $pageTwo.Content
+    $pageTenMeta = Get-ResponsePaginationMetadata -Content $pageTen.Content
+    $pageOneHash = Get-ResponseHash -Content $pageOne.Content
+    $pageTwoHash = Get-ResponseHash -Content $pageTwo.Content
+
+    $statusOk = $pageOne.StatusCode -eq 200 -and $pageTwo.StatusCode -eq 200 -and $pageTen.StatusCode -eq 200
+    $metadataOk = $pageOneMeta.Page -eq 1 -and $pageOneMeta.PerPage -eq 1 -and $pageTwoMeta.Page -eq 2 -and $pageTwoMeta.PerPage -eq 1 -and $pageTenMeta.Page -eq 1 -and $pageTenMeta.PerPage -eq 10
+    $sizeOk = $pageOneCount -ge 0 -and $pageOneCount -le 1 -and $pageTenCount -ge $pageOneCount
+    $emptyResult = $pageOneMeta.Total -eq 0 -and $pageTwoMeta.Total -eq 0 -and $pageTenMeta.Total -eq 0
+    $pageChanged = $pageOneHash -ne $pageTwoHash
+
+    Write-Host "`n--------------------------------------------------------" -ForegroundColor Gray
+    Write-Host "[$TestNumber] $TestName" -ForegroundColor Yellow
+    Write-Host "Page 1/perPage 1: HTTP $($pageOne.StatusCode), items $pageOneCount" -ForegroundColor Gray
+    Write-Host "Page 2/perPage 1: HTTP $($pageTwo.StatusCode), items $pageTwoCount" -ForegroundColor Gray
+    Write-Host "Page 1/perPage 10: HTTP $($pageTen.StatusCode), items $pageTenCount" -ForegroundColor Gray
+
+    if (-not $statusOk) {
+        Write-Host " -> GAGAL (pagination request returned a non-200 status)" -ForegroundColor Red
+    } elseif (-not $metadataOk) {
+        Write-Host " -> GAGAL (response metadata page/perPage tidak sesuai)" -ForegroundColor Red
+    } elseif (-not $sizeOk -or (-not $emptyResult -and -not $pageChanged)) {
+        Write-Host " -> GAGAL (page/perPage tidak mengubah hasil sesuai ekspektasi)" -ForegroundColor Red
+    } else {
+        Write-Host " -> LULUS (PASS)" -ForegroundColor Green
+    }
+}
+
 # Run All Tests
 Run-Test -TestNumber "HEALTH 1" -TestName "Branch Health Check (Liveness)" -Url "$baseUrl/health/branch" -ExpectedStatus 200
 Run-Test -TestNumber "HEALTH 2" -TestName "Branch Readiness Check" -Url "$baseUrl/readiness/branch" -ExpectedStatus 200
@@ -156,6 +300,8 @@ Run-Test -TestNumber "TEST 8" -TestName "Vehicle Service Atlas /getByLicensePlat
 Run-Test -TestNumber "TEST 9" -TestName "Vehicle Service Atlas /vehicleatlas (QA Token, plate_no)" -Url "$baseUrlVehicle/api/vehicles/vehicleatlas?plate_no=DD-8112" -Token $tokenQA -ExpectedStatus 200
 Run-Test -TestNumber "TEST 10" -TestName "Customer Service (App A Token)" -Url "$baseUrlCustomer/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -Token $tokenAppA -ExpectedStatus 200
 Run-Test -TestNumber "TEST 11" -TestName "Branch Service (App A Token)" -Url "$baseUrl/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -Token $tokenAppA -ExpectedStatus 200
+Run-Pagination-Test -TestNumber "PAGINATION 1" -TestName "Customer pagination (page/perPage)" -BaseUrl $baseUrlCustomer -Token $tokenAppA -Path "/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11"
+Run-Pagination-Test -TestNumber "PAGINATION 2" -TestName "Branch pagination (page/perPage)" -BaseUrl $baseUrl -Token $tokenAppA -Path "/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11"
 
 # Vendor Create Tests (GUIDE_VENDOR_CREATE_XML_FTP_V2.md)
 Run-Test -TestNumber "TEST 12" -TestName "Vendor Create: Tanpa Token (Harus 401)" -Url "$baseUrlVendor/api/vendors/create" -Method "POST" -Body "{}" -ExpectedStatus 401
@@ -310,5 +456,5 @@ Run-Test -TestNumber "TEST 27" -TestName "Service Request: Idempotency Replay (H
 Run-Test -TestNumber "TEST 28" -TestName "Background Worker: Manual Trigger Retry Worker (Harus 200)" -Url "$baseUrlServiceRequest/api/worker/retry" -Method "GET" -ExpectedStatus 200
 
 Write-Host "`n========================================================" -ForegroundColor Cyan
-Write-Host "     SELURUH PENGUJIAN SELESAI (38 SKENARIO)!" -ForegroundColor Cyan
+Write-Host "     SELURUH PENGUJIAN SELESAI (40 SKENARIO)!" -ForegroundColor Cyan
 Write-Host "========================================================`n" -ForegroundColor Cyan

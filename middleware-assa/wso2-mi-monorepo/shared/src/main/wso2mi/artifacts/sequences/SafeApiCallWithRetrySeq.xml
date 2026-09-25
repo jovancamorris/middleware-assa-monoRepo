@@ -65,12 +65,13 @@
         <else>
             <property name="responseStatus" value="200" scope="default" type="STRING"/>
             <property name="errorMessage" value="None" scope="default" type="STRING"/>
+            <sequence key="GenericPaginationSeq"/>
             <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
             <sequence key="DbRecordAttemptLogSeq"/>
             <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>
             <property name="responsePayload" expression="$ctx:responseBody" scope="default" type="STRING"/>
             <sequence key="DbRecordTransactionSeq"/>
-            <sequence key="GenericPaginationSeq"/>
+            <respond/>
         </else>
     </filter>
 </sequence>
