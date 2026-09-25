@@ -1,7 +1,7 @@
 services:
   # ---- 1. Init Container: Ekstrak Skema SQL dari Image ----
   mariadb-init:
-    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.6}
+    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.7}
     container_name: mi-mariadb-init
     user: root
     restart: "no"
@@ -13,7 +13,7 @@ services:
 
   # ---- 1b. Init Container: Ekstrak Dokumentasi OpenAPI dari Image ----
   doc-init:
-    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.6}
+    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.7}
     container_name: mi-doc-init
     user: root
     restart: "no"
@@ -49,7 +49,7 @@ services:
 
   # ---- 3. WSO2 MI Monorepo (Single Image from GitLab Container Registry) ----
   middleware-wso2-api:
-    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.6}
+    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.7}
     container_name: middleware-wso2-api
     restart: unless-stopped
     env_file:

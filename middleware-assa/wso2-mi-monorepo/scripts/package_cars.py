@@ -9,6 +9,9 @@ SHARED_DIR = os.path.join(REPO_ROOT, "shared")
 SR_DIR = os.path.join(REPO_ROOT, "integrations", "service-request-service")
 TMP_DIR = "/tmp/car_build"
 
+DIST_DIR = os.path.join(REPO_ROOT, "dist-cars")
+os.makedirs(DIST_DIR, exist_ok=True)
+
 def repack_car(car_path, extract_dir, out_car_path):
     with zipfile.ZipFile(out_car_path, 'w', zipfile.ZIP_DEFLATED) as zip_out:
         for root, dirs, files in os.walk(extract_dir):
@@ -55,8 +58,9 @@ def update_shared_car():
     fix_db_urls(extract_dir)
     print("  -> Updated database connection URLs to mariadb:3306")
     
-    out_car = "/tmp/shared-artifacts_1.0.0.car"
+    out_car = os.path.join(DIST_DIR, "shared-artifacts_1.0.0.car")
     repack_car(car_src, extract_dir, out_car)
+    shutil.copy2(out_car, "/tmp/shared-artifacts_1.0.0.car")
     print(f"  -> Generated {out_car}")
 
 def update_sr_car():
@@ -148,8 +152,9 @@ def update_sr_car():
     fix_db_urls(extract_dir)
     print("  -> Updated database connection URLs to mariadb:3306")
 
-    out_car = "/tmp/service-request-service_1.0.0.car"
+    out_car = os.path.join(DIST_DIR, "service-request-service_1.0.0.car")
     repack_car(car_src, extract_dir, out_car)
+    shutil.copy2(out_car, "/tmp/service-request-service_1.0.0.car")
     print(f"  -> Generated {out_car}")
 
 if __name__ == "__main__":
