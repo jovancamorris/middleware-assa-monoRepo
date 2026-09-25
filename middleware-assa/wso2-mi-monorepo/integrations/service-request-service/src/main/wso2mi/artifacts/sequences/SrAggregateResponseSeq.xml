@@ -68,6 +68,7 @@
                                 "success": false,
                                 "message": "Sebagian target gagal",
                                 "transactionId": "$1",
+                                "referenceNumber": "$2",
                                 "ticket_no": "$2",
                                 "targets": {
                                     "atlas": { "status": "$3", "httpStatus": $4, "detail": "$5" },
@@ -96,6 +97,7 @@
                                 "success": true,
                                 "message": "Service request diteruskan ke semua target",
                                 "transactionId": "$1",
+                                "referenceNumber": "$2",
                                 "ticket_no": "$2",
                                 "targets": {
                                     "atlas": { "status": "$3", "httpStatus": $4, "detail": "$5" },

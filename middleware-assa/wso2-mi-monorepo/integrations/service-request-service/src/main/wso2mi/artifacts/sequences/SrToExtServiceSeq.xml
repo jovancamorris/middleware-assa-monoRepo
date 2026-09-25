@@ -76,6 +76,11 @@
                     <property name="srApiKey" expression="get-property('file', 'assa.ext.sr.apikey')" scope="default" type="STRING"/>
                 </then>
             </filter>
+            <filter xpath="string-length($ctx:srApiKey) = 0">
+                <then>
+                    <property name="srApiKey" value="DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs" scope="default" type="STRING"/>
+                </then>
+            </filter>
 
             <property name="uri.var.extBackendUrl" expression="fn:concat($ctx:srResolvedBaseUrl, $ctx:srPath)" scope="default" type="STRING"/>
             <property name="api.endpoint" expression="$ctx:uri.var.extBackendUrl" scope="default" type="STRING"/>

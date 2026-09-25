@@ -1,0 +1,28 @@
+curl --location 'http://localhost:4002/api/vendor/public/service-requests' \
+--header 'Content-Type: application/json' \
+--header 'X-API-Key: <api-key-dari-usermanagement>' \
+--header 'Origin: https://barantum.internal' \
+--data '{
+    "customerName": "Budi Santoso",
+    "requestorName": "Budi Santoso",
+    "requestorPhone": "081234567890",
+    "branch": "Jakarta Pusat",
+    "referenceNumber": "BRT-2026-000123",
+    "unit": {
+        "chassisNumber": "MHFXX1234567890",
+        "engineNumber": "ENG1234567",
+        "brand": "Toyota",
+        "model": "Avanza",
+        "licensePlate": "B 1234 XYZ",
+        "vehicleType": "MPV",
+        "year": "2022",
+        "color": "Silver",
+        "transmisi": "Automatic",
+        "cc": 1500,
+        "odometer": 25000
+    }
+}'
+
+
+
+token : umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680

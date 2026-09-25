@@ -1,5 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="ServiceRequestSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- 1. Extract from new Barantum/Omnichannel JSON Structure -->
+    <property name="in_customerName" expression="json-eval($.customerName)" scope="default" type="STRING"/>
+    <property name="in_requestorName" expression="json-eval($.requestorName)" scope="default" type="STRING"/>
+    <property name="in_requestorPhone" expression="json-eval($.requestorPhone)" scope="default" type="STRING"/>
+    <property name="in_branch" expression="json-eval($.branch)" scope="default" type="STRING"/>
+    <property name="in_referenceNumber" expression="json-eval($.referenceNumber)" scope="default" type="STRING"/>
+    
+    <property name="in_chassisNumber" expression="json-eval($.unit.chassisNumber)" scope="default" type="STRING"/>
+    <property name="in_engineNumber" expression="json-eval($.unit.engineNumber)" scope="default" type="STRING"/>
+    <property name="in_brand" expression="json-eval($.unit.brand)" scope="default" type="STRING"/>
+    <property name="in_model" expression="json-eval($.unit.model)" scope="default" type="STRING"/>
+    <property name="in_licensePlate" expression="json-eval($.unit.licensePlate)" scope="default" type="STRING"/>
+    <property name="in_vehicleType" expression="json-eval($.unit.vehicleType)" scope="default" type="STRING"/>
+    <property name="in_year" expression="json-eval($.unit.year)" scope="default" type="STRING"/>
+    <property name="in_color" expression="json-eval($.unit.color)" scope="default" type="STRING"/>
+    <property name="in_transmisi" expression="json-eval($.unit.transmisi)" scope="default" type="STRING"/>
+    <property name="in_cc" expression="json-eval($.unit.cc)" scope="default" type="STRING"/>
+    <property name="in_odometer" expression="json-eval($.unit.odometer)" scope="default" type="STRING"/>
+
+    <!-- 2. Extract legacy snake_case format -->
     <property name="sr_app_id" expression="json-eval($.app_id)" scope="default" type="STRING"/>
     <property name="sr_reff_number" expression="json-eval($.reff_number)" scope="default" type="STRING"/>
     <property name="sr_branch_code" expression="json-eval($.branch_code)" scope="default" type="STRING"/>
@@ -31,22 +51,98 @@
     <property name="sr_created_by" expression="json-eval($.created_by)" scope="default" type="STRING"/>
     <property name="sr_ticket_no" expression="json-eval($.ticket_no)" scope="default" type="STRING"/>
 
-    <property name="originalRequestJson" expression="json-eval($)" scope="default" type="STRING"/>
+    <!-- 3. Smart Merge & Mapping to Unified Domain Properties -->
+    <filter xpath="string-length($ctx:in_referenceNumber) &gt; 0 and string-length($ctx:sr_reff_number) = 0">
+        <then><property name="sr_reff_number" expression="$ctx:in_referenceNumber" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:in_customerName) &gt; 0 and string-length($ctx:sr_customer_name) = 0">
+        <then><property name="sr_customer_name" expression="$ctx:in_customerName" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:in_branch) &gt; 0 and string-length($ctx:sr_branch_code) = 0">
+        <then><property name="sr_branch_code" expression="$ctx:in_branch" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:in_requestorName) &gt; 0 and string-length($ctx:sr_cp_name) = 0">
+        <then><property name="sr_cp_name" expression="$ctx:in_requestorName" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:in_requestorPhone) &gt; 0 and string-length($ctx:sr_cp_phone) = 0">
+        <then><property name="sr_cp_phone" expression="$ctx:in_requestorPhone" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:in_licensePlate) &gt; 0 and string-length($ctx:sr_license_plate) = 0">
+        <then><property name="sr_license_plate" expression="$ctx:in_licensePlate" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:in_chassisNumber) &gt; 0 and string-length($ctx:sr_equipment_number) = 0">
+        <then><property name="sr_equipment_number" expression="$ctx:in_chassisNumber" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:in_odometer) &gt; 0 and string-length($ctx:sr_km) = 0">
+        <then><property name="sr_km" expression="$ctx:in_odometer" scope="default" type="STRING"/></then>
+    </filter>
 
+    <!-- 4. Default Fallbacks for Downstream Requirements -->
     <filter xpath="string-length($ctx:sr_app_id) = 0">
+        <then><property name="sr_app_id" value="BARANTUM" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_channel) = 0">
+        <then><property name="sr_channel" value="Barantum" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_ticket_no) = 0">
+        <then><property name="sr_ticket_no" expression="$ctx:sr_reff_number" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_created_datetime) = 0">
+        <then><property name="sr_created_datetime" expression="get-property('SYSTEM_DATE', 'dd-MM-yyyy')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_created_by) = 0">
         <then>
-            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
-            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'app_id' wajib diisi" scope="default" type="STRING"/>
-            <sequence key="ErrorResponseSeq"/>
-            <drop/>
+            <filter xpath="string-length($ctx:sr_cp_name) &gt; 0">
+                <then><property name="sr_created_by" expression="$ctx:sr_cp_name" scope="default" type="STRING"/></then>
+                <else><property name="sr_created_by" value="Barantum" scope="default" type="STRING"/></else>
+            </filter>
         </then>
     </filter>
+    <filter xpath="string-length($ctx:sr_cp_title) = 0">
+        <then><property name="sr_cp_title" value="Bpk/Ibu" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_service_location) = 0">
+        <then><property name="sr_service_location" expression="$ctx:sr_branch_code" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_pool_name) = 0">
+        <then><property name="sr_pool_name" expression="$ctx:sr_branch_code" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_area_bengkel) = 0">
+        <then><property name="sr_area_bengkel" expression="$ctx:sr_branch_code" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_task) = 0">
+        <then><property name="sr_task" value="Service Berkala" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_jenis_permintaan) = 0">
+        <then><property name="sr_jenis_permintaan" value="Service Berkala" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_tipe_tiket) = 0">
+        <then><property name="sr_tipe_tiket" value="Regular" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_judul) = 0">
+        <then><property name="sr_judul" expression="fn:concat('Service Request - ', $ctx:sr_license_plate)" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_nama_kunjungan) = 0">
+        <then><property name="sr_nama_kunjungan" expression="$ctx:sr_cp_name" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_telepon_kunjungan) = 0">
+        <then><property name="sr_telepon_kunjungan" expression="$ctx:sr_cp_phone" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_description) = 0">
+        <then><property name="sr_description" expression="fn:concat('Service Request for ', $ctx:sr_license_plate, ' (Reff: ', $ctx:sr_reff_number, ')')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_service_datetime) = 0">
+        <then><property name="sr_service_datetime" expression="get-property('SYSTEM_DATE', 'yyyy-MM-dd HH:mm:ss')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="originalRequestJson" expression="json-eval($)" scope="default" type="STRING"/>
+
+    <!-- 5. Strict Validation of Mandatory Business Fields -->
     <filter xpath="string-length($ctx:sr_reff_number) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'reff_number' wajib diisi" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'referenceNumber' (atau 'reff_number') wajib diisi" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
@@ -55,36 +151,35 @@
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'branch_code' wajib diisi" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'branch' (atau 'branch_code') wajib diisi" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
-    <filter xpath="string-length($ctx:sr_created_datetime) = 0">
+    <filter xpath="string-length($ctx:sr_customer_name) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'created_datetime' wajib diisi" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'customerName' (atau 'customer_name') wajib diisi" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
-    <filter xpath="string-length($ctx:sr_created_by) = 0">
+    <filter xpath="string-length($ctx:sr_license_plate) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'created_by' wajib diisi" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'unit.licensePlate' (atau 'license_plate') wajib diisi" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
-    <filter xpath="string-length($ctx:sr_ticket_no) = 0">
+
+    <!-- Auto-set X-Transaction-Id header if not supplied by client -->
+    <property name="inTrxHeader" expression="$trp:X-Transaction-Id" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:inTrxHeader) = 0 and string-length($ctx:sr_reff_number) &gt; 0">
         <then>
-            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
-            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'ticket_no' wajib diisi" scope="default" type="STRING"/>
-            <sequence key="ErrorResponseSeq"/>
-            <drop/>
+            <header name="X-Transaction-Id" expression="$ctx:sr_reff_number" scope="transport"/>
         </then>
     </filter>
 

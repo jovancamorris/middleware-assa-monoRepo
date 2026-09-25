@@ -57,6 +57,11 @@
       "type": "string"
     },
     {
+      "key": "token_barantum",
+      "value": "umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680",
+      "type": "string"
+    },
+    {
       "key": "companyCode",
       "value": "1000",
       "type": "string"
@@ -74,6 +79,11 @@
     {
       "key": "sr_trx_id",
       "value": "TRX-SR-INIT-001",
+      "type": "string"
+    },
+    {
+      "key": "sr_barantum_trx_id",
+      "value": "BRT-INIT-001",
       "type": "string"
     }
   ],
@@ -945,6 +955,126 @@
     {
       "name": "7. Service Request Service (Port 8295)",
       "item": [
+        {
+          "name": "Service Request (Barantum) - Public Endpoint POST (200 OK)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const brtTrx = 'BRT-' + Date.now();",
+                  "pm.collectionVariables.set('sr_barantum_trx_id', brtTrx);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response indicates success', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{token_barantum}}"
+              },
+              {
+                "key": "Origin",
+                "value": "https://barantum.internal"
+              },
+              {
+                "key": "X-Transaction-Id",
+                "value": "{{sr_barantum_trx_id}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Budi Santoso\",\n  \"requestorName\": \"Budi Santoso\",\n  \"requestorPhone\": \"081234567890\",\n  \"branch\": \"Jakarta Pusat\",\n  \"referenceNumber\": \"BRT-2026-000123\",\n  \"unit\": {\n    \"licensePlate\": \"B 1234 XYZ\",\n    \"brand\": \"Toyota\",\n    \"model\": \"Avanza\",\n    \"odometer\": 25000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrlSR}}/api/vendor/public/service-requests",
+              "host": [
+                "{{baseUrlSR}}"
+              ],
+              "path": [
+                "api",
+                "vendor",
+                "public",
+                "service-requests"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Service Request - Get Paginated List (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Has pagination metadata', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('pagination');",
+                  "    pm.expect(jsonData.pagination).to.have.property('page');",
+                  "    pm.expect(jsonData.pagination).to.have.property('perPage');",
+                  "    pm.expect(jsonData.pagination).to.have.property('total');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{token_barantum}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrlSR}}/api/vendor/public/service-requests?page=1&perPage=10",
+              "host": [
+                "{{baseUrlSR}}"
+              ],
+              "path": [
+                "api",
+                "vendor",
+                "public",
+                "service-requests"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
         {
           "name": "Service Request - Valid Fan-out Paralel (200 OK)",
           "event": [

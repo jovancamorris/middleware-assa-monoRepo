@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="ServiceRequestGetSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <property name="pageParam" expression="$url:page" scope="default" type="STRING"/>
+    <property name="perPageParam" expression="$url:perPage" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:perPageParam) = 0">
+        <then><property name="perPageParam" expression="$url:limit" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="page" value="1" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:pageParam) &gt; 0">
+        <then><property name="page" expression="$ctx:pageParam" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="perPage" value="10" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:perPageParam) &gt; 0">
+        <then><property name="perPage" expression="$ctx:perPageParam" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="queryRef" expression="$url:referenceNumber" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:queryRef) = 0">
+        <then><property name="queryRef" expression="$url:reff_number" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:queryRef) = 0">
+        <then><property name="queryRef" expression="$url:transactionId" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="dbTrxStatus" value="" scope="default" type="STRING"/>
+    <property name="dbTrxId" value="" scope="default" type="STRING"/>
+    <property name="dbResponse" value="" scope="default" type="STRING"/>
+    <property name="dbCreatedAt" value="" scope="default" type="STRING"/>
+
+    <filter xpath="string-length($ctx:queryRef) &gt; 0">
+        <then>
+            <!-- Single item inquiry by reference / transaction ID -->
+            <dblookup>
+                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <statement>
+                    <sql>SELECT transaction_id, status, response_payload, created_at FROM api_transaction WHERE transaction_id = ? OR idempotency_key = ? LIMIT 1</sql>
+                    <parameter expression="$ctx:queryRef" type="VARCHAR"/>
+                    <parameter expression="$ctx:queryRef" type="VARCHAR"/>
+                    <result name="dbTrxId" column="transaction_id"/>
+                    <result name="dbTrxStatus" column="status"/>
+                    <result name="dbResponse" column="response_payload"/>
+                    <result name="dbCreatedAt" column="created_at"/>
+                </statement>
+            </dblookup>
+            <filter xpath="string-length($ctx:dbTrxId) &gt; 0">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "count": 1,
+                                "data": [
+                                    {
+                                        "transactionId": "$1",
+                                        "referenceNumber": "$2",
+                                        "status": "$3",
+                                        "createdAt": "$4"
+                                    }
+                                ],
+                                "pagination": {
+                                    "page": 1,
+                                    "perPage": 1,
+                                    "total": 1
+                                }
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:dbTrxId"/>
+                            <arg evaluator="xml" expression="$ctx:queryRef"/>
+                            <arg evaluator="xml" expression="$ctx:dbTrxStatus"/>
+                            <arg evaluator="xml" expression="$ctx:dbCreatedAt"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "count": 0,
+                                "data": [],
+                                "pagination": {
+                                    "page": 1,
+                                    "perPage": 1,
+                                    "total": 0
+                                }
+                            }
+                        </format>
+                    </payloadFactory>
+                </else>
+            </filter>
+        </then>
+        <else>
+            <!-- General list inquiry with count -->
+            <property name="totalCount" value="0" scope="default" type="STRING"/>
+            <dblookup>
+                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <statement>
+                    <sql>SELECT COUNT(*) AS total_sr, MAX(transaction_id) as latest_id, MAX(status) as latest_status, MAX(created_at) as latest_date FROM api_transaction WHERE endpoint LIKE '%service-requests%'</sql>
+                    <result name="totalCount" column="total_sr"/>
+                    <result name="dbTrxId" column="latest_id"/>
+                    <result name="dbTrxStatus" column="latest_status"/>
+                    <result name="dbCreatedAt" column="latest_date"/>
+                </statement>
+            </dblookup>
+            <filter xpath="string-length($ctx:totalCount) = 0">
+                <then><property name="totalCount" value="0" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="number($ctx:totalCount) &gt; 0">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "count": 1,
+                                "data": [
+                                    {
+                                        "transactionId": "$1",
+                                        "status": "$2",
+                                        "createdAt": "$3"
+                                    }
+                                ],
+                                "pagination": {
+                                    "page": $4,
+                                    "perPage": $5,
+                                    "total": $6
+                                }
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:dbTrxId"/>
+                            <arg evaluator="xml" expression="$ctx:dbTrxStatus"/>
+                            <arg evaluator="xml" expression="$ctx:dbCreatedAt"/>
+                            <arg evaluator="xml" expression="$ctx:page"/>
+                            <arg evaluator="xml" expression="$ctx:perPage"/>
+                            <arg evaluator="xml" expression="$ctx:totalCount"/>
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "count": 0,
+                                "data": [],
+                                "pagination": {
+                                    "page": $1,
+                                    "perPage": $2,
+                                    "total": 0
+                                }
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="$ctx:page"/>
+                            <arg evaluator="xml" expression="$ctx:perPage"/>
+                        </args>
+                    </payloadFactory>
+                </else>
+            </filter>
+        </else>
+    </filter>
+
+    <sequence key="GenericPaginationSeq"/>
+</sequence>

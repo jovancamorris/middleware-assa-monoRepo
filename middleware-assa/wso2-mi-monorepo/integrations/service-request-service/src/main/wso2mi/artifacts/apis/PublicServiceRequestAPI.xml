@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<api context="/api/service-requests" name="ServiceRequestAPI" xmlns="http://ws.apache.org/ns/synapse">
+<api context="/api/vendor/public/service-requests" name="PublicServiceRequestAPI" xmlns="http://ws.apache.org/ns/synapse">
     <resource methods="POST" url-mapping="/*">
         <inSequence>
             <property name="requiredScope" value="service_requests" scope="default" type="STRING"/>
