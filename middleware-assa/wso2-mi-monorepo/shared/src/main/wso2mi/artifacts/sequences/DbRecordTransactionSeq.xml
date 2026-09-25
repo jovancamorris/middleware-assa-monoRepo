@@ -16,7 +16,7 @@
                 <then>
                     <dbreport>
                         <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
-                        <statement><sql>UPDATE api_transaction SET status = 'FAILED', attempt_count = ?, next_retry_at = DATE_ADD(NOW(), INTERVAL ? SECOND), updated_at = NOW() WHERE transaction_id = ?</sql><parameter expression="$ctx:cleanCurrentAttempt" type="INTEGER"/><parameter expression="$ctx:cleanRetryIntervalSec" type="INTEGER"/><parameter expression="$ctx:transactionId" type="VARCHAR"/></statement>
+                        <statement><sql>UPDATE api_transaction SET status = 'FAILED', attempt_count = ?, response_payload = ?, next_retry_at = DATE_ADD(NOW(), INTERVAL ? SECOND), updated_at = NOW() WHERE transaction_id = ?</sql><parameter expression="$ctx:cleanCurrentAttempt" type="INTEGER"/><parameter expression="$ctx:responsePayload" type="VARCHAR"/><parameter expression="$ctx:cleanRetryIntervalSec" type="INTEGER"/><parameter expression="$ctx:transactionId" type="VARCHAR"/></statement>
                     </dbreport>
                 </then>
                 <else>

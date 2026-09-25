@@ -186,16 +186,18 @@
     <property name="api.endpoint" value="/api/service-requests" scope="default" type="STRING"/>
     <property name="httpMethod" value="POST" scope="default" type="STRING"/>
     <property name="api.params" expression="$ctx:originalRequestJson" scope="default" type="STRING"/>
+    <property name="maxAttempts" value="10" scope="default" type="STRING"/>
+    <property name="retryIntervalSec" value="1" scope="default" type="STRING"/>
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>
 
-    <clone id="SR_FANOUT" continueParent="false">
+    <clone continueParent="false">
         <target sequence="SrToAtlasSeq"/>
         <target sequence="SrToExtServiceSeq"/>
     </clone>
 
-    <aggregate id="SR_FANOUT">
-        <completeCondition timeout="35">
+    <aggregate>
+        <completeCondition timeout="20">
             <messageCount min="2" max="2"/>
         </completeCondition>
         <onComplete expression="$body/*">

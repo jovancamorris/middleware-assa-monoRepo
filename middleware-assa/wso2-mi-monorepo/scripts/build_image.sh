@@ -32,9 +32,10 @@ docker buildx build \
   -f - --load . <<EOF
 FROM registry.assa.id/nobi.sumariga/middleware-assa:1.0.6
 USER root
-COPY dist-cars/shared-artifacts_1.0.0.car /home/wso2carbon/wso2mi/repository/deployment/server/carbonapps/
-COPY dist-cars/service-request-service_1.0.0.car /home/wso2carbon/wso2mi/repository/deployment/server/carbonapps/
+COPY dist-cars/shared-artifacts_1.0.0.car /home/wso2carbon/wso2mi-4.6.0/repository/deployment/server/carbonapps/
+COPY dist-cars/service-request-service_1.0.0.car /home/wso2carbon/wso2mi-4.6.0/repository/deployment/server/carbonapps/
 COPY docs /app/docs
+RUN chown -R wso2carbon:wso2 /home/wso2carbon/wso2mi-4.6.0/repository/deployment/server/carbonapps/ /app/docs
 USER wso2carbon
 EOF
 

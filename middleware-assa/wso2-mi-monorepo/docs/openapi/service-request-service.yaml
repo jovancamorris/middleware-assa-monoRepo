@@ -83,11 +83,159 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
         '502':
-          description: Seluruh target downstream gagal merespons setelah proses retry
+          description: Salah satu atau seluruh target downstream gagal merespons setelah 10x proses retry
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: '#/components/schemas/ServiceRequestFailResponse'
+
+    get:
+      tags:
+        - Service Request
+      operationId: getServiceRequests
+      summary: Mengambil daftar tiket Service Request dengan pagination
+      description: |
+        Menampilkan riwayat transaksi Service Request yang tersimpan pada database middleware MariaDB (`api_transaction`).
+        Mendukung pagination terstandar (`page`, `perPage`) dan filter spesifik berdasarkan `referenceNumber` / `transactionId`.
+      security:
+        - bearerAuth:
+            - service_requests
+        - apiKeyAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman (default 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah baris per halaman (default 10)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: referenceNumber
+          in: query
+          required: false
+          description: Filter spesifik berdasarkan nomor referensi tiket
+          schema:
+            type: string
+            example: BRT-2026-000999
+      responses:
+        '200':
+          description: Berhasil mengambil data transaksi dengan metadata pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/vendor/public/service-requests:
+    post:
+      tags:
+        - Service Request
+      operationId: createVendorPublicServiceRequest
+      summary: Membuat tiket Service Request baru (Format Vendor Publik Barantum CRM)
+      description: |
+        Endpoint khusus konsumsi pihak ketiga / vendor (seperti Barantum CRM) dengan autentikasi `X-API-Key`.
+        Mendukung format payload JSON dengan struktur nested `unit`.
+        
+        Middleware mengeksekusi **Fan-out Paralel**:
+        1. Target 1 (ATLAS): `POST https://fe.atlas-dev.assa.id/api/vendor/public/service-requests` (toggle)
+        2. Target 2 (External Services ke SAP): `POST https://assa-ext-services.assa.id/dev/service/input_service_request`
+      security:
+        - apiKeyAuth: []
+        - bearerAuth:
+            - service_requests
+      parameters:
+        - name: Origin
+          in: header
+          required: false
+          description: Header origin vendor CRM
+          schema:
+            type: string
+            example: https://barantum.internal
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarantumServiceRequestPayload'
+      responses:
+        '200':
+          description: Tiket service request berhasil diproses oleh semua target
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestSuccessResponse'
+        '207':
+          description: Multi-Status — sebagian target berhasil, sebagian gagal (misal SAP gagal validasi nopol)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          description: Salah satu atau seluruh target downstream gagal setelah 10x proses retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestFailResponse'
+
+    get:
+      tags:
+        - Service Request
+      operationId: getVendorPublicServiceRequests
+      summary: Mengambil daftar tiket Service Request dengan pagination (Vendor Publik Barantum CRM)
+      description: |
+        Mengambil riwayat transaksi Service Request terdaftar pada database middleware MariaDB (`api_transaction`).
+        Mendukung parameter pagination `page` dan `perPage` serta filter `referenceNumber`.
+      security:
+        - apiKeyAuth: []
+        - bearerAuth:
+            - service_requests
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman (default 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah baris per halaman (default 10)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: referenceNumber
+          in: query
+          required: false
+          description: Filter spesifik berdasarkan nomor tiket Barantum
+          schema:
+            type: string
+            example: BRT-2026-000999
+      responses:
+        '200':
+          description: Data list berhasil diambil beserta pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   /api/worker/retry:
     get:
@@ -167,6 +315,13 @@ components:
       description: |
         Masukkan Bearer Token aplikasi yang memiliki scope `service_requests` (misal Token Omnichannel).
         Token dibaca dari environment/secret lokal.
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API Key untuk autentikasi vendor publik (seperti Barantum CRM).
+        Contoh Token: `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680`
 
   parameters:
     CorrelationId:
@@ -353,22 +508,195 @@ components:
           example: true
         message:
           type: string
-          example: Service Request processed successfully
+          example: Service request diteruskan ke semua target
         transactionId:
           type: string
           example: SR-TRX-20260924-001
         ticket_no:
           type: string
           example: TICKET-SR-99901
-        downstreamStatus:
+        targets:
           type: object
           properties:
-            externalService:
-              type: string
-              example: SUCCESS
-            atlasService:
-              type: string
-              example: SUCCESS
+            atlas:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: SKIPPED
+                httpStatus:
+                  type: integer
+                  example: 200
+                detail:
+                  type: string
+                  example: API ATLAS disabled or no response
+            extService:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: SUCCESS
+                httpStatus:
+                  type: integer
+                  example: 200
+                detail:
+                  type: string
+                  example: Success forwarded to ASSA External Services
+
+    ServiceRequestFailResponse:
+      type: object
+      properties:
+        error:
+          type: boolean
+          example: true
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Service request gagal diteruskan (target gagal setelah 10x percobaan)
+        transactionId:
+          type: string
+          example: TEST-RETRY-002
+        ticket_no:
+          type: string
+          example: TEST-RETRY-002
+        targets:
+          type: object
+          properties:
+            atlas:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: SKIPPED
+                httpStatus:
+                  type: integer
+                  example: 200
+                detail:
+                  type: string
+                  example: API ATLAS disabled or no response
+            extService:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: FAILED
+                httpStatus:
+                  type: integer
+                  example: 400
+                detail:
+                  type: string
+                  example: Forward to ASSA External Services failed after 10 attempts
+
+
+    BarantumServiceRequestPayload:
+      type: object
+      required:
+        - customerName
+        - requestorName
+        - branch
+        - referenceNumber
+        - unit
+      properties:
+        customerName:
+          type: string
+          example: Budi Santoso
+        requestorName:
+          type: string
+          example: Budi Santoso
+        requestorPhone:
+          type: string
+          example: '081234567890'
+        branch:
+          type: string
+          example: Jakarta Pusat
+        referenceNumber:
+          type: string
+          example: BRT-2026-000123
+        unit:
+          $ref: '#/components/schemas/BarantumUnit'
+
+    BarantumUnit:
+      type: object
+      required:
+        - licensePlate
+      properties:
+        chassisNumber:
+          type: string
+          example: MHFXX1234567890
+        engineNumber:
+          type: string
+          example: ENG1234567
+        brand:
+          type: string
+          example: Toyota
+        model:
+          type: string
+          example: Avanza
+        licensePlate:
+          type: string
+          example: B 1234 XYZ
+        vehicleType:
+          type: string
+          example: MPV
+        year:
+          type: string
+          example: '2022'
+        color:
+          type: string
+          example: Silver
+        transmisi:
+          type: string
+          example: Automatic
+        cc:
+          type: integer
+          example: 1500
+        odometer:
+          type: integer
+          example: 25000
+
+    ServiceRequestListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 1
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceRequestItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    ServiceRequestItem:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          example: BRT-2026-000999
+        referenceNumber:
+          type: string
+          example: BRT-2026-000999
+        status:
+          type: string
+          example: FAILED
+        createdAt:
+          type: string
+          example: '2026-09-25 06:22:55.0'
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        perPage:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 3
 
   responses:
     BadRequest:

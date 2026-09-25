@@ -48,11 +48,16 @@ def update_shared_car():
     with zipfile.ZipFile(car_src, 'r') as z:
         z.extractall(extract_dir)
         
-    # Copy updated AuthGuardSeq.xml
+    # Copy updated AuthGuardSeq.xml & DbRecordTransactionSeq.xml
     src_auth = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/AuthGuardSeq.xml")
     dest_auth = os.path.join(extract_dir, "AuthGuardSeq_1.0.0/AuthGuardSeq-1.0.0.xml")
     shutil.copy2(src_auth, dest_auth)
     print("  -> Updated AuthGuardSeq-1.0.0.xml")
+
+    src_dbt = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/DbRecordTransactionSeq.xml")
+    dest_dbt = os.path.join(extract_dir, "DbRecordTransactionSeq_1.0.0/DbRecordTransactionSeq-1.0.0.xml")
+    shutil.copy2(src_dbt, dest_dbt)
+    print("  -> Updated DbRecordTransactionSeq-1.0.0.xml")
     
     # Fix database URLs for docker networking
     fix_db_urls(extract_dir)
@@ -130,6 +135,21 @@ def update_sr_car():
         os.path.join(get_seq_dir, "ServiceRequestGetSeq-1.0.0.xml")
     )
     print("  -> Added ServiceRequestGetSeq_1.0.0")
+
+    # 7b. Update SrToAtlasSeq.xml, SrExtServiceErrorHandlerSeq.xml, SrAtlasErrorHandlerSeq.xml
+    shutil.copy2(
+        os.path.join(SR_DIR, "src/main/wso2mi/artifacts/sequences/SrToAtlasSeq.xml"),
+        os.path.join(extract_dir, "SrToAtlasSeq_1.0.0/SrToAtlasSeq-1.0.0.xml")
+    )
+    shutil.copy2(
+        os.path.join(SR_DIR, "src/main/wso2mi/artifacts/sequences/SrExtServiceErrorHandlerSeq.xml"),
+        os.path.join(extract_dir, "SrExtServiceErrorHandlerSeq_1.0.0/SrExtServiceErrorHandlerSeq-1.0.0.xml")
+    )
+    shutil.copy2(
+        os.path.join(SR_DIR, "src/main/wso2mi/artifacts/sequences/SrAtlasErrorHandlerSeq.xml"),
+        os.path.join(extract_dir, "SrAtlasErrorHandlerSeq_1.0.0/SrAtlasErrorHandlerSeq-1.0.0.xml")
+    )
+    print("  -> Updated SrToAtlasSeq, SrExtServiceErrorHandlerSeq, and SrAtlasErrorHandlerSeq")
 
     # 8. Update artifacts.xml and metadata.xml
     for meta_file in ["artifacts.xml", "metadata.xml"]:

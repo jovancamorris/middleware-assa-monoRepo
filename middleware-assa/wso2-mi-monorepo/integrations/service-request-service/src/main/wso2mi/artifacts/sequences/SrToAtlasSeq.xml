@@ -47,11 +47,11 @@
             </filter>
             <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
                 <then>
-                    <property name="atlasBaseUrl" value="https://atlas-api.assa.id/dev" scope="default" type="STRING"/>
+                    <property name="atlasBaseUrl" value="https://fe.atlas-dev.assa.id" scope="default" type="STRING"/>
                 </then>
             </filter>
 
-            <property name="atlasPath" expression="get-property('file', 'sr.target.atlas.path')" scope="default" type="STRING"/>
+            <property name="atlasPath" expression="get-property('env', 'SR_TARGET_ATLAS_PATH')" scope="default" type="STRING"/>
             <filter xpath="string-length($ctx:atlasPath) = 0">
                 <then>
                     <property name="atlasPath" expression="get-property('system', 'sr.target.atlas.path')" scope="default" type="STRING"/>
@@ -59,7 +59,12 @@
             </filter>
             <filter xpath="string-length($ctx:atlasPath) = 0">
                 <then>
-                    <property name="atlasPath" value="/service-request" scope="default" type="STRING"/>
+                    <property name="atlasPath" expression="get-property('file', 'sr.target.atlas.path')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasPath) = 0">
+                <then>
+                    <property name="atlasPath" value="/api/vendor/public/service-requests" scope="default" type="STRING"/>
                 </then>
             </filter>
 
@@ -78,7 +83,11 @@
             <property name="uri.var.atlasBackendUrl" expression="fn:concat($ctx:atlasBaseUrl, $ctx:atlasPath)" scope="default" type="STRING"/>
             <property name="api.endpoint" expression="$ctx:uri.var.atlasBackendUrl" scope="default" type="STRING"/>
             <property name="api.params" expression="$ctx:originalRequestJson" scope="default" type="STRING"/>
-            <property name="currentAttempt" value="1" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:currentAttempt) = 0">
+                <then><property name="currentAttempt" value="1" scope="default" type="STRING"/></then>
+            </filter>
+            <property name="maxAttempts" value="10" scope="default" type="STRING"/>
+            <property name="retryIntervalSec" value="1" scope="default" type="STRING"/>
             <payloadFactory media-type="json">
                 <format>$1</format>
                 <args>
@@ -135,19 +144,36 @@
                     </payloadFactory>
                 </then>
                 <else>
-                    <payloadFactory media-type="xml">
-                        <format>
-                            <srResult xmlns="">
-                                <target>atlas</target>
-                                <status>FAILED</status>
-                                <httpStatus>$1</httpStatus>
-                                <detail>Forward to API ATLAS returned error status</detail>
-                            </srResult>
-                        </format>
-                        <args>
-                            <arg evaluator="xml" expression="$ctx:responseStatus"/>
-                        </args>
-                    </payloadFactory>
+                    <property name="errorMessage" expression="fn:concat('Forward failed with status ', $ctx:responseStatus)" scope="default" type="STRING"/>
+                    <filter xpath="number($ctx:currentAttempt) &lt; number($ctx:maxAttempts)">
+                        <then>
+                            <property name="rawNextAttempt" expression="number($ctx:currentAttempt) + 1" scope="default" type="STRING"/>
+                            <property name="currentAttempt" expression="fn:substring-before(fn:concat($ctx:rawNextAttempt, '.'), '.')" scope="default" type="STRING"/>
+                            <log level="custom">
+                                <property name="RETRY" expression="fn:concat('Retrying atlas attempt ', $ctx:currentAttempt, ' of 10...')"/>
+                            </log>
+                            <dbreport>
+                                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                                <statement><sql>DO SLEEP(1)</sql></statement>
+                            </dbreport>
+                            <sequence key="SrToAtlasSeq"/>
+                        </then>
+                        <else>
+                            <payloadFactory media-type="xml">
+                                <format>
+                                    <srResult xmlns="">
+                                        <target>atlas</target>
+                                        <status>FAILED</status>
+                                        <httpStatus>$1</httpStatus>
+                                        <detail>Forward to API ATLAS failed after 10 attempts</detail>
+                                    </srResult>
+                                </format>
+                                <args>
+                                    <arg evaluator="xml" expression="$ctx:responseStatus"/>
+                                </args>
+                            </payloadFactory>
+                        </else>
+                    </filter>
                 </else>
             </filter>
         </else>
