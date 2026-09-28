@@ -12,8 +12,13 @@ TMP_DIR = "/tmp/car_build"
 DIST_DIR = os.path.join(REPO_ROOT, "dist-cars")
 SHARED_CAR = os.path.join(SHARED_DIR, "target", "shared-artifacts_1.0.0.car")
 SR_CAR = os.path.join(SR_DIR, "target", "service-request-service_1.0.0.car")
-BRANCH_CAR = os.path.join(REPO_ROOT, "integrations", "branch-service", "target", "branch-service_1.0.0.car")
-CUSTOMER_CAR = os.path.join(REPO_ROOT, "integrations", "customer-service", "target", "customer-service_1.0.0.car")
+OTHER_SERVICES = [
+    "branch-service",
+    "customer-service",
+    "spk-service",
+    "vehicle-service",
+    "vendor-service",
+]
 os.makedirs(DIST_DIR, exist_ok=True)
 
 def repack_car(car_path, extract_dir, out_car_path):
@@ -200,6 +205,7 @@ def stage_service_car(car_src):
 if __name__ == "__main__":
     update_shared_car()
     update_sr_car()
-    stage_service_car(BRANCH_CAR)
-    stage_service_car(CUSTOMER_CAR)
+    for s in OTHER_SERVICES:
+        car_path = os.path.join(REPO_ROOT, "integrations", s, "target", f"{s}_1.0.0.car")
+        stage_service_car(car_path)
     print("Done! All CAR packages staged successfully.")

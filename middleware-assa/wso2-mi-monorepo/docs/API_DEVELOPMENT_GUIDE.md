@@ -384,7 +384,7 @@ Field tambahan harus ditambahkan setelah mapping sequence dikonfirmasi. Bedakan 
 
 - `app_id`
 - `reff_number`
-- `branch_code`
+- `branchCode`
 - `created_datetime`
 - `created_by`
 - `ticket_no`

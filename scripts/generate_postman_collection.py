@@ -432,9 +432,11 @@ transactional_items = [
         body_json={
             "app_id": "sr_app_omnichannel",
             "reff_number": "REF-SR-POSTMAN-001",
+            "branchCode": "JKT01",
             "branch_code": "JKT01",
             "equipment_number": "EQ-998877",
             "license_plate": "B-1234-SSA",
+            "customerCode": "CUST-00123",
             "customer_code": "CUST-00123",
             "customer_name": "PT Maju Bersama ASSA",
             "channel": "Omnichannel-Web",
@@ -480,9 +482,11 @@ transactional_items = [
         body_json={
             "app_id": "sr_app_omnichannel",
             "reff_number": "REF-SR-POSTMAN-001",
+            "branchCode": "JKT01",
             "branch_code": "JKT01",
             "equipment_number": "EQ-998877",
             "license_plate": "B-1234-SSA",
+            "customerCode": "CUST-00123",
             "customer_code": "CUST-00123",
             "customer_name": "PT Maju Bersama ASSA",
             "channel": "Omnichannel-Web",
@@ -524,9 +528,11 @@ transactional_items = [
         ],
         body_json={
             "reff_number": "REF-BARANTUM-001",
+            "branchCode": "JKT01",
             "branch_code": "JKT01",
             "equipment_number": "EQ-998877",
             "license_plate": "B-1234-SSA",
+            "customerCode": "CUST-00123",
             "customer_code": "CUST-00123",
             "customer_name": "PT Maju Bersama ASSA",
             "channel": "Barantum-CRM",
@@ -651,38 +657,60 @@ worker_items = [
 ]
 
 # ------------------------------------------------------------------------------
-# Assemble Postman Collection Object
+# Assemble Postman Collection Helper
 # ------------------------------------------------------------------------------
-collection = {
-    "info": {
-        "_postman_id": str(uuid.uuid4()),
-        "name": "ASSA Middleware API Test Suite",
-        "description": "Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway (Port 6031).\nMencakup:\n- Health & Readiness Probes (12 Endpoint)\n- Auth & Scope Security Guards (401/403)\n- Input Validation Checks (400)\n- Inquiry & Pagination (200 OK)\n- Parallel Fan-Out Service Request (10x Retries & MariaDB Audit Logs)\n- Background Retry Worker",
-        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-    },
-    "variable": [
-        {"key": "baseUrl", "value": "http://localhost:6031", "type": "string"},
-        {"key": "companyCode", "value": "1000", "type": "string"},
-        {"key": "token_app_a", "value": TOKENS["token_app_a"], "type": "string"},
-        {"key": "token_app_b", "value": TOKENS["token_app_b"], "type": "string"},
-        {"key": "token_qa", "value": TOKENS["token_qa"], "type": "string"},
-        {"key": "token_omnichannel", "value": TOKENS["token_omnichannel"], "type": "string"},
-        {"key": "token_barantum", "value": TOKENS["token_barantum"], "type": "string"},
-        {"key": "token_atlas", "value": TOKENS["token_atlas"], "type": "string"},
-        {"key": "sr_trx_id", "value": "TRX-SR-INIT", "type": "string"},
-        {"key": "sr_barantum_trx_id", "value": "TRX-BRT-INIT", "type": "string"},
-        {"key": "vendor_trx_id", "value": "TRX-VND-INIT", "type": "string"},
-        {"key": "spk_trx_id", "value": "TRX-SPK-INIT", "type": "string"}
-    ],
-    "item": [
-        {"name": "1. Health & Readiness Probes", "item": health_items},
-        {"name": "2. Auth & Scope Security Guards", "item": security_items},
-        {"name": "3. Parameter Validation (400 Bad Request)", "item": validation_items},
-        {"name": "4. Inquiry & Pagination (GET 200 OK)", "item": inquiry_items},
-        {"name": "5. Transactional & Fan-Out Endpoints (POST)", "item": transactional_items},
-        {"name": "6. Background Retry Worker", "item": worker_items}
-    ]
-}
+def create_collection_dict(name, default_base_url, description_suffix=""):
+    return {
+        "info": {
+            "_postman_id": str(uuid.uuid4()),
+            "name": name,
+            "description": f"Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: {default_base_url}\n{description_suffix}\nMencakup:\n- Health & Readiness Probes (12 Endpoint)\n- Auth & Scope Security Guards (401/403)\n- Input Validation Checks (400)\n- Inquiry & Pagination (200 OK)\n- Parallel Fan-Out Service Request (10x Retries & MariaDB Audit Logs)\n- Background Retry Worker",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+        },
+        "variable": [
+            {"key": "baseUrl", "value": default_base_url, "type": "string"},
+            {"key": "companyCode", "value": "1000", "type": "string"},
+            {"key": "token_app_a", "value": TOKENS["token_app_a"], "type": "string"},
+            {"key": "token_app_b", "value": TOKENS["token_app_b"], "type": "string"},
+            {"key": "token_qa", "value": TOKENS["token_qa"], "type": "string"},
+            {"key": "token_omnichannel", "value": TOKENS["token_omnichannel"], "type": "string"},
+            {"key": "token_barantum", "value": TOKENS["token_barantum"], "type": "string"},
+            {"key": "token_atlas", "value": TOKENS["token_atlas"], "type": "string"},
+            {"key": "sr_trx_id", "value": "TRX-SR-INIT", "type": "string"},
+            {"key": "sr_barantum_trx_id", "value": "TRX-BRT-INIT", "type": "string"},
+            {"key": "vendor_trx_id", "value": "TRX-VND-INIT", "type": "string"},
+            {"key": "spk_trx_id", "value": "TRX-SPK-INIT", "type": "string"}
+        ],
+        "item": [
+            {"name": "1. Health & Readiness Probes", "item": health_items},
+            {"name": "2. Auth & Scope Security Guards", "item": security_items},
+            {"name": "3. Parameter Validation (400 Bad Request)", "item": validation_items},
+            {"name": "4. Inquiry & Pagination (GET 200 OK)", "item": inquiry_items},
+            {"name": "5. Transactional & Fan-Out Endpoints (POST)", "item": transactional_items},
+            {"name": "6. Background Retry Worker", "item": worker_items}
+        ]
+    }
+
+# ------------------------------------------------------------------------------
+# Build Collections
+# ------------------------------------------------------------------------------
+collection_server = create_collection_dict(
+    name="ASSA Middleware - Server Dev (devmiddleware1.assa.id:6031)",
+    default_base_url="http://devmiddleware1.assa.id:6031",
+    description_suffix="Pre-configured untuk Server Dev (devmiddleware1.assa.id:6031)."
+)
+
+collection_local = create_collection_dict(
+    name="ASSA Middleware - Local Desktop (localhost:6031)",
+    default_base_url="http://localhost:6031",
+    description_suffix="Pre-configured untuk Local Desktop (localhost:6031)."
+)
+
+collection_generic = create_collection_dict(
+    name="ASSA Middleware API Test Suite",
+    default_base_url="http://localhost:6031",
+    description_suffix="Dapat digunakan bergantian dengan Environment Local / Server Dev."
+)
 
 # ------------------------------------------------------------------------------
 # Build Environments
@@ -722,12 +750,21 @@ env_server = {
 # ------------------------------------------------------------------------------
 # Save Files
 # ------------------------------------------------------------------------------
-collection_path = os.path.join(POSTMAN_DIR, "ASSA_Middleware_TestSuite.postman_collection.json")
+# In postman/
+postman_server_path = os.path.join(POSTMAN_DIR, "ASSA_Middleware_ServerDev.postman_collection.json")
+postman_local_path = os.path.join(POSTMAN_DIR, "ASSA_Middleware_Local.postman_collection.json")
+postman_suite_path = os.path.join(POSTMAN_DIR, "ASSA_Middleware_TestSuite.postman_collection.json")
 env_local_path = os.path.join(POSTMAN_DIR, "ASSA_Middleware_Local.postman_environment.json")
 env_server_path = os.path.join(POSTMAN_DIR, "ASSA_Middleware_ServerDev.postman_environment.json")
 
-with open(collection_path, "w", encoding="utf-8") as f:
-    json.dump(collection, f, indent=2, ensure_ascii=False)
+with open(postman_server_path, "w", encoding="utf-8") as f:
+    json.dump(collection_server, f, indent=2, ensure_ascii=False)
+
+with open(postman_local_path, "w", encoding="utf-8") as f:
+    json.dump(collection_local, f, indent=2, ensure_ascii=False)
+
+with open(postman_suite_path, "w", encoding="utf-8") as f:
+    json.dump(collection_generic, f, indent=2, ensure_ascii=False)
 
 with open(env_local_path, "w", encoding="utf-8") as f:
     json.dump(env_local, f, indent=2, ensure_ascii=False)
@@ -735,17 +772,26 @@ with open(env_local_path, "w", encoding="utf-8") as f:
 with open(env_server_path, "w", encoding="utf-8") as f:
     json.dump(env_server, f, indent=2, ensure_ascii=False)
 
-# Also update existing postman collections so users can import from test/ or middleware-assa/
+# In middleware-assa/
+mw_server_path = os.path.join(REPO_ROOT, "middleware-assa", "ASSA Middleware Server Dev (devmiddleware1.assa.id-6031).postman_collection.json")
+mw_local_path = os.path.join(REPO_ROOT, "middleware-assa", "ASSA Middleware Local Desktop (localhost-6031).postman_collection.json")
+
+with open(mw_server_path, "w", encoding="utf-8") as f:
+    json.dump(collection_server, f, indent=2, ensure_ascii=False)
+
+with open(mw_local_path, "w", encoding="utf-8") as f:
+    json.dump(collection_local, f, indent=2, ensure_ascii=False)
+
+# In test/
 legacy_test_path = os.path.join(REPO_ROOT, "test", "ASSA_Middleware_Full_Suite.postman_collection.json")
-legacy_server_path = os.path.join(REPO_ROOT, "middleware-assa", "ASSA Middleware Server Dev (devmiddleware1.assa.id-6031).postman_collection.json")
-
 with open(legacy_test_path, "w", encoding="utf-8") as f:
-    json.dump(collection, f, indent=2, ensure_ascii=False)
+    json.dump(collection_generic, f, indent=2, ensure_ascii=False)
 
-with open(legacy_server_path, "w", encoding="utf-8") as f:
-    json.dump(collection, f, indent=2, ensure_ascii=False)
+print(f"Generated Server Dev Collection : {postman_server_path}")
+print(f"Generated Local Collection      : {postman_local_path}")
+print(f"Generated Generic Suite         : {postman_suite_path}")
+print(f"Generated Local Env             : {env_local_path}")
+print(f"Generated Server Env            : {env_server_path}")
+print(f"Updated middleware-assa/ Server : {mw_server_path}")
+print(f"Updated middleware-assa/ Local  : {mw_local_path}")
 
-print(f"Generated Collection : {collection_path}")
-print(f"Generated Local Env  : {env_local_path}")
-print(f"Generated Server Env : {env_server_path}")
-print(f"Updated Legacy Paths : {legacy_test_path} & {legacy_server_path}")

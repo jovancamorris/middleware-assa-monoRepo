@@ -72,10 +72,10 @@
                     <root xmlns="">
                         <app_id>$1</app_id>
                         <reff_number>$2</reff_number>
-                        <branch_code>$3</branch_code>
+                        <branchCode>$3</branchCode>
                         <equipment_number>$4</equipment_number>
                         <license_plate>$5</license_plate>
-                        <customer_code>$6</customer_code>
+                        <customerCode>$6</customerCode>
                         <customer_name>$7</customer_name>
                         <channel>$8</channel>
                         <cp_title>$9</cp_title>

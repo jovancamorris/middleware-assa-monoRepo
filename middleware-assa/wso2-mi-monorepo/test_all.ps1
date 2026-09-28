@@ -408,7 +408,7 @@ Run-Test -TestNumber "TEST 24" -TestName "Service Request: App B tanpa scope 'se
 
 $invalidSrJson = @{
     reff_number = "REF01"
-    branch_code = "JKT01"
+    branchCode = "JKT01"
     created_datetime = "17-09-2026"
     created_by = "admin"
     ticket_no = "TCK01"
@@ -419,10 +419,10 @@ $srTrxId = "TRX-SR-SUITE-" + (Get-Date -Format "yyyyMMddHHmmss")
 $validSrJson = @{
     app_id = "sr_app_omnichannel"
     reff_number = "REF-SR-20260917-001"
-    branch_code = "JKT01"
+    branchCode = "JKT01"
     equipment_number = "EQ-998877"
     license_plate = "B-1234-SSA"
-    customer_code = "CUST-00123"
+    customerCode = "CUST-00123"
     customer_name = "PT Maju Bersama ASSA"
     channel = "Omnichannel-Web"
     cp_title = "Bpk"

@@ -19,13 +19,13 @@
     <property name="in_cc" expression="json-eval($.unit.cc)" scope="default" type="STRING"/>
     <property name="in_odometer" expression="json-eval($.unit.odometer)" scope="default" type="STRING"/>
 
-    <!-- 2. Extract legacy snake_case format -->
+    <!-- 2. Extract legacy service-request fields -->
     <property name="sr_app_id" expression="json-eval($.app_id)" scope="default" type="STRING"/>
     <property name="sr_reff_number" expression="json-eval($.reff_number)" scope="default" type="STRING"/>
-    <property name="sr_branch_code" expression="json-eval($.branch_code)" scope="default" type="STRING"/>
+    <property name="sr_branch_code" expression="json-eval($.branchCode)" scope="default" type="STRING"/>
     <property name="sr_equipment_number" expression="json-eval($.equipment_number)" scope="default" type="STRING"/>
     <property name="sr_license_plate" expression="json-eval($.license_plate)" scope="default" type="STRING"/>
-    <property name="sr_customer_code" expression="json-eval($.customer_code)" scope="default" type="STRING"/>
+    <property name="sr_customer_code" expression="json-eval($.customerCode)" scope="default" type="STRING"/>
     <property name="sr_customer_name" expression="json-eval($.customer_name)" scope="default" type="STRING"/>
     <property name="sr_channel" expression="json-eval($.channel)" scope="default" type="STRING"/>
     <property name="sr_cp_title" expression="json-eval($.cp_title)" scope="default" type="STRING"/>
@@ -151,7 +151,7 @@
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'branch' (atau 'branch_code') wajib diisi" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'branch' (atau 'branchCode') wajib diisi" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>

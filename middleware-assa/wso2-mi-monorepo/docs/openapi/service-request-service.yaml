@@ -422,7 +422,7 @@ components:
       required:
         - app_id
         - reff_number
-        - branch_code
+        - branchCode
         - license_plate
         - ticket_no
       properties:
@@ -432,7 +432,7 @@ components:
         reff_number:
           type: string
           example: REF-SR-20260917-001
-        branch_code:
+        branchCode:
           type: string
           example: JKT01
         equipment_number:
@@ -441,7 +441,7 @@ components:
         license_plate:
           type: string
           example: B-1234-SSA
-        customer_code:
+        customerCode:
           type: string
           example: CUST-00123
         customer_name:

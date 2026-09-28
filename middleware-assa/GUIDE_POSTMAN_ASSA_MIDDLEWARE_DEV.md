@@ -387,7 +387,7 @@ Field minimum:
 {
   "app_id": "synthetic-app",
   "reff_number": "REF-EXAMPLE-001",
-  "branch_code": "BR-001",
+  "branchCode": "BR-001",
   "created_datetime": "17-09-2026",
   "created_by": "synthetic-user",
   "ticket_no": "TICKET-EXAMPLE-001"
