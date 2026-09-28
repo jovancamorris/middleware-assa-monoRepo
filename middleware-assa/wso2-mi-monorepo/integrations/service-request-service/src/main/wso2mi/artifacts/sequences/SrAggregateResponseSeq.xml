@@ -21,6 +21,23 @@
             <property name="atlasDetail" value="No response from API ATLAS" scope="default" type="STRING"/>
         </then>
     </filter>
+
+    <!-- Defensive: SKIPPED = FAILED — tidak boleh dianggap sukses -->
+    <filter xpath="$ctx:extStatus = 'SKIPPED'">
+        <then>
+            <property name="extStatus" value="FAILED" scope="default" type="STRING"/>
+            <property name="extHttpStatus" value="502" scope="default" type="STRING"/>
+            <property name="extDetail" value="ASSA External Services was skipped (treated as FAILED)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="$ctx:atlasStatus = 'SKIPPED'">
+        <then>
+            <property name="atlasStatus" value="FAILED" scope="default" type="STRING"/>
+            <property name="atlasHttpStatus" value="502" scope="default" type="STRING"/>
+            <property name="atlasDetail" value="API ATLAS was skipped (treated as FAILED)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
     <filter xpath="string-length($ctx:sr_ticket_no) = 0">
         <then>
             <property name="sr_ticket_no" value="" scope="default" type="STRING"/>
