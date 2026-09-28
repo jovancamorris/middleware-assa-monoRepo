@@ -10,6 +10,10 @@ SR_DIR = os.path.join(REPO_ROOT, "integrations", "service-request-service")
 TMP_DIR = "/tmp/car_build"
 
 DIST_DIR = os.path.join(REPO_ROOT, "dist-cars")
+SHARED_CAR = os.path.join(SHARED_DIR, "target", "shared-artifacts_1.0.0.car")
+SR_CAR = os.path.join(SR_DIR, "target", "service-request-service_1.0.0.car")
+BRANCH_CAR = os.path.join(REPO_ROOT, "integrations", "branch-service", "target", "branch-service_1.0.0.car")
+CUSTOMER_CAR = os.path.join(REPO_ROOT, "integrations", "customer-service", "target", "customer-service_1.0.0.car")
 os.makedirs(DIST_DIR, exist_ok=True)
 
 def repack_car(car_path, extract_dir, out_car_path):
@@ -39,7 +43,9 @@ def fix_db_urls(extract_dir):
 
 def update_shared_car():
     print("[1/2] Updating shared-artifacts_1.0.0.car...")
-    car_src = "/tmp/shared.car"
+    car_src = SHARED_CAR
+    if not os.path.exists(car_src):
+        raise FileNotFoundError(f"Missing generated CAR: {car_src}. Run Maven packaging first.")
     extract_dir = os.path.join(TMP_DIR, "shared")
     if os.path.exists(extract_dir):
         shutil.rmtree(extract_dir)
@@ -58,6 +64,12 @@ def update_shared_car():
     dest_dbt = os.path.join(extract_dir, "DbRecordTransactionSeq_1.0.0/DbRecordTransactionSeq-1.0.0.xml")
     shutil.copy2(src_dbt, dest_dbt)
     print("  -> Updated DbRecordTransactionSeq-1.0.0.xml")
+
+    src_dbal = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/DbRecordAttemptLogSeq.xml")
+    dest_dbal = os.path.join(extract_dir, "DbRecordAttemptLogSeq_1.0.0/DbRecordAttemptLogSeq-1.0.0.xml")
+    if os.path.exists(src_dbal):
+        shutil.copy2(src_dbal, dest_dbal)
+        print("  -> Updated DbRecordAttemptLogSeq-1.0.0.xml")
     
     # Fix database URLs for docker networking
     fix_db_urls(extract_dir)
@@ -70,7 +82,9 @@ def update_shared_car():
 
 def update_sr_car():
     print("[2/2] Updating service-request-service_1.0.0.car...")
-    car_src = "/tmp/sr.car"
+    car_src = SR_CAR
+    if not os.path.exists(car_src):
+        raise FileNotFoundError(f"Missing generated CAR: {car_src}. Run Maven packaging first.")
     extract_dir = os.path.join(TMP_DIR, "sr")
     if os.path.exists(extract_dir):
         shutil.rmtree(extract_dir)
@@ -177,7 +191,15 @@ def update_sr_car():
     shutil.copy2(out_car, "/tmp/service-request-service_1.0.0.car")
     print(f"  -> Generated {out_car}")
 
+def stage_service_car(car_src):
+    if os.path.exists(car_src):
+        out_car = os.path.join(DIST_DIR, os.path.basename(car_src))
+        shutil.copy2(car_src, out_car)
+        print(f"  -> Staged {out_car}")
+
 if __name__ == "__main__":
     update_shared_car()
     update_sr_car()
-    print("Done! Both CAR packages updated successfully.")
+    stage_service_car(BRANCH_CAR)
+    stage_service_car(CUSTOMER_CAR)
+    print("Done! All CAR packages staged successfully.")

@@ -1,32 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="SrToExtServiceSeq" onError="SrExtServiceErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <property name="extEnabled" expression="get-property('file', 'sr.target.extservice.enabled')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:extEnabled) = 0">
-        <then>
-            <property name="extEnabled" expression="get-property('system', 'sr.target.extservice.enabled')" scope="default" type="STRING"/>
-        </then>
-    </filter>
-    <filter xpath="string-length($ctx:extEnabled) = 0">
-        <then>
-            <property name="extEnabled" value="true" scope="default" type="STRING"/>
-        </then>
-    </filter>
-
-    <filter xpath="$ctx:extEnabled = 'false'">
-        <then>
-            <payloadFactory media-type="xml">
-                <format>
-                    <srResult xmlns="">
-                        <target>extService</target>
-                        <status>SKIPPED</status>
-                        <httpStatus>200</httpStatus>
-                        <detail>Target ASSA External Service disabled via toggle</detail>
-                    </srResult>
-                </format>
-            </payloadFactory>
-        </then>
-        <else>
-            <property name="srResolvedBaseUrl" expression="get-property('env', 'ASSA_EXT_SR_BASE_URL')" scope="default" type="STRING"/>
+    <property name="srResolvedBaseUrl" expression="get-property('env', 'ASSA_EXT_SR_BASE_URL')" scope="default" type="STRING"/>
             <filter xpath="string-length($ctx:srResolvedBaseUrl) = 0">
                 <then>
                     <property name="srResolvedBaseUrl" expression="get-property('system', 'assa.ext.sr.base.url')" scope="default" type="STRING"/>
@@ -239,6 +213,4 @@
                     </filter>
                 </else>
             </filter>
-        </else>
-    </filter>
 </sequence>

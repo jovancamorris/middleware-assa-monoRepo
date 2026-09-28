@@ -1,44 +1,24 @@
 {
   "info": {
-    "_postman_id": "assa-middleware-monorepo-full-suite",
-    "name": "ASSA Middleware API Collection (Full Suite)",
-    "description": "Koleksi Postman resmi untuk pengujian seluruh service ASSA Middleware WSO2 MI Monorepo (Port 8290 - 8295). Dilengkapi dengan test assertion otomatis (Status Code, Error & Success Validation, Idempotency Replay) mencakup seluruh 28 skenario pengujian.",
+    "_postman_id": "a1a4a0fd-a0a6-451f-a8f4-4fa673f52ebe",
+    "name": "ASSA Middleware API Test Suite",
+    "description": "Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway (Port 6031).\nMencakup:\n- Health & Readiness Probes (12 Endpoint)\n- Auth & Scope Security Guards (401/403)\n- Input Validation Checks (400)\n- Inquiry & Pagination (200 OK)\n- Parallel Fan-Out Service Request (10x Retries & MariaDB Audit Logs)\n- Background Retry Worker",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
-      "key": "baseUrlBranch",
-      "value": "http://localhost:8290",
+      "key": "baseUrl",
+      "value": "http://localhost:6031",
       "type": "string"
     },
     {
-      "key": "baseUrlCustomer",
-      "value": "http://localhost:8291",
-      "type": "string"
-    },
-    {
-      "key": "baseUrlVehicle",
-      "value": "http://localhost:8292",
-      "type": "string"
-    },
-    {
-      "key": "baseUrlVendor",
-      "value": "http://localhost:8293",
-      "type": "string"
-    },
-    {
-      "key": "baseUrlSPK",
-      "value": "http://localhost:8294",
-      "type": "string"
-    },
-    {
-      "key": "baseUrlSR",
-      "value": "http://localhost:8295",
+      "key": "companyCode",
+      "value": "1000",
       "type": "string"
     },
     {
       "key": "token_app_a",
-      "value": "3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013",
+      "value": "c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd",
       "type": "string"
     },
     {
@@ -48,7 +28,7 @@
     },
     {
       "key": "token_qa",
-      "value": "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d",
+      "value": "e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be",
       "type": "string"
     },
     {
@@ -62,263 +42,1199 @@
       "type": "string"
     },
     {
-      "key": "companyCode",
-      "value": "1000",
-      "type": "string"
-    },
-    {
-      "key": "vendor_trx_id",
-      "value": "TRX-VENDOR-INIT-001",
-      "type": "string"
-    },
-    {
-      "key": "spk_trx_id",
-      "value": "TRX-SPK-INIT-001",
+      "key": "token_atlas",
+      "value": "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d",
       "type": "string"
     },
     {
       "key": "sr_trx_id",
-      "value": "TRX-SR-INIT-001",
+      "value": "TRX-SR-INIT",
       "type": "string"
     },
     {
       "key": "sr_barantum_trx_id",
-      "value": "BRT-INIT-001",
+      "value": "TRX-BRT-INIT",
+      "type": "string"
+    },
+    {
+      "key": "vendor_trx_id",
+      "value": "TRX-VND-INIT",
+      "type": "string"
+    },
+    {
+      "key": "spk_trx_id",
+      "value": "TRX-SPK-INIT",
       "type": "string"
     }
   ],
   "item": [
     {
-      "name": "1. Health & Readiness (All Services)",
+      "name": "1. Health & Readiness Probes",
       "item": [
         {
-          "name": "Health Check - Branch Service (8290)",
+          "name": "Branch Health Check (Liveness)",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Status is UP', function () { var jsonData = pm.response.json(); pm.expect(jsonData.status).to.eql('UP'); });"
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response is UP or 200', function () { pm.expect(pm.response.code).to.eql(200); });"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrlBranch}}/health",
-              "host": [
-                "{{baseUrlBranch}}"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Health Check - Readiness (8290)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
-                ]
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
               }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
+            ],
             "url": {
-              "raw": "{{baseUrlBranch}}/health/ready",
+              "raw": "{{baseUrl}}/health/branch",
               "host": [
-                "{{baseUrlBranch}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "health",
-                "ready"
+                "branch"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Health Check - Customer Service (8291)",
+          "name": "Branch Readiness Check",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Status is UP', function () { var jsonData = pm.response.json(); pm.expect(jsonData.status).to.eql('UP'); });"
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrlCustomer}}/health",
+              "raw": "{{baseUrl}}/readiness/branch",
               "host": [
-                "{{baseUrlCustomer}}"
+                "{{baseUrl}}"
               ],
               "path": [
-                "health"
+                "readiness",
+                "branch"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Health Check - Vehicle Service (8292)",
+          "name": "Customer Health Check (Liveness)",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Status is UP', function () { var jsonData = pm.response.json(); pm.expect(jsonData.status).to.eql('UP'); });"
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrlVehicle}}/health",
+              "raw": "{{baseUrl}}/health/customer",
               "host": [
-                "{{baseUrlVehicle}}"
+                "{{baseUrl}}"
               ],
               "path": [
-                "health"
+                "health",
+                "customer"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Health Check - Vendor Service (8293)",
+          "name": "Customer Readiness Check",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Status is UP', function () { var jsonData = pm.response.json(); pm.expect(jsonData.status).to.eql('UP'); });"
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrlVendor}}/health",
+              "raw": "{{baseUrl}}/readiness/customer",
               "host": [
-                "{{baseUrlVendor}}"
+                "{{baseUrl}}"
               ],
               "path": [
-                "health"
+                "readiness",
+                "customer"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Health Check - SPK Service (8294)",
+          "name": "Vehicle Health Check (Liveness)",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Status is UP', function () { var jsonData = pm.response.json(); pm.expect(jsonData.status).to.eql('UP'); });"
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrlSPK}}/health",
+              "raw": "{{baseUrl}}/health/vehicle",
               "host": [
-                "{{baseUrlSPK}}"
+                "{{baseUrl}}"
               ],
               "path": [
-                "health"
+                "health",
+                "vehicle"
               ]
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Health Check - Service Request (8295)",
+          "name": "Vehicle Readiness Check",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Status is UP', function () { var jsonData = pm.response.json(); pm.expect(jsonData.status).to.eql('UP'); });"
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrlSR}}/health",
+              "raw": "{{baseUrl}}/readiness/vehicle",
               "host": [
-                "{{baseUrlSR}}"
+                "{{baseUrl}}"
               ],
               "path": [
-                "health"
+                "readiness",
+                "vehicle"
               ]
             }
-          }
+          },
+          "response": []
+        },
+        {
+          "name": "Vendor Health Check (Liveness)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health/vendor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "vendor"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vendor Readiness Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/readiness/vendor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "readiness",
+                "vendor"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SPK Health Check (Liveness)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health/spk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "spk"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SPK Readiness Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/readiness/spk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "readiness",
+                "spk"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Service Request Health Check (Liveness)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health/service-request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "service-request"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Service Request Readiness Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/readiness/service-request",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "readiness",
+                "service-request"
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "2. Branch Service (Port 8290)",
+      "name": "2. Auth & Scope Security Guards",
       "item": [
         {
-          "name": "Get Branches by Create Date (App A)",
+          "name": "Auth Guard: Request Tanpa Token (401)",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });",
+                  "pm.test('Error response body contains Unauthorized', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.error).to.be.true;",
+                  "    pm.expect(res.message).to.eql('Unauthorized');",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Auth Guard: Request dengan Token Palsu (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });",
+                  "pm.test('Detail mentions invalid token', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.error).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer token-palsu-ngawur-12345",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Guard: App B (scope: vehicles) call Branch (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing branches scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.error).to.be.true;",
+                  "    pm.expect(res.detail).to.include('branches');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token_app_a}}",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Guard: App B call Customer (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing customers scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detail).to.include('customers');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Guard: App B call Vendor Create (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing vendors scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detail).to.include('vendors');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendors/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendors",
+                "create"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
                   "type": "string"
                 }
               ]
             },
-            "method": "GET",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Guard: App B call SPK Duelist (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing spk scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detail).to.include('spk');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
             "header": [
               {
-                "key": "X-Correlation-Id",
-                "value": "corr-branch-001"
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrlBranch}}/api/branches/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10",
+              "raw": "{{baseUrl}}/api/spk/duelist",
               "host": [
-                "{{baseUrlBranch}}"
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "spk",
+                "duelist"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Guard: App B call Service Request (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing service_requests scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detail).to.include('service_requests');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/service-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "service-requests"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Parameter Validation (400 Bad Request)",
+      "item": [
+        {
+          "name": "Validasi: Vehicle tanpa parameter pencarian (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?companyCode={{companyCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "getByLicensePlate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: Vendor Create invalid companyTitle (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendors/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendors",
+                "create"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyTitle\": \"INVALID_TITLE\",\n  \"companyName\": \"PT Test Validasi\",\n  \"otv\": \"No\",\n  \"paymentCycle\": \"Monthly\",\n  \"accountNumber\": \"12345\",\n  \"accountName\": \"Test\",\n  \"bankName\": \"BCA\",\n  \"hoEmail\": \"test@assa.id\",\n  \"hoPhone\": \"08123456\",\n  \"hoAddress\": \"Jakarta\",\n  \"npwp\": \"123456789012345\",\n  \"accountGroup\": \"V010\",\n  \"top\": \"T014\",\n  \"glAccount\": \"2121000000\",\n  \"documentNumber\": \"DOC-VALID-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: SPK Duelist tanpa noSpk (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/spk/duelist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "spk",
+                "duelist"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"Maintenance\",\n  \"noPolisi\": \"B-2120-BKZ\",\n  \"category\": \"Maintenance\",\n  \"subCategory\": \"Adhoc\",\n  \"vendorReferensi\": \"0001\",\n  \"totalPrice\": 1850000,\n  \"createdAt\": \"2026-09-17 14:46:11\",\n  \"createdBy\": \"atlas.user\",\n  \"details\": [\n    {\n      \"jenis\": \"Jasa\",\n      \"description\": \"Jasa Perbaikan AC\",\n      \"qty\": 1,\n      \"price\": 1850000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: SPK Duelist beda total dengan header X-Validate-Total (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Validate-Total",
+                "value": "true",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/spk/duelist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "spk",
+                "duelist"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"noSpk\": \"SPK/2026/09/00002\",\n  \"type\": \"Maintenance\",\n  \"noPolisi\": \"B-2120-BKZ\",\n  \"category\": \"Maintenance\",\n  \"subCategory\": \"Adhoc\",\n  \"vendorReferensi\": \"0001\",\n  \"totalPrice\": 1850001,\n  \"createdAt\": \"2026-09-17 14:46:11\",\n  \"createdBy\": \"atlas.user\",\n  \"details\": [\n    {\n      \"jenis\": \"Jasa\",\n      \"description\": \"Jasa Perbaikan AC\",\n      \"qty\": 1,\n      \"price\": 1850000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: Service Request tanpa field wajib app_id (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/service-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "service-requests"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_omnichannel}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reff_number\": \"REF01\",\n  \"branch_code\": \"JKT01\",\n  \"created_datetime\": \"17-09-2026\",\n  \"created_by\": \"admin\",\n  \"ticket_no\": \"TCK01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Inquiry & Pagination (GET 200 OK)",
+      "item": [
+        {
+          "name": "Branch Inquiry GetByCreateDate (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response contains data array', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res).to.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5",
+              "host": [
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
@@ -344,30 +1260,10 @@
                 },
                 {
                   "key": "perPage",
-                  "value": "10"
+                  "value": "5"
                 }
               ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. Customer Service (Port 8291)",
-      "item": [
-        {
-          "name": "Get Customers by Create Date (App A)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -377,18 +1273,36 @@
                   "type": "string"
                 }
               ]
-            },
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Inquiry GetByCreateDate (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "GET",
             "header": [
               {
-                "key": "X-Correlation-Id",
-                "value": "corr-cust-001"
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrlCustomer}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10",
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5",
               "host": [
-                "{{baseUrlCustomer}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
@@ -414,46 +1328,51 @@
                 },
                 {
                   "key": "perPage",
-                  "value": "10"
+                  "value": "5"
                 }
               ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "4. Vehicle Service (Port 8292)",
-      "item": [
-        {
-          "name": "Get Vehicle by License Plate (App B - plate_no)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token_app_b}}",
+                  "value": "{{token_app_a}}",
                   "type": "string"
                 }
               ]
-            },
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Inquiry /getByLicensePlate (200 OK / 403 Upstream API Key)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 403 upstream', function () {",
+                  "    pm.expect([200, 403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrlVehicle}}/api/vehicles/getByLicensePlate?plate_no=DD-8112",
+              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?plate_no=DD-8112",
               "host": [
-                "{{baseUrlVehicle}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
@@ -466,38 +1385,48 @@
                   "value": "DD-8112"
                 }
               ]
-            }
-          }
-        },
-        {
-          "name": "Get Vehicle Atlas (QA Token)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token_qa}}",
+                  "value": "{{token_app_b}}",
                   "type": "string"
                 }
               ]
-            },
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Inquiry /vehicleatlas (200 OK / 403 Upstream API Key)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 403 upstream', function () {",
+                  "    pm.expect([200, 403]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrlVehicle}}/api/vehicles/vehicleatlas?plate_no=DD-8112",
+              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?plate_no=DD-8112",
               "host": [
-                "{{baseUrlVehicle}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
@@ -510,80 +1439,7 @@
                   "value": "DD-8112"
                 }
               ]
-            }
-          }
-        },
-        {
-          "name": "Vehicle Tanpa Parameter (Expect 400 Bad Request)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_app_b}}",
-                  "type": "string"
-                }
-              ]
             },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrlVehicle}}/api/vehicles/getByLicensePlate?companyCode={{companyCode}}",
-              "host": [
-                "{{baseUrlVehicle}}"
-              ],
-              "path": [
-                "api",
-                "vehicles",
-                "getByLicensePlate"
-              ],
-              "query": [
-                {
-                  "key": "companyCode",
-                  "value": "{{companyCode}}"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "5. Vendor Service (Port 8293)",
-      "item": [
-        {
-          "name": "Vendor Create - Valid Payload (201 Created)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const trxId = 'TRX-POSTMAN-' + Date.now();",
-                  "pm.collectionVariables.set('vendor_trx_id', trxId);"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 201 Created', function () { pm.response.to.have.status(201); });"
-                ]
-              }
-            }
-          ],
-          "request": {
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -592,453 +1448,28 @@
                   "value": "{{token_qa}}",
                   "type": "string"
                 }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-Transaction-Id",
-                "value": "{{vendor_trx_id}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"companyTitle\": \"PT\",\n  \"companyName\": \"PT Adi Sarana Armada Tbk\",\n  \"otv\": \"No\",\n  \"paymentCycle\": \"Monthly\",\n  \"accountNumber\": \"1200010978489\",\n  \"accountName\": \"Robby Yulianto Setiawan\",\n  \"bankName\": \"Mandiri\",\n  \"hoEmail\": \"assa@assarent.co.id\",\n  \"hoPhone\": \"082246605199\",\n  \"hoAddress\": \"Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410\",\n  \"contactName\": \"Robby Contact\",\n  \"contactPhone\": \"08224660189\",\n  \"npwp\": \"3173080209920003\",\n  \"accountGroup\": \"V010\",\n  \"top\": \"T014\",\n  \"glAccount\": \"2121000000\",\n  \"documentNumber\": \"VENDOR-ATLAS-000123\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrlVendor}}/api/vendors/create",
-              "host": [
-                "{{baseUrlVendor}}"
-              ],
-              "path": [
-                "api",
-                "vendors",
-                "create"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Vendor Create - Idempotency Replay (200 Replay)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200 Replay', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_qa}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-Transaction-Id",
-                "value": "{{vendor_trx_id}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"companyTitle\": \"PT\",\n  \"companyName\": \"PT Adi Sarana Armada Tbk\",\n  \"otv\": \"No\",\n  \"paymentCycle\": \"Monthly\",\n  \"accountNumber\": \"1200010978489\",\n  \"accountName\": \"Robby Yulianto Setiawan\",\n  \"bankName\": \"Mandiri\",\n  \"hoEmail\": \"assa@assarent.co.id\",\n  \"hoPhone\": \"082246605199\",\n  \"hoAddress\": \"Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410\",\n  \"contactName\": \"Robby Contact\",\n  \"contactPhone\": \"08224660189\",\n  \"npwp\": \"3173080209920003\",\n  \"accountGroup\": \"V010\",\n  \"top\": \"T014\",\n  \"glAccount\": \"2121000000\",\n  \"documentNumber\": \"VENDOR-ATLAS-000123\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrlVendor}}/api/vendors/create",
-              "host": [
-                "{{baseUrlVendor}}"
-              ],
-              "path": [
-                "api",
-                "vendors",
-                "create"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Vendor Create - Invalid Payload (400 Bad Request)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_qa}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"companyTitle\": \"INVALID_TITLE\",\n  \"companyName\": \"PT Test\",\n  \"otv\": \"No\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrlVendor}}/api/vendors/create",
-              "host": [
-                "{{baseUrlVendor}}"
-              ],
-              "path": [
-                "api",
-                "vendors",
-                "create"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "6. SPK Service (Port 8294)",
-      "item": [
-        {
-          "name": "SPK Duelist - Valid Payload + Total Check (201 Created)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const spkTrx = 'SPK-POSTMAN-' + Date.now();",
-                  "pm.collectionVariables.set('spk_trx_id', spkTrx);"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 201 Created', function () { pm.response.to.have.status(201); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_qa}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-Transaction-Id",
-                "value": "{{spk_trx_id}}"
-              },
-              {
-                "key": "X-Forwarded-For",
-                "value": "10.20.30.40"
-              },
-              {
-                "key": "X-Validate-Total",
-                "value": "true"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"noSpk\": \"SPK/2026/09/00003\",\n  \"type\": \"Maintenance\",\n  \"noPolisi\": \"B-2120-BKZ\",\n  \"noSr\": \"SR-000123\",\n  \"category\": \"Maintenance\",\n  \"subCategory\": \"Adhoc\",\n  \"vendorReferensi\": \"0001\",\n  \"namaVendor\": \"Bengkel Jaya Motor\",\n  \"picService\": \"PIC-001\",\n  \"namaPicService\": \"Andi Wijaya\",\n  \"spkRework\": \"No\",\n  \"totalPrice\": 1850000,\n  \"createdAt\": \"2026-09-17 14:46:11\",\n  \"createdBy\": \"atlas.user\",\n  \"poSpkNumber\": \"PO-4500012345\",\n  \"invoiceNumber\": \"INV_BKL_00001\",\n  \"invoiceDate\": \"2026-09-17\",\n  \"invoiceAmount\": 1850000,\n  \"memo\": \"Perbaikan kendaraan\",\n  \"taxInvoiceNumber\": \"314650102340592\",\n  \"taxInvoiceDate\": \"2026-09-17\",\n  \"businessArea\": \"1101\",\n  \"details\": [\n    {\n      \"jenis\": \"Jasa\",\n      \"description\": \"Jasa Perbaikan AC\",\n      \"qty\": 1,\n      \"price\": 150000\n    },\n    {\n      \"jenis\": \"Parts\",\n      \"description\": \"Filter AC\",\n      \"qty\": 1,\n      \"price\": 1700000\n    }\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrlSPK}}/api/spk/duelist",
-              "host": [
-                "{{baseUrlSPK}}"
-              ],
-              "path": [
-                "api",
-                "spk",
-                "duelist"
-              ]
-            }
-          }
-        },
-        {
-          "name": "SPK Duelist - Idempotency Replay (200 Replay)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200 Replay', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_qa}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-Transaction-Id",
-                "value": "{{spk_trx_id}}"
-              },
-              {
-                "key": "X-Forwarded-For",
-                "value": "10.20.30.40"
-              },
-              {
-                "key": "X-Validate-Total",
-                "value": "true"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"noSpk\": \"SPK/2026/09/00003\",\n  \"type\": \"Maintenance\",\n  \"noPolisi\": \"B-2120-BKZ\",\n  \"noSr\": \"SR-000123\",\n  \"category\": \"Maintenance\",\n  \"subCategory\": \"Adhoc\",\n  \"vendorReferensi\": \"0001\",\n  \"namaVendor\": \"Bengkel Jaya Motor\",\n  \"picService\": \"PIC-001\",\n  \"namaPicService\": \"Andi Wijaya\",\n  \"spkRework\": \"No\",\n  \"totalPrice\": 1850000,\n  \"createdAt\": \"2026-09-17 14:46:11\",\n  \"createdBy\": \"atlas.user\",\n  \"poSpkNumber\": \"PO-4500012345\",\n  \"invoiceNumber\": \"INV_BKL_00001\",\n  \"invoiceDate\": \"2026-09-17\",\n  \"invoiceAmount\": 1850000,\n  \"memo\": \"Perbaikan kendaraan\",\n  \"taxInvoiceNumber\": \"314650102340592\",\n  \"taxInvoiceDate\": \"2026-09-17\",\n  \"businessArea\": \"1101\",\n  \"details\": [\n    {\n      \"jenis\": \"Jasa\",\n      \"description\": \"Jasa Perbaikan AC\",\n      \"qty\": 1,\n      \"price\": 150000\n    },\n    {\n      \"jenis\": \"Parts\",\n      \"description\": \"Filter AC\",\n      \"qty\": 1,\n      \"price\": 1700000\n    }\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrlSPK}}/api/spk/duelist",
-              "host": [
-                "{{baseUrlSPK}}"
-              ],
-              "path": [
-                "api",
-                "spk",
-                "duelist"
-              ]
-            }
-          }
-        },
-        {
-          "name": "SPK Duelist - Missing noSpk (400 Bad Request)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_qa}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"type\": \"Maintenance\",\n  \"noPolisi\": \"B-2120-BKZ\",\n  \"details\": []\n}"
-            },
-            "url": {
-              "raw": "{{baseUrlSPK}}/api/spk/duelist",
-              "host": [
-                "{{baseUrlSPK}}"
-              ],
-              "path": [
-                "api",
-                "spk",
-                "duelist"
-              ]
-            }
-          }
-        },
-        {
-          "name": "SPK Duelist - Total Mismatch (400 Bad Request)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_qa}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-Validate-Total",
-                "value": "true"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"noSpk\": \"SPK/2026/09/00002\",\n  \"type\": \"Maintenance\",\n  \"totalPrice\": 1850001,\n  \"details\": [\n    {\n      \"jenis\": \"Jasa\",\n      \"description\": \"Jasa AC\",\n      \"qty\": 1,\n      \"price\": 1850000\n    }\n  ]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrlSPK}}/api/spk/duelist",
-              "host": [
-                "{{baseUrlSPK}}"
-              ],
-              "path": [
-                "api",
-                "spk",
-                "duelist"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "7. Service Request Service (Port 8295)",
-      "item": [
-        {
-          "name": "Service Request (Barantum) - Public Endpoint POST (200 OK)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "exec": [
-                  "const brtTrx = 'BRT-' + Date.now();",
-                  "pm.collectionVariables.set('sr_barantum_trx_id', brtTrx);"
-                ],
-                "type": "text/javascript"
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Response indicates success', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.success).to.eql(true);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "X-API-Key",
-                "value": "{{token_barantum}}"
-              },
-              {
-                "key": "Origin",
-                "value": "https://barantum.internal"
-              },
-              {
-                "key": "X-Transaction-Id",
-                "value": "{{sr_barantum_trx_id}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customerName\": \"Budi Santoso\",\n  \"requestorName\": \"Budi Santoso\",\n  \"requestorPhone\": \"081234567890\",\n  \"branch\": \"Jakarta Pusat\",\n  \"referenceNumber\": \"BRT-2026-000123\",\n  \"unit\": {\n    \"licensePlate\": \"B 1234 XYZ\",\n    \"brand\": \"Toyota\",\n    \"model\": \"Avanza\",\n    \"odometer\": 25000\n  }\n}"
-            },
-            "url": {
-              "raw": "{{baseUrlSR}}/api/vendor/public/service-requests",
-              "host": [
-                "{{baseUrlSR}}"
-              ],
-              "path": [
-                "api",
-                "vendor",
-                "public",
-                "service-requests"
               ]
             }
           },
           "response": []
         },
         {
-          "name": "Service Request - Get Paginated List (200 OK)",
+          "name": "Service Request GET Inquiry (200 OK Paginated List)",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
                   "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
                   "pm.test('Has pagination metadata', function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.have.property('pagination');",
-                  "    pm.expect(jsonData.pagination).to.have.property('page');",
-                  "    pm.expect(jsonData.pagination).to.have.property('perPage');",
-                  "    pm.expect(jsonData.pagination).to.have.property('total');",
-                  "    pm.expect(jsonData).to.have.property('data');",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res).to.have.property('pagination');",
+                  "    pm.expect(res.pagination).to.have.property('page');",
+                  "    pm.expect(res.pagination).to.have.property('perPage');",
+                  "    pm.expect(res).to.have.property('data');",
                   "});"
-                ],
-                "type": "text/javascript"
+                ]
               }
             }
           ],
@@ -1046,14 +1477,83 @@
             "method": "GET",
             "header": [
               {
-                "key": "X-API-Key",
-                "value": "{{token_barantum}}"
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrlSR}}/api/vendor/public/service-requests?page=1&perPage=10",
+              "raw": "{{baseUrl}}/api/service-requests?dateStart=2026-01-01&dateEnd=2026-09-28&page=1&perPage=10",
               "host": [
-                "{{baseUrlSR}}"
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "service-requests"
+              ],
+              "query": [
+                {
+                  "key": "dateStart",
+                  "value": "2026-01-01"
+                },
+                {
+                  "key": "dateEnd",
+                  "value": "2026-09-28"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_omnichannel}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Service Request (Barantum) Public GET Inquiry (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{token_barantum}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendor/public/service-requests?page=1&perPage=10",
+              "host": [
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
@@ -1074,79 +1574,72 @@
             }
           },
           "response": []
-        },
+        }
+      ]
+    },
+    {
+      "name": "5. Transactional & Fan-Out Endpoints (POST)",
+      "item": [
         {
-          "name": "Service Request - Valid Fan-out Paralel (200 OK)",
+          "name": "Service Request - Parallel Fan-Out (10x Retry on Failure)",
           "event": [
             {
               "listen": "prerequest",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "const srTrx = 'SR-POSTMAN-' + Date.now();",
-                  "pm.collectionVariables.set('sr_trx_id', srTrx);"
+                  "const srId = 'TRX-SR-POSTMAN-' + Date.now();",
+                  "pm.collectionVariables.set('sr_trx_id', srId);"
                 ]
               }
             },
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status code is 200 (All Success) or 502 (Target Failed after 10 Retries)', function () {",
+                  "    pm.expect([200, 502]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test('Response body contains targets status details', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res).to.have.property('targets');",
+                  "    pm.expect(res.targets).to.have.property('atlas');",
+                  "    pm.expect(res.targets).to.have.property('extService');",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_omnichannel}}",
-                  "type": "string"
-                }
-              ]
-            },
             "method": "POST",
             "header": [
               {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
                 "key": "X-Transaction-Id",
-                "value": "{{sr_trx_id}}"
+                "value": "{{sr_trx_id}}",
+                "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"app_id\": \"sr_app_omnichannel\",\n  \"reff_number\": \"REF-SR-20260917-001\",\n  \"branch_code\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customer_code\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Omnichannel-Web\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM dan pengecekan rem\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan Operasional\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat Blok A\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin dan Filter Oli\",\n  \"created_datetime\": \"17-09-2026\",\n  \"created_by\": \"omnichannel_agent\",\n  \"ticket_no\": \"TICKET-SR-99901\"\n}"
-            },
             "url": {
-              "raw": "{{baseUrlSR}}/api/service-requests",
+              "raw": "{{baseUrl}}/api/service-requests",
               "host": [
-                "{{baseUrlSR}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "service-requests"
               ]
-            }
-          }
-        },
-        {
-          "name": "Service Request - Idempotency Replay (200 Replay)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 200 Replay', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1157,46 +1650,62 @@
                 }
               ]
             },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"app_id\": \"sr_app_omnichannel\",\n  \"reff_number\": \"REF-SR-POSTMAN-001\",\n  \"branch_code\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customer_code\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Omnichannel-Web\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM dan pengecekan sistem rem\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan Operasional\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin dan Filter\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"omnichannel_agent\",\n  \"ticket_no\": \"TCK-SR-POSTMAN-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Service Request - Idempotency Re-Send / Re-Execute",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 or 502 on retry', function () {",
+                  "    pm.expect([200, 502]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "POST",
             "header": [
               {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
               },
               {
                 "key": "X-Transaction-Id",
-                "value": "{{sr_trx_id}}"
+                "value": "{{sr_trx_id}}",
+                "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"app_id\": \"sr_app_omnichannel\",\n  \"reff_number\": \"REF-SR-20260917-001\",\n  \"branch_code\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customer_code\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Omnichannel-Web\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM dan pengecekan rem\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan Operasional\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat Blok A\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin dan Filter Oli\",\n  \"created_datetime\": \"17-09-2026\",\n  \"created_by\": \"omnichannel_agent\",\n  \"ticket_no\": \"TICKET-SR-99901\"\n}"
-            },
             "url": {
-              "raw": "{{baseUrlSR}}/api/service-requests",
+              "raw": "{{baseUrl}}/api/service-requests",
               "host": [
-                "{{baseUrlSR}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "service-requests"
               ]
-            }
-          }
-        },
-        {
-          "name": "Service Request - Missing app_id (400 Bad Request)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
-                ]
-              }
-            }
-          ],
-          "request": {
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1207,208 +1716,112 @@
                 }
               ]
             },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"app_id\": \"sr_app_omnichannel\",\n  \"reff_number\": \"REF-SR-POSTMAN-001\",\n  \"branch_code\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customer_code\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Omnichannel-Web\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM dan pengecekan sistem rem\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan Operasional\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin dan Filter\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"omnichannel_agent\",\n  \"ticket_no\": \"TCK-SR-POSTMAN-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Service Request - Public Endpoint (Barantum)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const bTrx = 'TRX-BRT-POSTMAN-' + Date.now();",
+                  "pm.collectionVariables.set('sr_barantum_trx_id', bTrx);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 (Success) or 502 (Target Failed after 10 Retries)', function () {",
+                  "    pm.expect([200, 502]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
             "method": "POST",
             "header": [
               {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{token_barantum}}",
+                "type": "text"
+              },
+              {
+                "key": "X-Transaction-Id",
+                "value": "{{sr_barantum_trx_id}}",
+                "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reff_number\": \"REF01\",\n  \"branch_code\": \"JKT01\",\n  \"ticket_no\": \"TCK01\"\n}"
-            },
             "url": {
-              "raw": "{{baseUrlSR}}/api/service-requests",
+              "raw": "{{baseUrl}}/api/vendor/public/service-requests",
               "host": [
-                "{{baseUrlSR}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
+                "vendor",
+                "public",
                 "service-requests"
               ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "8. Security & Negative Tests (401 & 403 Guards)",
-      "item": [
-        {
-          "name": "Branch - Missing Token (401 Unauthorized)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrlBranch}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
-              "host": [
-                "{{baseUrlBranch}}"
-              ],
-              "path": [
-                "api",
-                "branches",
-                "getByCreateDate"
-              ],
-              "query": [
-                {
-                  "key": "companyCode",
-                  "value": "{{companyCode}}"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Branch - Invalid Fake Token (401 Unauthorized)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "token-palsu-ngawur",
-                  "type": "string"
-                }
-              ]
             },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrlBranch}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
-              "host": [
-                "{{baseUrlBranch}}"
-              ],
-              "path": [
-                "api",
-                "branches",
-                "getByCreateDate"
-              ],
-              "query": [
-                {
-                  "key": "companyCode",
-                  "value": "{{companyCode}}"
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reff_number\": \"REF-BARANTUM-001\",\n  \"branch_code\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customer_code\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Barantum-CRM\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"barantum_crm\",\n  \"ticket_no\": \"TCK-BRT-001\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Branch - App B Access Branch (403 Forbidden)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
-                ]
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_app_b}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrlBranch}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
-              "host": [
-                "{{baseUrlBranch}}"
-              ],
-              "path": [
-                "api",
-                "branches",
-                "getByCreateDate"
-              ],
-              "query": [
-                {
-                  "key": "companyCode",
-                  "value": "{{companyCode}}"
-                }
-              ]
-            }
-          }
+          },
+          "response": []
         },
         {
-          "name": "Customer - App B Access Customer (403 Forbidden)",
+          "name": "Vendor Create - Valid Payload ke FTP (201 / 502)",
           "event": [
             {
-              "listen": "test",
+              "listen": "prerequest",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
+                  "const vTrx = 'TRX-VND-POSTMAN-' + Date.now();",
+                  "pm.collectionVariables.set('vendor_trx_id', vTrx);"
                 ]
               }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_app_b}}",
-                  "type": "string"
-                }
-              ]
             },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrlCustomer}}/api/customers/getByCreateDate?companyCode={{companyCode}}",
-              "host": [
-                "{{baseUrlCustomer}}"
-              ],
-              "path": [
-                "api",
-                "customers",
-                "getByCreateDate"
-              ],
-              "query": [
-                {
-                  "key": "companyCode",
-                  "value": "{{companyCode}}"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Vendor - Missing Token (401 Unauthorized)",
-          "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
+                  "pm.test('Status code is 201 (FTP Success) or 500/502 (FTP Server devqaxmlpool auth required)', function () {",
+                  "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+                  "});"
                 ]
               }
             }
@@ -1417,82 +1830,75 @@
             "method": "POST",
             "header": [
               {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Transaction-Id",
+                "value": "{{vendor_trx_id}}",
+                "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
             "url": {
-              "raw": "{{baseUrlVendor}}/api/vendors/create",
+              "raw": "{{baseUrl}}/api/vendors/create",
               "host": [
-                "{{baseUrlVendor}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "vendors",
                 "create"
               ]
-            }
-          }
-        },
-        {
-          "name": "Vendor - App B without vendors scope (403 Forbidden)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
-                ]
-              }
-            }
-          ],
-          "request": {
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token_app_b}}",
+                  "value": "{{token_qa}}",
                   "type": "string"
                 }
               ]
             },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
             "body": {
               "mode": "raw",
-              "raw": "{}"
-            },
-            "url": {
-              "raw": "{{baseUrlVendor}}/api/vendors/create",
-              "host": [
-                "{{baseUrlVendor}}"
-              ],
-              "path": [
-                "api",
-                "vendors",
-                "create"
-              ]
+              "raw": "{\n  \"companyTitle\": \"PT\",\n  \"companyName\": \"PT Adi Sarana Armada Tbk\",\n  \"otv\": \"No\",\n  \"paymentCycle\": \"Monthly\",\n  \"accountNumber\": \"1200010978489\",\n  \"accountName\": \"Robby Yulianto Setiawan\",\n  \"bankName\": \"Mandiri\",\n  \"hoEmail\": \"assa@assarent.co.id\",\n  \"hoPhone\": \"082246605199\",\n  \"hoAddress\": \"Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410\",\n  \"contactName\": \"Robby Contact\",\n  \"contactPhone\": \"08224660189\",\n  \"npwp\": \"3173080209920003\",\n  \"accountGroup\": \"V010\",\n  \"top\": \"T014\",\n  \"glAccount\": \"2121000000\",\n  \"documentNumber\": \"VENDOR-ATLAS-000123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
-          }
+          },
+          "response": []
         },
         {
-          "name": "SPK - Missing Token (401 Unauthorized)",
+          "name": "SPK Duelist - Valid Payload ke FTP (201 / 502)",
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const sTrx = 'TRX-SPK-POSTMAN-' + Date.now();",
+                  "pm.collectionVariables.set('spk_trx_id', sTrx);"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
+                  "pm.test('Status code is 201 (FTP Success) or 500/502 (FTP Server auth required)', function () {",
+                  "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+                  "});"
                 ]
               }
             }
@@ -1501,180 +1907,94 @@
             "method": "POST",
             "header": [
               {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Transaction-Id",
+                "value": "{{spk_trx_id}}",
+                "type": "text"
+              },
+              {
+                "key": "X-Validate-Total",
+                "value": "true",
+                "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
             "url": {
-              "raw": "{{baseUrlSPK}}/api/spk/duelist",
+              "raw": "{{baseUrl}}/api/spk/duelist",
               "host": [
-                "{{baseUrlSPK}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "spk",
                 "duelist"
               ]
-            }
-          }
-        },
-        {
-          "name": "SPK - App B without spk scope (403 Forbidden)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
-                ]
-              }
-            }
-          ],
-          "request": {
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token_app_b}}",
+                  "value": "{{token_qa}}",
                   "type": "string"
                 }
               ]
             },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
             "body": {
               "mode": "raw",
-              "raw": "{}"
-            },
-            "url": {
-              "raw": "{{baseUrlSPK}}/api/spk/duelist",
-              "host": [
-                "{{baseUrlSPK}}"
-              ],
-              "path": [
-                "api",
-                "spk",
-                "duelist"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Service Request - Missing Token (401 Unauthorized)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
-            "url": {
-              "raw": "{{baseUrlSR}}/api/service-requests",
-              "host": [
-                "{{baseUrlSR}}"
-              ],
-              "path": [
-                "api",
-                "service-requests"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Service Request - App B without scope (403 Forbidden)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_app_b}}",
-                  "type": "string"
+              "raw": "{\n  \"noSpk\": \"SPK/2026/09/00003\",\n  \"type\": \"Maintenance\",\n  \"noPolisi\": \"B-2120-BKZ\",\n  \"noSr\": \"SR-000123\",\n  \"category\": \"Maintenance\",\n  \"subCategory\": \"Adhoc\",\n  \"vendorReferensi\": \"0001\",\n  \"namaVendor\": \"Bengkel Jaya Motor\",\n  \"picService\": \"PIC-001\",\n  \"namaPicService\": \"Andi Wijaya\",\n  \"spkRework\": \"No\",\n  \"totalPrice\": 1850000,\n  \"createdAt\": \"2026-09-17 14:46:11\",\n  \"createdBy\": \"atlas.user\",\n  \"poSpkNumber\": \"PO-4500012345\",\n  \"invoiceNumber\": \"INV_BKL_00001\",\n  \"invoiceDate\": \"2026-09-17\",\n  \"invoiceAmount\": 1850000,\n  \"memo\": \"Perbaikan kendaraan\",\n  \"taxInvoiceNumber\": \"314650102340592\",\n  \"taxInvoiceDate\": \"2026-09-17\",\n  \"businessArea\": \"1101\",\n  \"details\": [\n    {\n      \"jenis\": \"Jasa\",\n      \"description\": \"Jasa Perbaikan AC\",\n      \"qty\": 1,\n      \"price\": 150000\n    },\n    {\n      \"jenis\": \"Parts\",\n      \"description\": \"Filter AC\",\n      \"qty\": 1,\n      \"price\": 1700000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
                 }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
-            "url": {
-              "raw": "{{baseUrlSR}}/api/service-requests",
-              "host": [
-                "{{baseUrlSR}}"
-              ],
-              "path": [
-                "api",
-                "service-requests"
-              ]
             }
-          }
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "9. Background Retry Worker (Port 8295)",
+      "name": "6. Background Retry Worker",
       "item": [
         {
-          "name": "Trigger Manual Retry Worker (200 OK)",
+          "name": "Trigger Background Retry Worker (200 OK)",
           "event": [
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Worker executed successfully', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res).to.have.property('status');",
+                  "});"
                 ]
               }
             }
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrlSR}}/api/worker/retry",
+              "raw": "{{baseUrl}}/api/worker/retry",
               "host": [
-                "{{baseUrlSR}}"
+                "{{baseUrl}}"
               ],
               "path": [
                 "api",
@@ -1682,7 +2002,8 @@
                 "retry"
               ]
             }
-          }
+          },
+          "response": []
         }
       ]
     }

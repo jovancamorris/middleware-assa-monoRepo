@@ -1,55 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="SrToAtlasSeq" onError="SrAtlasErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <property name="atlasEnabled" expression="get-property('env', 'SR_TARGET_ATLAS_ENABLED')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:atlasEnabled) = 0">
+    <property name="atlasBaseUrl" expression="get-property('env', 'SR_TARGET_ATLAS_BASE_URL')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
         <then>
-            <property name="atlasEnabled" expression="get-property('system', 'sr.target.atlas.enabled')" scope="default" type="STRING"/>
+            <property name="atlasBaseUrl" expression="get-property('system', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
         </then>
     </filter>
-    <filter xpath="string-length($ctx:atlasEnabled) = 0">
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
         <then>
-            <property name="atlasEnabled" expression="get-property('file', 'sr.target.atlas.enabled')" scope="default" type="STRING"/>
+            <property name="atlasBaseUrl" expression="get-property('file', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
         </then>
     </filter>
-    <filter xpath="string-length($ctx:atlasEnabled) = 0">
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
         <then>
-            <property name="atlasEnabled" value="false" scope="default" type="STRING"/>
+            <property name="atlasBaseUrl" value="https://fe.atlas-dev.assa.id" scope="default" type="STRING"/>
         </then>
     </filter>
-
-    <filter xpath="$ctx:atlasEnabled = 'false'">
-        <then>
-            <log level="custom">
-                <property name="ATLAS_BRANCH" value="Target API ATLAS disabled via toggle (sr.target.atlas.enabled=false). Skipping."/>
-            </log>
-            <payloadFactory media-type="xml">
-                <format>
-                    <srResult xmlns="">
-                        <target>atlas</target>
-                        <status>SKIPPED</status>
-                        <httpStatus>200</httpStatus>
-                        <detail>Target API ATLAS disabled via toggle</detail>
-                    </srResult>
-                </format>
-            </payloadFactory>
-        </then>
-        <else>
-            <property name="atlasBaseUrl" expression="get-property('env', 'SR_TARGET_ATLAS_BASE_URL')" scope="default" type="STRING"/>
-            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
-                <then>
-                    <property name="atlasBaseUrl" expression="get-property('system', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
-                </then>
-            </filter>
-            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
-                <then>
-                    <property name="atlasBaseUrl" expression="get-property('file', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
-                </then>
-            </filter>
-            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
-                <then>
-                    <property name="atlasBaseUrl" value="https://fe.atlas-dev.assa.id" scope="default" type="STRING"/>
-                </then>
-            </filter>
 
             <property name="atlasPath" expression="get-property('env', 'SR_TARGET_ATLAS_PATH')" scope="default" type="STRING"/>
             <filter xpath="string-length($ctx:atlasPath) = 0">
@@ -176,6 +142,4 @@
                     </filter>
                 </else>
             </filter>
-        </else>
-    </filter>
 </sequence>

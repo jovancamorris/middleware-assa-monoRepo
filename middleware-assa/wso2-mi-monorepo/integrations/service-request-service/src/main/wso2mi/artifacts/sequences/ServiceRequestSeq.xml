@@ -197,7 +197,7 @@
     </clone>
 
     <aggregate>
-        <completeCondition timeout="20">
+        <completeCondition timeout="35">
             <messageCount min="2" max="2"/>
         </completeCondition>
         <onComplete expression="$body/*">

@@ -1,34 +1,28 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Script Otomatis Build & Push Image Release ASSA Middleware (WSO2 MI Monorepo)
+# Script Otomatis: Build & Push Container Registry ASSA Middleware Versi 1.0.8
 # Menyertakan:
-#   --platform linux/amd64 (Kompatibilitas Server Linux dari macOS M-Series)
-#   --provenance=false --sbom=false (Mencegah error 'Invalid tag' di GitLab Registry)
+#   - Build & Package CAR Artifacts WSO2 MI terbaru
+#   - Flag --platform linux/amd64 (kompatibilitas server Linux)
+#   - Flag --provenance=false --sbom=false (mencegah error 'invalid tag' GitLab)
+#   - Push otomatis ke registry.assa.id
 # ==============================================================================
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MONO_DIR="$(dirname "$SCRIPT_DIR")"
-cd "$MONO_DIR"
-
-if [ "$#" -lt 1 ]; then
-  echo "Usage: $0 <image-tag>" >&2
-  exit 1
-fi
-TAG="$1"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WSO2_DIR="$ROOT_DIR/middleware-assa/wso2-mi-monorepo"
+TAG="1.0.8"
 IMAGE_NAME="registry.assa.id/nobi.sumariga/middleware-assa:${TAG}"
 
 echo "=========================================================="
-echo " [1/2] Packaging WSO2 CAR Artifacts..."
+echo " [1/3] Packaging WSO2 CAR Artifacts..."
 echo "=========================================================="
-if command -v mvn &> /dev/null; then
-  mvn -q clean package -DskipTests
-fi
+cd "$WSO2_DIR"
 python3 scripts/package_cars.py
 
 echo ""
 echo "=========================================================="
-echo " [2/2] Building Docker Image: ${IMAGE_NAME}"
+echo " [2/3] Building Docker Image: ${IMAGE_NAME}"
 echo "       Flag: --platform linux/amd64 --provenance=false --sbom=false"
 echo "=========================================================="
 docker buildx build \
@@ -37,7 +31,7 @@ docker buildx build \
   --sbom=false \
   -t "${IMAGE_NAME}" \
   -f - --load . <<EOF
-FROM registry.assa.id/nobi.sumariga/middleware-assa:1.0.6
+FROM registry.assa.id/nobi.sumariga/middleware-assa:1.0.8
 USER root
 COPY dist-cars/shared-artifacts_1.0.0.car /home/wso2carbon/wso2mi-4.6.0/repository/deployment/server/carbonapps/
 COPY dist-cars/service-request-service_1.0.0.car /home/wso2carbon/wso2mi-4.6.0/repository/deployment/server/carbonapps/
@@ -48,9 +42,22 @@ EOF
 
 echo ""
 echo "=========================================================="
-echo " SUCCESS! Image berhasil dibuat:"
-echo "   ${IMAGE_NAME}"
+echo " [3/3] Pushing Image ke GitLab Container Registry ASSA..."
+echo "       Target: ${IMAGE_NAME}"
+echo "=========================================================="
+docker push "${IMAGE_NAME}"
+
 echo ""
-echo " Untuk push ke GitLab Registry ASSA:"
-echo "   docker push ${IMAGE_NAME}"
+echo "=========================================================="
+echo " SUCCESS! Image 1.0.8 berhasil dibuild & dipush ke registry:"
+echo "   ${IMAGE_NAME}"
+echo "=========================================================="
+echo ""
+echo "Langkah Deploy di Server (/var/www/devmiddleware):"
+echo " 1. Pastikan .env di server menggunakan tag 1.0.8:"
+echo "      MI_IMAGE=${IMAGE_NAME}"
+echo " 2. Restart container dengan image baru:"
+echo "      docker compose down"
+echo "      docker compose pull"
+echo "      docker compose up -d"
 echo "=========================================================="

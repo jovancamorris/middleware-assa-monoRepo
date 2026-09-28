@@ -149,8 +149,8 @@ services:
       <<: *common-env
       ASSA_EXT_SR_BASE_URL: ${ASSA_EXT_SR_BASE_URL:-https://assa-ext-services.assa.id/dev}
       ASSA_EXT_SR_APIKEY: ${ASSA_EXT_SR_APIKEY:-DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs}
-      SR_TARGET_ATLAS_ENABLED: ${SR_TARGET_ATLAS_ENABLED:-false}
-      SR_TARGET_ATLAS_BASE_URL: ${SR_TARGET_ATLAS_BASE_URL:-https://atlas-api.assa.id/dev}
+      SR_TARGET_ATLAS_ENABLED: ${SR_TARGET_ATLAS_ENABLED:-true}
+      SR_TARGET_ATLAS_BASE_URL: ${SR_TARGET_ATLAS_BASE_URL:-https://fe.atlas-dev.assa.id}
       SR_TARGET_ATLAS_APIKEY: ${SR_TARGET_ATLAS_APIKEY:-}
       SR_TARGET_EXTSERVICE_ENABLED: ${SR_TARGET_EXTSERVICE_ENABLED:-true}
 

@@ -160,4 +160,8 @@
     </filter>
 
     <sequence key="GenericPaginationSeq"/>
+    <property name="HTTP_SC" value="200" scope="axis2"/>
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+    <respond/>
 </sequence>
