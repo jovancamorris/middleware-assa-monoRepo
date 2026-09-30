@@ -1,10 +1,10 @@
 {
   "app_id": "sr_app_omnichannel",
   "reff_number": "REF-SR-20260917-001",
-  "branch_code": "JKT01",
+  "branchCode": "JKT01",
   "equipment_number": "EQ-998877",
   "license_plate": "B-1234-SSA",
-  "customer_code": "CUST-00123",
+  "customerCode": "CUST-00123",
   "customer_name": "PT Maju Bersama ASSA",
   "channel": "Omnichannel-Web",
   "cp_title": "Bpk",

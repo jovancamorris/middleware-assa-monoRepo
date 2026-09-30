@@ -22,10 +22,20 @@
     <!-- 2. Extract legacy service-request fields -->
     <property name="sr_app_id" expression="json-eval($.app_id)" scope="default" type="STRING"/>
     <property name="sr_reff_number" expression="json-eval($.reff_number)" scope="default" type="STRING"/>
-    <property name="sr_branch_code" expression="json-eval($.branchCode)" scope="default" type="STRING"/>
+    <property name="sr_branchCode" expression="json-eval($.branchCode)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:sr_branchCode) = 0">
+        <then><property name="sr_branchCode" expression="json-eval($.branch_code)" scope="default" type="STRING"/></then>
+    </filter>
     <property name="sr_equipment_number" expression="json-eval($.equipment_number)" scope="default" type="STRING"/>
     <property name="sr_license_plate" expression="json-eval($.license_plate)" scope="default" type="STRING"/>
-    <property name="sr_customer_code" expression="json-eval($.customerCode)" scope="default" type="STRING"/>
+    <property name="sr_customerCode" expression="json-eval($.customerCode)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:sr_customerCode) = 0">
+        <then><property name="sr_customerCode" expression="json-eval($.customer_code)" scope="default" type="STRING"/></then>
+    </filter>
+    <property name="branchCode" expression="$ctx:sr_branchCode" scope="default" type="STRING"/>
+    <property name="customerCode" expression="$ctx:sr_customerCode" scope="default" type="STRING"/>
+    <property name="sr_branch_code" expression="$ctx:sr_branchCode" scope="default" type="STRING"/>
+    <property name="sr_customer_code" expression="$ctx:sr_customerCode" scope="default" type="STRING"/>
     <property name="sr_customer_name" expression="json-eval($.customer_name)" scope="default" type="STRING"/>
     <property name="sr_channel" expression="json-eval($.channel)" scope="default" type="STRING"/>
     <property name="sr_cp_title" expression="json-eval($.cp_title)" scope="default" type="STRING"/>
@@ -58,8 +68,12 @@
     <filter xpath="string-length($ctx:in_customerName) &gt; 0 and string-length($ctx:sr_customer_name) = 0">
         <then><property name="sr_customer_name" expression="$ctx:in_customerName" scope="default" type="STRING"/></then>
     </filter>
-    <filter xpath="string-length($ctx:in_branch) &gt; 0 and string-length($ctx:sr_branch_code) = 0">
-        <then><property name="sr_branch_code" expression="$ctx:in_branch" scope="default" type="STRING"/></then>
+    <filter xpath="string-length($ctx:in_branch) &gt; 0 and string-length($ctx:sr_branchCode) = 0">
+        <then>
+            <property name="sr_branchCode" expression="$ctx:in_branch" scope="default" type="STRING"/>
+            <property name="branchCode" expression="$ctx:in_branch" scope="default" type="STRING"/>
+            <property name="sr_branch_code" expression="$ctx:in_branch" scope="default" type="STRING"/>
+        </then>
     </filter>
     <filter xpath="string-length($ctx:in_requestorName) &gt; 0 and string-length($ctx:sr_cp_name) = 0">
         <then><property name="sr_cp_name" expression="$ctx:in_requestorName" scope="default" type="STRING"/></then>
@@ -102,13 +116,13 @@
         <then><property name="sr_cp_title" value="Bpk/Ibu" scope="default" type="STRING"/></then>
     </filter>
     <filter xpath="string-length($ctx:sr_service_location) = 0">
-        <then><property name="sr_service_location" expression="$ctx:sr_branch_code" scope="default" type="STRING"/></then>
+        <then><property name="sr_service_location" expression="$ctx:sr_branchCode" scope="default" type="STRING"/></then>
     </filter>
     <filter xpath="string-length($ctx:sr_pool_name) = 0">
-        <then><property name="sr_pool_name" expression="$ctx:sr_branch_code" scope="default" type="STRING"/></then>
+        <then><property name="sr_pool_name" expression="$ctx:sr_branchCode" scope="default" type="STRING"/></then>
     </filter>
     <filter xpath="string-length($ctx:sr_area_bengkel) = 0">
-        <then><property name="sr_area_bengkel" expression="$ctx:sr_branch_code" scope="default" type="STRING"/></then>
+        <then><property name="sr_area_bengkel" expression="$ctx:sr_branchCode" scope="default" type="STRING"/></then>
     </filter>
     <filter xpath="string-length($ctx:sr_task) = 0">
         <then><property name="sr_task" value="Service Berkala" scope="default" type="STRING"/></then>
@@ -147,7 +161,7 @@
             <drop/>
         </then>
     </filter>
-    <filter xpath="string-length($ctx:sr_branch_code) = 0">
+    <filter xpath="string-length($ctx:sr_branchCode) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>

@@ -1,0 +1,9 @@
+---
+key: "VehicleAPI-1.0.0"
+name: "VehicleAPI"
+displayName: "VehicleAPI"
+version: "1.0.0"
+serviceUrl: "https://{MI_HOST}:{MI_PORT}/api/vehicles"
+definitionType: "OAS3"
+securityType: "BASIC"
+mutualSSLEnabled: false

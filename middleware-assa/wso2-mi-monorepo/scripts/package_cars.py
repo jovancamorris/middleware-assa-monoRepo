@@ -16,7 +16,6 @@ OTHER_SERVICES = [
     "branch-service",
     "customer-service",
     "spk-service",
-    "vehicle-service",
     "vendor-service",
 ]
 os.makedirs(DIST_DIR, exist_ok=True)
@@ -49,8 +48,10 @@ def fix_db_urls(extract_dir):
 def update_shared_car():
     print("[1/2] Updating shared-artifacts_1.0.0.car...")
     car_src = SHARED_CAR
+    if not os.path.exists(car_src) or "AuthGuardSeq_1.0.0/AuthGuardSeq-1.0.0.xml" not in zipfile.ZipFile(car_src).namelist():
+        car_src = os.path.join(DIST_DIR, "shared-artifacts_1.0.0.car")
     if not os.path.exists(car_src):
-        raise FileNotFoundError(f"Missing generated CAR: {car_src}. Run Maven packaging first.")
+        raise FileNotFoundError(f"Missing generated CAR: {car_src}.")
     extract_dir = os.path.join(TMP_DIR, "shared")
     if os.path.exists(extract_dir):
         shutil.rmtree(extract_dir)
@@ -88,8 +89,10 @@ def update_shared_car():
 def update_sr_car():
     print("[2/2] Updating service-request-service_1.0.0.car...")
     car_src = SR_CAR
+    if not os.path.exists(car_src) or "ServiceRequestSeq_1.0.0/ServiceRequestSeq-1.0.0.xml" not in zipfile.ZipFile(car_src).namelist():
+        car_src = os.path.join(DIST_DIR, "service-request-service_1.0.0.car")
     if not os.path.exists(car_src):
-        raise FileNotFoundError(f"Missing generated CAR: {car_src}. Run Maven packaging first.")
+        raise FileNotFoundError(f"Missing generated CAR: {car_src}.")
     extract_dir = os.path.join(TMP_DIR, "sr")
     if os.path.exists(extract_dir):
         shutil.rmtree(extract_dir)
@@ -196,6 +199,29 @@ def update_sr_car():
     shutil.copy2(out_car, "/tmp/service-request-service_1.0.0.car")
     print(f"  -> Generated {out_car}")
 
+def update_vehicle_car():
+    print("[3/3] Updating vehicle-service_1.0.0.car...")
+    veh_dir = os.path.join(REPO_ROOT, "integrations", "vehicle-service")
+    car_src = os.path.join(veh_dir, "target", "vehicle-service_1.0.0.car")
+    if not os.path.exists(car_src) or "VehicleGetByLicensePlateSeq_1.0.0/VehicleGetByLicensePlateSeq-1.0.0.xml" not in zipfile.ZipFile(car_src).namelist():
+        car_src = os.path.join(DIST_DIR, "vehicle-service_1.0.0.car")
+    if not os.path.exists(car_src):
+        return
+    extract_dir = os.path.join(TMP_DIR, "vehicle")
+    if os.path.exists(extract_dir):
+        shutil.rmtree(extract_dir)
+    os.makedirs(extract_dir, exist_ok=True)
+    with zipfile.ZipFile(car_src, 'r') as z:
+        z.extractall(extract_dir)
+    shutil.copy2(
+        os.path.join(veh_dir, "src/main/wso2mi/artifacts/sequences/VehicleGetByLicensePlateSeq.xml"),
+        os.path.join(extract_dir, "VehicleGetByLicensePlateSeq_1.0.0/VehicleGetByLicensePlateSeq-1.0.0.xml")
+    )
+    fix_db_urls(extract_dir)
+    out_car = os.path.join(DIST_DIR, "vehicle-service_1.0.0.car")
+    repack_car(car_src, extract_dir, out_car)
+    print(f"  -> Generated {out_car}")
+
 def stage_service_car(car_src):
     if os.path.exists(car_src):
         out_car = os.path.join(DIST_DIR, os.path.basename(car_src))
@@ -205,6 +231,7 @@ def stage_service_car(car_src):
 if __name__ == "__main__":
     update_shared_car()
     update_sr_car()
+    update_vehicle_car()
     for s in OTHER_SERVICES:
         car_path = os.path.join(REPO_ROOT, "integrations", s, "target", f"{s}_1.0.0.car")
         stage_service_car(car_path)

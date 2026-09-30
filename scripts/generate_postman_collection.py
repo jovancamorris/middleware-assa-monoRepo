@@ -175,7 +175,7 @@ security_items = [
     make_request_item(
         "Auth Guard: Request dengan Token Palsu (401)", "GET", "/api/branches/getByCreateDate",
         query_params={"companyCode": "{{companyCode}}"},
-        headers={"Authorization": "Bearer token-palsu-ngawur-12345"},
+        headers={"Authorization": "{{fakeToken}}"},
         test_assertions=[
             "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });",
             "pm.test('Detail mentions invalid token', function () {",
@@ -323,7 +323,7 @@ validation_items = [
         "Validasi: Service Request tanpa field wajib app_id (400)", "POST", "/api/service-requests",
         body_json={
             "reff_number": "REF01",
-            "branch_code": "JKT01",
+            "branchCode": "JKT01",
             "created_datetime": "17-09-2026",
             "created_by": "admin",
             "ticket_no": "TCK01"
@@ -433,11 +433,9 @@ transactional_items = [
             "app_id": "sr_app_omnichannel",
             "reff_number": "REF-SR-POSTMAN-001",
             "branchCode": "JKT01",
-            "branch_code": "JKT01",
             "equipment_number": "EQ-998877",
             "license_plate": "B-1234-SSA",
             "customerCode": "CUST-00123",
-            "customer_code": "CUST-00123",
             "customer_name": "PT Maju Bersama ASSA",
             "channel": "Omnichannel-Web",
             "cp_title": "Bpk",
@@ -483,11 +481,9 @@ transactional_items = [
             "app_id": "sr_app_omnichannel",
             "reff_number": "REF-SR-POSTMAN-001",
             "branchCode": "JKT01",
-            "branch_code": "JKT01",
             "equipment_number": "EQ-998877",
             "license_plate": "B-1234-SSA",
             "customerCode": "CUST-00123",
-            "customer_code": "CUST-00123",
             "customer_name": "PT Maju Bersama ASSA",
             "channel": "Omnichannel-Web",
             "cp_title": "Bpk",
@@ -529,11 +525,9 @@ transactional_items = [
         body_json={
             "reff_number": "REF-BARANTUM-001",
             "branchCode": "JKT01",
-            "branch_code": "JKT01",
             "equipment_number": "EQ-998877",
             "license_plate": "B-1234-SSA",
             "customerCode": "CUST-00123",
-            "customer_code": "CUST-00123",
             "customer_name": "PT Maju Bersama ASSA",
             "channel": "Barantum-CRM",
             "cp_title": "Bpk",
@@ -679,7 +673,8 @@ def create_collection_dict(name, default_base_url, description_suffix=""):
             {"key": "sr_trx_id", "value": "TRX-SR-INIT", "type": "string"},
             {"key": "sr_barantum_trx_id", "value": "TRX-BRT-INIT", "type": "string"},
             {"key": "vendor_trx_id", "value": "TRX-VND-INIT", "type": "string"},
-            {"key": "spk_trx_id", "value": "TRX-SPK-INIT", "type": "string"}
+            {"key": "spk_trx_id", "value": "TRX-SPK-INIT", "type": "string"},
+            {"key": "fakeToken", "value": "Bearer token-palsu-ngawur-12345", "type": "string"}
         ],
         "item": [
             {"name": "1. Health & Readiness Probes", "item": health_items},
@@ -772,16 +767,6 @@ with open(env_local_path, "w", encoding="utf-8") as f:
 with open(env_server_path, "w", encoding="utf-8") as f:
     json.dump(env_server, f, indent=2, ensure_ascii=False)
 
-# In middleware-assa/
-mw_server_path = os.path.join(REPO_ROOT, "middleware-assa", "ASSA Middleware Server Dev (devmiddleware1.assa.id-6031).postman_collection.json")
-mw_local_path = os.path.join(REPO_ROOT, "middleware-assa", "ASSA Middleware Local Desktop (localhost-6031).postman_collection.json")
-
-with open(mw_server_path, "w", encoding="utf-8") as f:
-    json.dump(collection_server, f, indent=2, ensure_ascii=False)
-
-with open(mw_local_path, "w", encoding="utf-8") as f:
-    json.dump(collection_local, f, indent=2, ensure_ascii=False)
-
 # In test/
 legacy_test_path = os.path.join(REPO_ROOT, "test", "ASSA_Middleware_Full_Suite.postman_collection.json")
 with open(legacy_test_path, "w", encoding="utf-8") as f:
@@ -792,6 +777,4 @@ print(f"Generated Local Collection      : {postman_local_path}")
 print(f"Generated Generic Suite         : {postman_suite_path}")
 print(f"Generated Local Env             : {env_local_path}")
 print(f"Generated Server Env            : {env_server_path}")
-print(f"Updated middleware-assa/ Server : {mw_server_path}")
-print(f"Updated middleware-assa/ Local  : {mw_local_path}")
 

@@ -75,7 +75,11 @@ done
 # Load Konfigurasi (.env) jika tersedia
 # ------------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-for env_path in "$PWD/.env" "$SCRIPT_DIR/.env" "$SCRIPT_DIR/../../.env"; do
+for env_path in "$SCRIPT_DIR/.env" "$SCRIPT_DIR/middleware-assa/wso2-mi-monorepo/.env" "$SCRIPT_DIR/../.env"; do
+    # Cegah keluar dari repo jika parent adalah home directory
+    if [[ "$env_path" == *"$HOME/.env"* ]]; then
+        continue
+    fi
     if [[ -f "$env_path" ]]; then
         echo -e "${GRAY}Memuat variabel lingkungan dari: $env_path${RESET}"
         # Hanya mengekspor baris tanpa komentar
@@ -320,7 +324,7 @@ run_test "VALID-03" "Validasi: SPK Duelist tanpa nomor SPK (noSpk)" "POST" "${BA
 INVALID_TOTAL_SPK_JSON='{"noSpk":"SPK/2026/09/00002","type":"Maintenance","noPolisi":"B-2120-BKZ","category":"Maintenance","subCategory":"Adhoc","vendorReferensi":"0001","totalPrice":1850001,"createdAt":"2026-09-17 14:46:11","createdBy":"atlas.user","details":[{"jenis":"Jasa","description":"Jasa Perbaikan AC","qty":1,"price":1850000}]}'
 run_test "VALID-04" "Validasi: SPK Duelist dengan total tidak cocok (X-Validate-Total: true)" "POST" "${BASE_URL_SPK}/api/spk/duelist" "400" "$TOKEN_APP_QA" "$INVALID_TOTAL_SPK_JSON" "X-Validate-Total" "true" 5
 
-INVALID_SR_JSON='{"reff_number":"REF01","branch_code":"JKT01","created_datetime":"17-09-2026","created_by":"admin","ticket_no":"TCK01"}'
+INVALID_SR_JSON='{"reff_number":"REF01","branchCode":"JKT01","created_datetime":"17-09-2026","created_by":"admin","ticket_no":"TCK01"}'
 run_test "VALID-05" "Validasi: Service Request tanpa field wajib app_id" "POST" "${BASE_URL_SR}/api/service-requests" "400" "$TOKEN_OMNICHANNEL" "$INVALID_SR_JSON" "" "" 5
 
 # ------------------------------------------------------------------------------
@@ -366,10 +370,10 @@ VALID_SR_JSON=$(cat <<EOF
 {
   "app_id": "sr_app_omnichannel",
   "reff_number": "REF-SR-${UNIQUE_TRX_SUFFIX}",
-  "branch_code": "JKT01",
+  "branchCode": "JKT01",
   "equipment_number": "EQ-998877",
   "license_plate": "B-1234-SSA",
-  "customer_code": "CUST-00123",
+  "customerCode": "CUST-00123",
   "customer_name": "PT Maju Bersama ASSA",
   "channel": "Omnichannel-Web",
   "cp_title": "Bpk",

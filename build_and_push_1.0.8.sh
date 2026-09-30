@@ -15,10 +15,15 @@ TAG="1.0.8"
 IMAGE_NAME="registry.assa.id/nobi.sumariga/middleware-assa:${TAG}"
 
 echo "=========================================================="
-echo " [1/3] Packaging WSO2 CAR Artifacts..."
+echo " [1/3] Packaging WSO2 CAR Artifacts & Building Docs (TS)..."
 echo "=========================================================="
 cd "$WSO2_DIR"
 python3 scripts/package_cars.py
+
+if [ -d "$WSO2_DIR/docs-src" ]; then
+  echo " --> Compiling Swagger UI from TypeScript (docs-src)..."
+  (cd "$WSO2_DIR/docs-src" && npm run build)
+fi
 
 echo ""
 echo "=========================================================="

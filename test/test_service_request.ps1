@@ -40,7 +40,7 @@ if ($res2 -match "HTTP_CODE:403") {
 # Test 3: 400 Bad Request (Field Wajib app_id Kosong)
 # ------------------------------------------------------------------------------
 Write-Host "`n[TEST 3] Uji 400 Bad Request (Field wajib app_id tidak diisi)..." -ForegroundColor Yellow
-$res3 = curl.exe -s -w "`nHTTP_CODE:%{http_code}" -X POST $baseUrl -H "Authorization: Bearer $omnichannelToken" -H "Content-Type: application/json" --data '{\"reff_number\":\"REF001\",\"branch_code\":\"JKT01\",\"created_datetime\":\"17-09-2026\",\"created_by\":\"admin\",\"ticket_no\":\"TCK01\"}'
+$res3 = curl.exe -s -w "`nHTTP_CODE:%{http_code}" -X POST $baseUrl -H "Authorization: Bearer $omnichannelToken" -H "Content-Type: application/json" --data '{\"reff_number\":\"REF001\",\"branchCode\":\"JKT01\",\"created_datetime\":\"17-09-2026\",\"created_by\":\"admin\",\"ticket_no\":\"TCK01\"}'
 Write-Host $res3
 if ($res3 -match "HTTP_CODE:400" -and $res3 -match "app_id") {
     Write-Host "--> TEST 3: BERHASIL (400 Bad Request Validasi Field)" -ForegroundColor Green

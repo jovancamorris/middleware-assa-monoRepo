@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "e134f258-5733-4419-b375-b1dcf97e74fa",
+    "_postman_id": "5af809d5-3182-4540-8369-36b3ac77f3db",
     "name": "ASSA Middleware - Local Desktop (localhost:6031)",
     "description": "Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: http://localhost:6031\nPre-configured untuk Local Desktop (localhost:6031).\nMencakup:\n- Health & Readiness Probes (12 Endpoint)\n- Auth & Scope Security Guards (401/403)\n- Input Validation Checks (400)\n- Inquiry & Pagination (200 OK)\n- Parallel Fan-Out Service Request (10x Retries & MariaDB Audit Logs)\n- Background Retry Worker",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -64,6 +64,11 @@
     {
       "key": "spk_trx_id",
       "value": "TRX-SPK-INIT",
+      "type": "string"
+    },
+    {
+      "key": "fakeToken",
+      "value": "Bearer token-palsu-ngawur-12345",
       "type": "string"
     }
   ],
@@ -571,7 +576,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer token-palsu-ngawur-12345",
+                "value": "{{fakeToken}}",
                 "type": "text"
               }
             ],
@@ -1190,7 +1195,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reff_number\": \"REF01\",\n  \"branch_code\": \"JKT01\",\n  \"created_datetime\": \"17-09-2026\",\n  \"created_by\": \"admin\",\n  \"ticket_no\": \"TCK01\"\n}",
+              "raw": "{\n  \"reff_number\": \"REF01\",\n  \"branchCode\": \"JKT01\",\n  \"created_datetime\": \"17-09-2026\",\n  \"created_by\": \"admin\",\n  \"ticket_no\": \"TCK01\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1652,7 +1657,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"app_id\": \"sr_app_omnichannel\",\n  \"reff_number\": \"REF-SR-POSTMAN-001\",\n  \"branchCode\": \"JKT01\",\n  \"branch_code\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customerCode\": \"CUST-00123\",\n  \"customer_code\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Omnichannel-Web\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM dan pengecekan sistem rem\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan Operasional\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin dan Filter\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"omnichannel_agent\",\n  \"ticket_no\": \"TCK-SR-POSTMAN-001\"\n}",
+              "raw": "{\n  \"app_id\": \"sr_app_omnichannel\",\n  \"reff_number\": \"REF-SR-POSTMAN-001\",\n  \"branchCode\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customerCode\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Omnichannel-Web\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM dan pengecekan sistem rem\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan Operasional\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin dan Filter\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"omnichannel_agent\",\n  \"ticket_no\": \"TCK-SR-POSTMAN-001\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1718,7 +1723,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"app_id\": \"sr_app_omnichannel\",\n  \"reff_number\": \"REF-SR-POSTMAN-001\",\n  \"branchCode\": \"JKT01\",\n  \"branch_code\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customerCode\": \"CUST-00123\",\n  \"customer_code\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Omnichannel-Web\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM dan pengecekan sistem rem\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan Operasional\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin dan Filter\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"omnichannel_agent\",\n  \"ticket_no\": \"TCK-SR-POSTMAN-001\"\n}",
+              "raw": "{\n  \"app_id\": \"sr_app_omnichannel\",\n  \"reff_number\": \"REF-SR-POSTMAN-001\",\n  \"branchCode\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customerCode\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Omnichannel-Web\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM dan pengecekan sistem rem\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan Operasional\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin dan Filter\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"omnichannel_agent\",\n  \"ticket_no\": \"TCK-SR-POSTMAN-001\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1791,7 +1796,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"reff_number\": \"REF-BARANTUM-001\",\n  \"branchCode\": \"JKT01\",\n  \"branch_code\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customerCode\": \"CUST-00123\",\n  \"customer_code\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Barantum-CRM\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"barantum_crm\",\n  \"ticket_no\": \"TCK-BRT-001\"\n}",
+              "raw": "{\n  \"reff_number\": \"REF-BARANTUM-001\",\n  \"branchCode\": \"JKT01\",\n  \"equipment_number\": \"EQ-998877\",\n  \"license_plate\": \"B-1234-SSA\",\n  \"customerCode\": \"CUST-00123\",\n  \"customer_name\": \"PT Maju Bersama ASSA\",\n  \"channel\": \"Barantum-CRM\",\n  \"cp_title\": \"Bpk\",\n  \"cp_name\": \"Ahmad Fauzi\",\n  \"cp_phone\": \"081234567890\",\n  \"cp_email\": \"ahmad.fauzi@example.com\",\n  \"cp_address\": \"Jl. Gatot Subroto No. 45 Jakarta\",\n  \"km\": \"25000\",\n  \"description\": \"Perawatan berkala 25.000 KM\",\n  \"service_datetime\": \"2026-09-20 10:00:00\",\n  \"service_location\": \"Bengkel Resmi ASSA Sunter\",\n  \"jenis_permintaan\": \"Service Berkala\",\n  \"incident_datetime\": \"2026-09-17 09:00:00\",\n  \"tipe_tiket\": \"Regular\",\n  \"judul\": \"Service Berkala Kendaraan\",\n  \"nama_kunjungan\": \"Ahmad Fauzi\",\n  \"telepon_kunjungan\": \"081234567890\",\n  \"alamat_kunjungan\": \"Jl. Danau Sunter Barat\",\n  \"pool_name\": \"Pool Sunter\",\n  \"area_bengkel\": \"Jakarta Utara\",\n  \"task\": \"Ganti Oli Mesin\",\n  \"created_datetime\": \"28-09-2026\",\n  \"created_by\": \"barantum_crm\",\n  \"ticket_no\": \"TCK-BRT-001\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

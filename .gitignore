@@ -19,6 +19,11 @@ target/
 hs_err_pid*
 replay_pid*
 
+# Node & Frontend
+node_modules/
+.vite/
+dist/
+
 # OS temporary
 .DS_Store
 Thumbs.db

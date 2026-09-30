@@ -59,10 +59,10 @@ paths:
           schema:
             type: string
             example: '10027282'
-        - name: branch_code
+        - name: branchCode
           in: query
           required: false
-          description: Filter kode cabang
+          description: Filter kode cabang (mendukung branchCode atau alias legacy branch_code)
           schema:
             type: string
             example: '1411'
@@ -138,9 +138,10 @@ paths:
           schema:
             type: string
             example: '10027282'
-        - name: branch_code
+        - name: branchCode
           in: query
           required: false
+          description: Filter kode cabang (mendukung branchCode atau alias legacy branch_code)
           schema:
             type: string
             example: '1411'
@@ -311,7 +312,7 @@ components:
         plate_no:
           type: string
           example: DD-8112-YC
-        branch_code:
+        branchCode:
           type: string
           example: '1411'
         branch_name:

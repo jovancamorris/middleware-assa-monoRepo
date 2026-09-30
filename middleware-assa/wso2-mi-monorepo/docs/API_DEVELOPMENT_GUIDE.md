@@ -356,7 +356,7 @@ Dokumentasikan parameter pencarian yang benar-benar didukung sequence:
 
 - `plate_no` atau alias legacy `licensePlate`.
 - `equipment_no`.
-- `branch_code`.
+- `branchCode` (atau alias legacy `branch_code`).
 - `limit`, `offset`, `status_id`, dan `color` bila diteruskan ke backend.
 
 Request tanpa parameter pencarian menghasilkan `400`. Jika alias memiliki prioritas berbeda, jelaskan pada `description` atau gunakan schema `oneOf` yang sesuai.

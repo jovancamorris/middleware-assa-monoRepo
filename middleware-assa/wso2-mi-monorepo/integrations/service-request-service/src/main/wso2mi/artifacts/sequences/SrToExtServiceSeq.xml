@@ -105,10 +105,10 @@
                 <args>
                     <arg evaluator="xml" expression="$ctx:sr_app_id"/>
                     <arg evaluator="xml" expression="$ctx:sr_reff_number"/>
-                    <arg evaluator="xml" expression="$ctx:sr_branch_code"/>
+                    <arg evaluator="xml" expression="$ctx:sr_branchCode"/>
                     <arg evaluator="xml" expression="$ctx:sr_equipment_number"/>
                     <arg evaluator="xml" expression="$ctx:sr_license_plate"/>
-                    <arg evaluator="xml" expression="$ctx:sr_customer_code"/>
+                    <arg evaluator="xml" expression="$ctx:sr_customerCode"/>
                     <arg evaluator="xml" expression="$ctx:sr_customer_name"/>
                     <arg evaluator="xml" expression="$ctx:sr_channel"/>
                     <arg evaluator="xml" expression="$ctx:sr_cp_title"/>
