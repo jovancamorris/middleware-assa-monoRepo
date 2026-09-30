@@ -1,9 +1,0 @@
----
-key: "VehicleReadinessAPI-1.0.0"
-name: "VehicleReadinessAPI"
-displayName: "VehicleReadinessAPI"
-version: "1.0.0"
-serviceUrl: "https://{MI_HOST}:{MI_PORT}/readiness/vehicle"
-definitionType: "OAS3"
-securityType: "BASIC"
-mutualSSLEnabled: false

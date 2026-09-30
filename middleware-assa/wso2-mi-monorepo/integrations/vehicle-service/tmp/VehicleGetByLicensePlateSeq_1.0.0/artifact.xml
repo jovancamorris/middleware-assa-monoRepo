@@ -1,3 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?><artifact name="VehicleGetByLicensePlateSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator">
-    <file>VehicleGetByLicensePlateSeq-1.0.0.xml</file>
-</artifact>
