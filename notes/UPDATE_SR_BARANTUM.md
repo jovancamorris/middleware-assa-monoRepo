@@ -44,7 +44,7 @@
 | **Endpoint GET (Inquiry Pagination)** | `GET /api/vendor/public/service-requests?page=1&perPage=10`<br>`GET /api/service-requests?page=1&perPage=10` |
 | **Port Akses Local** | Direct MI: `8295` \| Reverse Proxy Nginx: `6031` \| Gateway Prod: `4002` |
 | **Autentikasi** | **Dual Auth**: `X-API-Key` (Barantum) ATAU `Authorization: Bearer <token>` (Omnichannel) |
-| **Token Barantum CRM** | `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680` |
+| **Token Barantum CRM** | `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` |
 | **Origin Header (Barantum)** | `Origin: https://barantum.internal` |
 | **Target Backend 1** | `POST` API ATLAS *(toggle `sr.target.atlas.enabled`, default: false)* |
 | **Target Backend 2** | `POST https://assa-ext-services.assa.id/dev/service/input_service_request` (`x-www-form-urlencoded`, 30 parameter) |
@@ -126,7 +126,7 @@ flowchart TD
 
 ### Registry App Barantum:
 - **App ID**: `app_barantum`
-- **Token**: `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680`
+- **Token**: `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd`
 - **Scope**: `service_requests`
 - **App Name**: `Barantum CRM Public Gateway`
 
@@ -143,7 +143,7 @@ Format ini adalah format payload baru dari Barantum CRM dengan nested object `un
 - **Headers**:
   ```http
   Content-Type: application/json
-  X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
+  X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd
   Origin: https://barantum.internal
   X-Transaction-Id: BRT-2026-000123 (opsional, auto-fallback ke referenceNumber)
   ```
@@ -245,7 +245,7 @@ Endpoint ini digunakan untuk meng-query riwayat transaksi Service Request yang t
 - **Path**: `/api/vendor/public/service-requests` atau `/api/service-requests`
 - **Headers**:
   ```http
-  X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
+  X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd
   (atau Authorization: Bearer <token>)
   ```
 - **Query Parameters**:
@@ -369,7 +369,7 @@ sr.target.atlas.apikey=__USE_SECURE_VAULT__
 sr.target.extservice.enabled=true
 
 # Auth App Barantum (Public Gateway)
-auth.app.app_barantum.token=umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
+auth.app.app_barantum.token=umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd
 auth.app.app_barantum.name=Barantum CRM Public Gateway
 auth.app.app_barantum.scopes=service_requests
 ```
@@ -400,7 +400,7 @@ Jalankan perintah cURL berikut:
 ```bash
 curl -i -X POST "http://localhost:8295/api/vendor/public/service-requests" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" \
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd" \
   -H "Origin: https://barantum.internal" \
   -d '{
     "customerName": "Budi Santoso",
@@ -426,7 +426,7 @@ curl -i -X POST "http://localhost:8295/api/vendor/public/service-requests" \
 Jalankan query dengan parameter `page` dan `perPage`:
 ```bash
 curl -i -X GET "http://localhost:8295/api/vendor/public/service-requests?page=1&perPage=5" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680"
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd"
 ```
 **Ekspektasi Output**:
 - HTTP Status `200 OK`
@@ -453,7 +453,7 @@ Kirim kembali payload dengan `referenceNumber: "BRT-2026-TEST001"`:
 ```bash
 curl -i -X POST "http://localhost:8295/api/vendor/public/service-requests" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" \
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd" \
   -H "Origin: https://barantum.internal" \
   -d '{
     "customerName": "Budi Santoso",
@@ -480,7 +480,7 @@ Endpoint juga dapat diakses melalui reverse proxy Nginx monorepo (port 6031):
 ```bash
 curl -i -X POST "http://localhost:6031/api/vendor/public/service-requests" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" \
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd" \
   -H "Origin: https://barantum.internal" \
   -d '{
     "customerName": "Siti Rahma",
@@ -507,7 +507,7 @@ curl -i -X POST "http://localhost:6031/api/vendor/public/service-requests" \
    - `baseUrl`: `http://localhost:6031` (atau `http://devmiddleware1.assa.id:6031`)
    - `baseUrlSR`: `http://localhost:8295`
    - `token_omnichannel`: `dev-token-omnichannel-12345`
-   - `token_barantum`: `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680`
+   - `token_barantum`: `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd`
 3. **Buka Folder**: `7. Service Request Service (Port 8295)`
    - **Request 1: `Service Request (Barantum) - Public Endpoint POST (200 OK)`**:
      - Method: `POST`

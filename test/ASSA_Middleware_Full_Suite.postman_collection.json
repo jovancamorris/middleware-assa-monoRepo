@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "db39bd42-4005-4a06-a5f1-c119e79bcd05",
+    "_postman_id": "0973f9e9-ff43-4d06-8501-21622e8522eb",
     "name": "ASSA Middleware API Test Suite",
     "description": "Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: http://localhost:6031\nDapat digunakan bergantian dengan Environment Local / Server Dev.\nMencakup:\n- Health & Readiness Probes (12 Endpoint)\n- Auth & Scope Security Guards (401/403)\n- Input Validation Checks (400)\n- Inquiry & Pagination (200 OK)\n- Parallel Fan-Out Service Request (10x Retries & MariaDB Audit Logs)\n- Background Retry Worker",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -38,7 +38,7 @@
     },
     {
       "key": "token_barantum",
-      "value": "umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680",
+      "value": "umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd",
       "type": "string"
     },
     {

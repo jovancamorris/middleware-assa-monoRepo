@@ -86,7 +86,7 @@ Middleware mengevaluasi respons kedua cabang paralel dengan aturan **Opsi C (Par
 |---|---|---|
 | **Path URL** | `POST /api/service-requests` | `POST /api/vendor/public/service-requests` |
 | **Metode Autentikasi** | `Authorization: Bearer <token>` | `X-API-Key: <token>` atau `Bearer <token>` |
-| **Token Terdaftar** | `14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12` | `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680` |
+| **Token Terdaftar** | `14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12` | `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` |
 | **Format Payload** | Format legacy Omnichannel (flat / snake_case) | Format Barantum (nested `unit`: plat, brand, odometer) |
 | **Downstream Execution** | Identik (Bermuara pada `ServiceRequestSeq.xml`) | Identik (Bermuara pada `ServiceRequestSeq.xml`) |
 

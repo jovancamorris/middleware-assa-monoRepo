@@ -321,7 +321,7 @@ components:
       name: X-API-Key
       description: |
         API Key untuk autentikasi vendor publik (seperti Barantum CRM).
-        Contoh Token: `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680`
+        Token API Key disediakan oleh tim Middleware / Administrator.
 
   parameters:
     CorrelationId:

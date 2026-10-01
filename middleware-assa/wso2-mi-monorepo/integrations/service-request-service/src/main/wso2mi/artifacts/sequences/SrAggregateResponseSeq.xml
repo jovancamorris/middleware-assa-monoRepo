@@ -16,25 +16,37 @@
     </filter>
     <filter xpath="string-length($ctx:atlasStatus) = 0">
         <then>
-            <property name="atlasStatus" value="FAILED" scope="default" type="STRING"/>
-            <property name="atlasHttpStatus" value="502" scope="default" type="STRING"/>
-            <property name="atlasDetail" value="No response from API ATLAS" scope="default" type="STRING"/>
+            <property name="srAtlasEnabled" expression="get-property('env', 'SR_TARGET_ATLAS_ENABLED')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+                <then><property name="srAtlasEnabled" expression="get-property('system', 'sr.target.atlas.enabled')" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+                <then><property name="srAtlasEnabled" expression="get-property('file', 'sr.target.atlas.enabled')" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+                <then><property name="srAtlasEnabled" value="false" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="$ctx:srAtlasEnabled = 'false' or $ctx:srAtlasEnabled = '0'">
+                <then>
+                    <property name="atlasStatus" value="SKIPPED" scope="default" type="STRING"/>
+                    <property name="atlasHttpStatus" value="200" scope="default" type="STRING"/>
+                    <property name="atlasDetail" value="API ATLAS disabled via toggle (sr.target.atlas.enabled=false)" scope="default" type="STRING"/>
+                </then>
+                <else>
+                    <property name="atlasStatus" value="FAILED" scope="default" type="STRING"/>
+                    <property name="atlasHttpStatus" value="502" scope="default" type="STRING"/>
+                    <property name="atlasDetail" value="No response from API ATLAS" scope="default" type="STRING"/>
+                </else>
+            </filter>
         </then>
     </filter>
 
-    <!-- Defensive: SKIPPED = FAILED — tidak boleh dianggap sukses -->
+    <!-- Defensive: extStatus SKIPPED = FAILED — external service wajib sukses -->
     <filter xpath="$ctx:extStatus = 'SKIPPED'">
         <then>
             <property name="extStatus" value="FAILED" scope="default" type="STRING"/>
             <property name="extHttpStatus" value="502" scope="default" type="STRING"/>
             <property name="extDetail" value="ASSA External Services was skipped (treated as FAILED)" scope="default" type="STRING"/>
-        </then>
-    </filter>
-    <filter xpath="$ctx:atlasStatus = 'SKIPPED'">
-        <then>
-            <property name="atlasStatus" value="FAILED" scope="default" type="STRING"/>
-            <property name="atlasHttpStatus" value="502" scope="default" type="STRING"/>
-            <property name="atlasDetail" value="API ATLAS was skipped (treated as FAILED)" scope="default" type="STRING"/>
         </then>
     </filter>
 
@@ -44,7 +56,7 @@
         </then>
     </filter>
 
-    <filter xpath="$ctx:extStatus = 'SUCCESS' and $ctx:atlasStatus = 'SUCCESS'">
+    <filter xpath="$ctx:extStatus = 'SUCCESS' and ($ctx:atlasStatus = 'SUCCESS' or $ctx:atlasStatus = 'SKIPPED')">
         <then>
             <property name="overallHttpCode" value="200" scope="default" type="STRING"/>
             <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>

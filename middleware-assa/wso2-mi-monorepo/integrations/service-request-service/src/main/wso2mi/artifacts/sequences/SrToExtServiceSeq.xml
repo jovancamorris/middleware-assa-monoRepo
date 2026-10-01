@@ -72,10 +72,10 @@
                     <root xmlns="">
                         <app_id>$1</app_id>
                         <reff_number>$2</reff_number>
-                        <branchCode>$3</branchCode>
+                        <branch_code>$3</branch_code>
                         <equipment_number>$4</equipment_number>
                         <license_plate>$5</license_plate>
-                        <customerCode>$6</customerCode>
+                        <customer_code>$6</customer_code>
                         <customer_name>$7</customer_name>
                         <channel>$8</channel>
                         <cp_title>$9</cp_title>
@@ -100,15 +100,16 @@
                         <created_datetime>$28</created_datetime>
                         <created_by>$29</created_by>
                         <ticket_no>$30</ticket_no>
+                        <unit_pengganti>$31</unit_pengganti>
                     </root>
                 </format>
                 <args>
                     <arg evaluator="xml" expression="$ctx:sr_app_id"/>
                     <arg evaluator="xml" expression="$ctx:sr_reff_number"/>
-                    <arg evaluator="xml" expression="$ctx:sr_branchCode"/>
+                    <arg evaluator="xml" expression="$ctx:sr_branch_code"/>
                     <arg evaluator="xml" expression="$ctx:sr_equipment_number"/>
                     <arg evaluator="xml" expression="$ctx:sr_license_plate"/>
-                    <arg evaluator="xml" expression="$ctx:sr_customerCode"/>
+                    <arg evaluator="xml" expression="$ctx:sr_customer_code"/>
                     <arg evaluator="xml" expression="$ctx:sr_customer_name"/>
                     <arg evaluator="xml" expression="$ctx:sr_channel"/>
                     <arg evaluator="xml" expression="$ctx:sr_cp_title"/>
@@ -133,6 +134,7 @@
                     <arg evaluator="xml" expression="$ctx:sr_created_datetime"/>
                     <arg evaluator="xml" expression="$ctx:sr_created_by"/>
                     <arg evaluator="xml" expression="$ctx:sr_ticket_no"/>
+                    <arg evaluator="xml" expression="$ctx:sr_unit_pengganti"/>
                 </args>
             </payloadFactory>
             <header name="Authorization" action="remove" scope="transport"/>

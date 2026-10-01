@@ -15,7 +15,7 @@ TOKENS = {
     "token_app_b": "988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881",
     "token_qa": "e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be",
     "token_omnichannel": "14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12",
-    "token_barantum": "umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680",
+    "token_barantum": "umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd",
     "token_atlas": "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d"
 }
 

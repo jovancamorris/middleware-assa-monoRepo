@@ -1,21 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="SrToAtlasSeq" onError="SrAtlasErrorHandlerSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <property name="atlasBaseUrl" expression="get-property('env', 'SR_TARGET_ATLAS_BASE_URL')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
-        <then>
-            <property name="atlasBaseUrl" expression="get-property('system', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
-        </then>
+    <property name="srAtlasEnabled" expression="get-property('env', 'SR_TARGET_ATLAS_ENABLED')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+        <then><property name="srAtlasEnabled" expression="get-property('system', 'sr.target.atlas.enabled')" scope="default" type="STRING"/></then>
     </filter>
-    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
-        <then>
-            <property name="atlasBaseUrl" expression="get-property('file', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
-        </then>
+    <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+        <then><property name="srAtlasEnabled" expression="get-property('file', 'sr.target.atlas.enabled')" scope="default" type="STRING"/></then>
     </filter>
-    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
-        <then>
-            <property name="atlasBaseUrl" value="https://fe.atlas-dev.assa.id" scope="default" type="STRING"/>
-        </then>
+    <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+        <then><property name="srAtlasEnabled" value="false" scope="default" type="STRING"/></then>
     </filter>
+
+    <filter xpath="$ctx:srAtlasEnabled = 'false' or $ctx:srAtlasEnabled = '0'">
+        <then>
+            <payloadFactory media-type="xml">
+                <format>
+                    <srResult xmlns="">
+                        <target>atlas</target>
+                        <status>SKIPPED</status>
+                        <httpStatus>200</httpStatus>
+                        <detail>API ATLAS disabled via toggle (sr.target.atlas.enabled=false)</detail>
+                    </srResult>
+                </format>
+            </payloadFactory>
+        </then>
+        <else>
+            <property name="atlasBaseUrl" expression="get-property('env', 'SR_TARGET_ATLAS_BASE_URL')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0 or contains($ctx:atlasBaseUrl, 'atlas-api.assa.id')">
+                <then>
+                    <property name="atlasBaseUrl" expression="get-property('system', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0 or contains($ctx:atlasBaseUrl, 'atlas-api.assa.id')">
+                <then>
+                    <property name="atlasBaseUrl" expression="get-property('file', 'sr.target.atlas.base.url')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0 or contains($ctx:atlasBaseUrl, 'atlas-api.assa.id')">
+                <then>
+                    <property name="atlasBaseUrl" value="https://fe.atlas-dev.assa.id" scope="default" type="STRING"/>
+                </then>
+            </filter>
 
             <property name="atlasPath" expression="get-property('env', 'SR_TARGET_ATLAS_PATH')" scope="default" type="STRING"/>
             <filter xpath="string-length($ctx:atlasPath) = 0">
@@ -34,15 +59,26 @@
                 </then>
             </filter>
 
-            <property name="atlasApiKey" expression="get-property('env', 'SR_TARGET_ATLAS_APIKEY')" scope="default" type="STRING"/>
-            <filter xpath="string-length($ctx:atlasApiKey) = 0">
+            <!-- Prefer SR_TARGET_ATLAS_API_KEY or SR_TARGET_ATLAS_APIKEY, ignoring placeholder values -->
+            <property name="atlasApiKey" expression="get-property('env', 'SR_TARGET_ATLAS_API_KEY')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = 'ATLAS_PLACEHOLDER_KEY' or starts-with($ctx:atlasApiKey, 'ATLAS_')">
+                <then>
+                    <property name="atlasApiKey" expression="get-property('env', 'SR_TARGET_ATLAS_APIKEY')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = 'ATLAS_PLACEHOLDER_KEY' or starts-with($ctx:atlasApiKey, 'ATLAS_')">
                 <then>
                     <property name="atlasApiKey" expression="get-property('system', 'sr.target.atlas.apikey')" scope="default" type="STRING"/>
                 </then>
             </filter>
-            <filter xpath="string-length($ctx:atlasApiKey) = 0">
+            <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = 'ATLAS_PLACEHOLDER_KEY' or starts-with($ctx:atlasApiKey, 'ATLAS_')">
                 <then>
                     <property name="atlasApiKey" expression="get-property('file', 'sr.target.atlas.apikey')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = 'ATLAS_PLACEHOLDER_KEY' or starts-with($ctx:atlasApiKey, 'ATLAS_')">
+                <then>
+                    <property name="atlasApiKey" value="umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd" scope="default" type="STRING"/>
                 </then>
             </filter>
 
@@ -60,17 +96,32 @@
                     <arg evaluator="xml" expression="$ctx:originalRequestJson"/>
                 </args>
             </payloadFactory>
+            <!-- Remove any client-side headers that could cause duplicates or CORS conflicts -->
             <header name="Authorization" action="remove" scope="transport"/>
+            <header name="X-API-Key" action="remove" scope="transport"/>
+            <header name="x-api-key" action="remove" scope="transport"/>
+            <header name="Origin" action="remove" scope="transport"/>
+            <header name="origin" action="remove" scope="transport"/>
+
             <filter xpath="string-length($ctx:atlasApiKey) &gt; 0 and $ctx:atlasApiKey != '__USE_SECURE_VAULT__'">
                 <then>
-                    <header name="x-api-key" expression="$ctx:atlasApiKey" scope="transport"/>
+                    <header name="X-API-Key" expression="$ctx:atlasApiKey" scope="transport"/>
                 </then>
             </filter>
+            <property name="atlasOrigin" expression="get-property('env', 'SR_TARGET_ATLAS_ORIGIN')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasOrigin) = 0">
+                <then><property name="atlasOrigin" value="https://devmiddleware1.assa.id" scope="default" type="STRING"/></then>
+            </filter>
+            <header name="Origin" expression="$ctx:atlasOrigin" scope="transport"/>
             <header name="Content-Type" value="application/json" scope="transport"/>
             <property name="messageType" value="application/json" scope="axis2"/>
             <property name="ContentType" value="application/json" scope="axis2"/>
             <property name="HTTP_METHOD" value="POST" scope="axis2"/>
             <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+
+            <log level="custom">
+                <property name="ATLAS_OUTBOUND" expression="fn:concat('Target: ', $ctx:uri.var.atlasBackendUrl, ' | Origin: ', $ctx:atlasOrigin, ' | KeyPrefix: ', fn:substring($ctx:atlasApiKey, 1, 10))"/>
+            </log>
 
             <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
             <call>
@@ -91,6 +142,9 @@
                 </then>
             </filter>
             <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+            <log level="custom">
+                <property name="ATLAS_INBOUND" expression="fn:concat('HTTP ', $ctx:responseStatus, ' | Body: ', $ctx:responseBody)"/>
+            </log>
             <property name="errorMessage" value="None" scope="default" type="STRING"/>
             <sequence key="DbRecordAttemptLogSeq"/>
             <filter xpath="number($ctx:responseStatus) &gt;= 200 and number($ctx:responseStatus) &lt; 300">
@@ -142,4 +196,6 @@
                     </filter>
                 </else>
             </filter>
+        </else>
+    </filter>
 </sequence>

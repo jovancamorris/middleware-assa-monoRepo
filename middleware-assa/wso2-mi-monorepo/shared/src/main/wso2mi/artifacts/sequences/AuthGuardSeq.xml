@@ -63,7 +63,7 @@
     <property name="tokenAppBarantum" expression="get-property('env', 'AUTH_APP_BARANTUM_TOKEN')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAppBarantum) = 0"><then><property name="tokenAppBarantum" expression="get-property('system', 'auth.app.app_barantum.token')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAppBarantum) = 0"><then><property name="tokenAppBarantum" expression="get-property('file', 'auth.app.app_barantum.token')" scope="default" type="STRING"/></then></filter>
-    <filter xpath="string-length($ctx:tokenAppBarantum) = 0"><then><property name="tokenAppBarantum" value="umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:tokenAppBarantum) = 0"><then><property name="tokenAppBarantum" value="umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd" scope="default" type="STRING"/></then></filter>
 
     <property name="tokenAppOmnichannel" expression="get-property('env', 'AUTH_APP_OMNICHANNEL_TOKEN')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAppOmnichannel) = 0"><then><property name="tokenAppOmnichannel" expression="get-property('system', 'auth.app.app_omnichannel.token')" scope="default" type="STRING"/></then></filter>

@@ -142,6 +142,46 @@
     <filter xpath="string-length($ctx:sr_telepon_kunjungan) = 0">
         <then><property name="sr_telepon_kunjungan" expression="$ctx:sr_cp_phone" scope="default" type="STRING"/></then>
     </filter>
+    <filter xpath="string-length($ctx:sr_cp_name) = 0">
+        <then>
+            <filter xpath="string-length($ctx:in_customerName) &gt; 0">
+                <then><property name="sr_cp_name" expression="$ctx:in_customerName" scope="default" type="STRING"/></then>
+                <else><property name="sr_cp_name" value="Customer" scope="default" type="STRING"/></else>
+            </filter>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_cp_phone) = 0">
+        <then><property name="sr_cp_phone" value="081234567890" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_cp_email) = 0">
+        <then><property name="sr_cp_email" value="customer@assa.id" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_cp_address) = 0">
+        <then>
+            <filter xpath="string-length($ctx:in_branch) &gt; 0">
+                <then><property name="sr_cp_address" expression="$ctx:in_branch" scope="default" type="STRING"/></then>
+                <else><property name="sr_cp_address" value="ASSA Branch" scope="default" type="STRING"/></else>
+            </filter>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_customer_code) = 0">
+        <then><property name="sr_customer_code" value="CUST-DEFAULT" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_equipment_number) = 0">
+        <then>
+            <filter xpath="string-length($ctx:sr_license_plate) &gt; 0">
+                <then><property name="sr_equipment_number" expression="$ctx:sr_license_plate" scope="default" type="STRING"/></then>
+                <else><property name="sr_equipment_number" value="EQ-DEFAULT" scope="default" type="STRING"/></else>
+            </filter>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:sr_km) = 0">
+        <then><property name="sr_km" value="0" scope="default" type="STRING"/></then>
+    </filter>
+    <property name="sr_unit_pengganti" expression="json-eval($.unit_pengganti)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:sr_unit_pengganti) = 0">
+        <then><property name="sr_unit_pengganti" value="Tidak" scope="default" type="STRING"/></then>
+    </filter>
     <filter xpath="string-length($ctx:sr_description) = 0">
         <then><property name="sr_description" expression="fn:concat('Service Request for ', $ctx:sr_license_plate, ' (Reff: ', $ctx:sr_reff_number, ')')" scope="default" type="STRING"/></then>
     </filter>
@@ -205,17 +245,36 @@
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>
 
-    <clone continueParent="false">
-        <target sequence="SrToAtlasSeq"/>
-        <target sequence="SrToExtServiceSeq"/>
-    </clone>
+    <property name="srAtlasEnabled" expression="get-property('env', 'SR_TARGET_ATLAS_ENABLED')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+        <then><property name="srAtlasEnabled" expression="get-property('system', 'sr.target.atlas.enabled')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+        <then><property name="srAtlasEnabled" expression="get-property('file', 'sr.target.atlas.enabled')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:srAtlasEnabled) = 0">
+        <then><property name="srAtlasEnabled" value="false" scope="default" type="STRING"/></then>
+    </filter>
 
-    <aggregate>
-        <completeCondition timeout="35">
-            <messageCount min="2" max="2"/>
-        </completeCondition>
-        <onComplete expression="$body/*">
+    <filter xpath="$ctx:srAtlasEnabled = 'true' or $ctx:srAtlasEnabled = '1'">
+        <then>
+            <clone continueParent="false">
+                <target sequence="SrToAtlasSeq"/>
+                <target sequence="SrToExtServiceSeq"/>
+            </clone>
+
+            <aggregate>
+                <completeCondition timeout="35">
+                    <messageCount min="2" max="2"/>
+                </completeCondition>
+                <onComplete expression="$body/*">
+                    <sequence key="SrAggregateResponseSeq"/>
+                </onComplete>
+            </aggregate>
+        </then>
+        <else>
+            <sequence key="SrToExtServiceSeq"/>
             <sequence key="SrAggregateResponseSeq"/>
-        </onComplete>
-    </aggregate>
+        </else>
+    </filter>
 </sequence>

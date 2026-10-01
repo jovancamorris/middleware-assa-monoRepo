@@ -45,7 +45,7 @@ Saat menjalankan docker di local machine Anda, ada 2 cara mengakses endpoint:
 
 ### Informasi Kredensial Pengujian:
 - **Kredensial Barantum (Public Gateway)**:
-  - Header: `X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680`
+  - Header: `X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd`
   - Header: `Origin: https://barantum.internal`
 - **Kredensial Omnichannel**:
   - Header: `Authorization: Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12`
@@ -119,7 +119,7 @@ Jalankan perintah cURL berikut di terminal:
 ```bash
 curl -i -X POST "http://localhost:6031/api/vendor/public/service-requests" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" \
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd" \
   -H "Origin: https://barantum.internal" \
   -d '{
     "customerName": "Budi Santoso",
@@ -171,7 +171,7 @@ Skenario ini digunakan untuk mengecek riwayat data transaksi yang tersimpan di d
 ### A. Query Semua Data (Halaman 1, 5 Data Per Halaman)
 ```bash
 curl -i -X GET "http://localhost:6031/api/vendor/public/service-requests?page=1&perPage=5" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680"
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd"
 ```
 
 ### Ekspektasi Respon (HTTP 200 OK):
@@ -196,7 +196,7 @@ curl -i -X GET "http://localhost:6031/api/vendor/public/service-requests?page=1&
 ### B. Query Spesifik Berdasarkan `referenceNumber`
 ```bash
 curl -i -X GET "http://localhost:6031/api/vendor/public/service-requests?referenceNumber=BRT-2026-000999" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680"
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd"
 ```
 
 ---
@@ -211,7 +211,7 @@ Kirimkan kembali payload persis sama dengan nomor referensi yang sudah pernah di
 ```bash
 curl -i -X POST "http://localhost:6031/api/vendor/public/service-requests" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" \
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd" \
   -H "Origin: https://barantum.internal" \
   -d '{
     "customerName": "Budi Santoso",
@@ -255,7 +255,7 @@ curl -i -X POST "http://localhost:6031/api/vendor/public/service-requests" \
 Kirim request tanpa menyertakan `referenceNumber`:
 ```bash
 curl -i -X POST "http://localhost:6031/api/vendor/public/service-requests" \
-  -H "X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" \
+  -H "X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd" \
   -H "Content-Type: application/json" \
   -d '{"customerName": "Budi Santoso"}'
 ```
@@ -329,7 +329,7 @@ Koleksi Postman monorepo telah disiapkan dengan otomatisasi script pre-request (
    - Pastikan variable berikut terisi:
      - `baseUrl`: `http://localhost:6031` (via Nginx)
      - `baseUrlSR`: `http://localhost:8295` (Direct MI)
-     - `token_barantum`: `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680`
+     - `token_barantum`: `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd`
      - `token_omnichannel`: `14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12`
    - Klik **Save** (`Ctrl+S` / `Cmd+S`).
 
@@ -361,7 +361,7 @@ Koleksi Postman monorepo telah disiapkan dengan otomatisasi script pre-request (
 | Masalah / Error | Penyebab | Solusi |
 |---|---|---|
 | `Connection refused` (Port 6031 atau 8295) | Container Docker belum menyala | Jalankan `docker compose up -d mariadb service-request-service nginx` di folder `wso2-mi-monorepo`. |
-| `HTTP 401 Unauthorized` | Header `X-API-Key` atau `Authorization` salah / tidak dikirim | Pastikan header `X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680` telah disertakan. |
+| `HTTP 401 Unauthorized` | Header `X-API-Key` atau `Authorization` salah / tidak dikirim | Pastikan header `X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` telah disertakan. |
 | `Cannot load JDBC driver class 'org.mariadb.jdbc.Driver'` | Driver MariaDB belum ada di direktori runtime WSO2 | Salin file JAR dengan perintah: `docker cp /tmp/mariadb-java-client-3.3.3.jar service-request-service:/home/wso2carbon/wso2mi-4.6.0/lib/` lalu restart container. |
 | `UnknownHostException: mariadb` | Container WSO2 tidak dapat menemukan host mariadb | Pastikan container berada dalam satu docker network (jalankan via `docker compose`). |
 | Ingin mereset data pengujian database | Tabel `api_transaction` ingin dikosongkan | Jalankan di terminal: `docker exec mi-mariadb mariadb -u root assa_middleware_db -e "DELETE FROM api_transaction;"` |

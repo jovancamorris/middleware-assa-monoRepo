@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "75434df7-6a34-44e1-be55-7e6626044bf7",
+    "_postman_id": "a1500cff-131d-4a31-afe4-ec8fdd917c30",
     "name": "ASSA Middleware - Server Dev (devmiddleware1.assa.id:6031)",
     "description": "Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: http://devmiddleware1.assa.id:6031\nPre-configured untuk Server Dev (devmiddleware1.assa.id:6031).\nMencakup:\n- Health & Readiness Probes (12 Endpoint)\n- Auth & Scope Security Guards (401/403)\n- Input Validation Checks (400)\n- Inquiry & Pagination (200 OK)\n- Parallel Fan-Out Service Request (10x Retries & MariaDB Audit Logs)\n- Background Retry Worker",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -38,7 +38,7 @@
     },
     {
       "key": "token_barantum",
-      "value": "umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680",
+      "value": "umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd",
       "type": "string"
     },
     {
