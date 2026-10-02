@@ -6,7 +6,7 @@
     <property name="customRetryInterval" expression="$trp:X-Retry-Interval-Seconds" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:customRetryInterval) &gt; 0"><then><property name="retryIntervalSec" expression="$ctx:customRetryInterval" scope="default" type="STRING"/></then></filter>
 
-    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint'">
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint'">
         <then>
             <header name="To" expression="$ctx:ftpTargetUrl" scope="default"/>
             <property name="transport.vfs.ReplyFileName" expression="$ctx:fileName" scope="transport"/>
@@ -22,11 +22,16 @@
         </else>
     </filter>
     <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
-    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint'">
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint'">
         <then>
             <filter xpath="$ctx:targetEndpointKey = 'SpkFtpEndpoint'">
                 <then><call><endpoint key="SpkFtpEndpoint"/></call></then>
-                <else><call><endpoint key="VendorFtpEndpoint"/></call></else>
+                <else>
+                    <filter xpath="$ctx:targetEndpointKey = 'PaymentsFtpEndpoint'">
+                        <then><call><endpoint key="PaymentsFtpEndpoint"/></call></then>
+                        <else><call><endpoint key="VendorFtpEndpoint"/></call></else>
+                    </filter>
+                </else>
             </filter>
         </then>
         <else>
@@ -42,7 +47,7 @@
     <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0"><then><property name="durationMs" value="0" scope="default" type="STRING"/></then></filter>
 
-    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint'">
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint'">
         <then>
             <property name="responseStatus" value="201" scope="default" type="STRING"/>
             <property name="errorMessage" value="None" scope="default" type="STRING"/>

@@ -46,5 +46,13 @@
     "description": "Penerimaan tiket perawatan Omnichannel (Fan-out Paralel) & Background Retry Worker.",
     "specUrl": "/docs/openapi/service-request-service.yaml",
     "scope": "service_requests"
+  },
+  {
+    "id": "payments-service",
+    "name": "Payments Service",
+    "port": 8296,
+    "description": "Layanan posting payment accounting document XML -> FTP SAP.",
+    "specUrl": "/docs/openapi/payments-service.yaml",
+    "scope": "payments"
   }
 ]

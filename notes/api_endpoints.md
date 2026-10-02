@@ -176,6 +176,7 @@ Referensi detail: [GUIDE_VENDOR_CREATE_XML_FTP_V2.md](./GUIDE_VENDOR_CREATE_XML_
 
 ```json
 {
+  "company_code": "1000/2000/6000/7000",
   "companyTitle": "PT",
   "companyName": "PT Adi Sarana Armada Tbk",
   "otv": "No",

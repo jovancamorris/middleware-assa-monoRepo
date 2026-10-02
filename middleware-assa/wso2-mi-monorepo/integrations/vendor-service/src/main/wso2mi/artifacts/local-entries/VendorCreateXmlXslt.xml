@@ -25,6 +25,17 @@
       </Header>
       <TransactionDatas>
         <TransactionData>
+          <Company_Code>
+            <xsl:choose>
+              <xsl:when test="//company_code and normalize-space(//company_code) != ''">
+                <xsl:value-of select="normalize-space(//company_code)"/>
+              </xsl:when>
+              <xsl:when test="//companyCode and normalize-space(//companyCode) != ''">
+                <xsl:value-of select="normalize-space(//companyCode)"/>
+              </xsl:when>
+              <xsl:otherwise>1000/2000/6000/7000</xsl:otherwise>
+            </xsl:choose>
+          </Company_Code>
           <Company_title><xsl:value-of select="//companyTitle"/></Company_title>
           <Company_Name><xsl:value-of select="//companyName"/></Company_Name>
           <OTV><xsl:value-of select="//otv"/></OTV>

@@ -17,6 +17,7 @@ OTHER_SERVICES = [
     "customer-service",
     "spk-service",
     "vendor-service",
+    "payments-service",
 ]
 os.makedirs(DIST_DIR, exist_ok=True)
 

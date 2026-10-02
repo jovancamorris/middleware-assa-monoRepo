@@ -55,65 +55,80 @@ Jika Anda lebih suka menggunakan 1 koleksi tunggal dengan pergantian environment
 
 ## 🧪 Menjalankan Automated Test Runner
 
-1. Pada sidebar kiri Postman, klik salah satu koleksi (Server Dev atau Local Desktop).
+1. Pada sidebar kiri Postman, klik salah satu koleksi (Server Dev, Local Desktop, atau Test Suite).
 2. Klik tombol **Run** (atau titik tiga `...` -> **Run collection**).
 3. Pastikan urutan folder tercentang:
-   - `1. Health & Readiness Probes` (12 request)
-   - `2. Auth & Scope Security Guards` (7 request)
-   - `3. Parameter Validation` (5 request)
-   - `4. Inquiry & Pagination` (6 request)
-   - `5. Transactional & Fan-Out Endpoints` (5 request)
-   - `6. Background Retry Worker` (1 request)
+   - `1. Health & Readiness Probes` (14 request)
+   - `2. Auth & Scope Security Guards` (9 request)
+   - `3. Parameter Validation` (7 request)
+   - `4. Inquiry & Pagination` (9 request)
+   - `5. Transactional & Fan-Out Endpoints` (7 request)
+   - `6. Background Retry Worker` (2 request)
 4. Klik tombol biru **Run ASSA Middleware API Test Suite**.
-5. Postman akan mengeksekusi seluruh 36 request secara otomatis dan menampilkan hasil verifikasi status code serta validasi payload.
+5. Postman akan mengeksekusi seluruh 48 request secara otomatis dan menampilkan hasil verifikasi status code serta validasi payload.
 
 ---
 
-## 📋 Cakupan 36 Skenario Pengujian
+## 📋 Cakupan 48 Skenario Pengujian Lengkap
 
-### 1. Health & Readiness Probes (12 Endpoint)
-- Branch Service: `/health/branch` & `/readiness/branch`
-- Customer Service: `/health/customer` & `/readiness/customer`
-- Vehicle Service: `/health/vehicle` & `/readiness/vehicle`
-- Vendor Service: `/health/vendor` & `/readiness/vendor`
-- SPK Service: `/health/spk` & `/readiness/spk`
-- Service Request Service: `/health/service-request` & `/readiness/service-request`
+### 1. Health & Readiness Probes (14 Endpoint)
+- General Liveness Probe: `GET /health` (200 OK)
+- General Readiness Probe: `GET /readiness` (200 OK)
+- Branch Service: `/health/branch` & `/readiness/branch` (200 OK)
+- Customer Service: `/health/customer` & `/readiness/customer` (200 OK)
+- Vehicle Service: `/health/vehicle` & `/readiness/vehicle` (200 OK)
+- Vendor Service: `/health/vendor` & `/readiness/vendor` (200 OK)
+- SPK Service: `/health/spk` & `/readiness/spk` (200 OK)
+- Service Request Service: `/health/service-request` & `/readiness/service-request` (200 OK)
 
-### 2. Auth & Scope Security Guards (7 Endpoint)
+### 2. Auth & Scope Security Guards (9 Endpoint)
 - Request tanpa header `Authorization` (401 Unauthorized)
 - Request dengan token palsu / invalid (401 Unauthorized)
-- Consumer App B (hanya scope vehicles) memanggil:
+- Consumer App B (hanya scope `vehicles`) memanggil:
   - Branch Service (403 Forbidden)
   - Customer Service (403 Forbidden)
   - Vendor Create (403 Forbidden)
   - SPK Duelist (403 Forbidden)
   - Service Request (403 Forbidden)
+- Consumer App ATLAS (hanya scope `vendors`) memanggil:
+  - SPK Duelist (403 Forbidden)
+- Consumer App Omnichannel (hanya scope `service_requests`) memanggil:
+  - Customer Service (403 Forbidden)
 
-### 3. Parameter Validation (5 Endpoint)
-- Vehicle tanpa query param pencarian (400 Bad Request)
+### 3. Parameter & Input Validation (7 Endpoint)
+- Vehicle tanpa query param pencarian `plate_no`/`equipment_no`/`branchCode` (400 Bad Request)
 - Vendor Create dengan `companyTitle` tidak valid (400 Bad Request)
+- Vendor Create dengan `otv: "No"` tanpa kelengkapan rekening bank (400 Bad Request)
 - SPK Duelist tanpa nomor `noSpk` (400 Bad Request)
 - SPK Duelist dengan rincian total tidak cocok via header `X-Validate-Total` (400 Bad Request)
-- Service Request tanpa field wajib `app_id` (400 Bad Request)
+- SPK Duelist dengan data tagihan invoice parsial / tidak lengkap (400 Bad Request)
+- Service Request tanpa field wajib `app_id` pada format legacy (400 Bad Request)
 
-### 4. Inquiry & Pagination GET (6 Endpoint)
-- Branch Inquiry GetByCreateDate (200 OK)
-- Customer Inquiry GetByCreateDate (200 OK)
-- Vehicle Inquiry `/getByLicensePlate` (200 OK / 403 jika API key upstream devfmsapi dibutuhkan)
-- Vehicle Inquiry `/vehicleatlas` (200 OK / 403 jika API key upstream dibutuhkan)
-- Service Request GET Inquiry paginated list (200 OK dengan JSON metadata `pagination`)
-- Service Request Public Endpoint Barantum (200 OK)
+### 4. Inquiry & Pagination GET (9 Endpoint)
+- Branch Inquiry GetByCreateDate (Page 1 via App A Token - 200 OK)
+- Branch Inquiry GetByCreateDate (Page 2 via QA Token - 200 OK)
+- Customer Inquiry GetByCreateDate (Page 1 via App A Token - 200 OK)
+- Customer Inquiry GetByCreateDate (Page 2 via QA Token - 200 OK)
+- Vehicle Inquiry `/getByLicensePlate` cari Plat Nomor (200 OK / 403 jika API key upstream devfmsapi dibutuhkan)
+- Vehicle Inquiry `/vehicleatlas` cari Plat Nomor (200 OK / 403 jika API key upstream dibutuhkan)
+- Vehicle Inquiry `/vehicleatlas` cari Equipment Number (200 OK / 403 jika API key upstream dibutuhkan)
+- Service Request GET Inquiry paginated list (200 OK dengan JSON metadata `pagination`: `page`, `perPage`, `total`)
+- Service Request Public Endpoint Barantum GET Inquiry (200 OK via `X-API-Key` & `Origin: https://barantum.internal`)
 
-### 5. Transactional & Parallel Fan-Out POST (5 Endpoint)
-- Service Request Parallel Fan-Out:
-  - Mengirim payload ke `/api/service-requests` dengan `X-Transaction-Id` dinamis (`TRX-SR-POSTMAN-<timestamp>`).
+### 5. Transactional & Parallel Fan-Out POST (7 Endpoint)
+- Service Request Parallel Fan-Out (Format Flat Legacy Omnichannel):
+  - Mengirim payload 30 field ke `/api/service-requests` dengan `X-Transaction-Id` dinamis (`TRX-SR-POSTMAN-<timestamp>`).
   - Menjalankan fan-out paralel ke ATLAS & ASSA ExtService.
   - Melakukan retry hingga 10x per target jika eksternal gagal.
   - Memverifikasi response code 200 (Success) atau 502 (Target gagal setelah 10x percobaan) beserta detail target.
-- Service Request Re-Send / Re-Execution
-- Service Request Public CRM Barantum POST
-- Vendor Create POST ke FTP
-- SPK Duelist POST ke FTP
+- Service Request Re-Send / Re-Execution (Idempotency Re-try)
+- Service Request Public Gateway Barantum CRM (Format Baru: Nested `unit` { `licensePlate`, `brand`, `model`, `odometer` }, header `Origin` & `X-API-Key`)
+- Vendor Create POST ke FTP SAP (Payload V2 ATLAS 17 field via QA Token - 201 Created / 502)
+- Vendor Create POST ke FTP SAP (Payload V2 ATLAS via App ATLAS Token scope `vendors` - 201 Created / 502)
+- SPK Duelist POST ke FTP SAP (Rincian Jasa & Parts dengan header `X-Validate-Total` - 201 Created / 502)
+- SPK Duelist POST ke FTP SAP (Lengkap dengan data Invoice vendor dan Faktur Pajak - 201 Created / 502)
 
-### 6. Background Retry Worker (1 Endpoint)
-- GET `/api/worker/retry` (200 OK)
+### 6. Background Retry Worker (2 Endpoint)
+- Trigger Background Retry Worker via GET: `GET /api/worker/retry` (200 OK)
+- Trigger Background Retry Worker via POST: `POST /api/worker/retry` (200 OK)
+

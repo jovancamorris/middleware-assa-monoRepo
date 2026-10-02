@@ -70,6 +70,11 @@ USER root
 COPY --from=build /app/integrations/service-request-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
+FROM base-runtime AS payments-service
+USER root
+COPY --from=build /app/integrations/payments-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
 # ----------------------------------------------------
 # Unified Target (Default jika build tanpa --target)
 # ----------------------------------------------------
@@ -86,5 +91,7 @@ COPY --from=build /app/integrations/vendor-service/target/*.car \
 COPY --from=build /app/integrations/spk-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 COPY --from=build /app/integrations/service-request-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --from=build /app/integrations/payments-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon

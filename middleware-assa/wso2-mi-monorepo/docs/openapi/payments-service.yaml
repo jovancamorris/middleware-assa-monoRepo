@@ -1,0 +1,380 @@
+openapi: 3.0.3
+info:
+  title: ASSA Payments Service API
+  description: |
+    API integrasi penerbitan dokumen pembayaran akuntansi (Payment Accounting XML -> FTP SAP) melalui WSO2 Integrator: MI.
+    Sesuai spesifikasi `GUIDE_PAYMENTS_CREATE_XML_FTP.md` dan standar `API_DEVELOPMENT_GUIDE.md`.
+
+    **Format File XML yang Diunggah ke FTP**:
+    `PAYMENTS_<accountingDocumentNumber>_<companyCode>_<transactionId>.xml`
+    Contoh: `PAYMENTS_9300051904_1000_TRX-PAYMENT-DUE-LIST-20260908-0001.xml`
+
+    **Mekanisme Idempotency**:
+    Sertakan header `X-Transaction-Id` untuk mencegah duplikasi unggahan dokumen payment ke SAP.
+  version: 1.0.0
+
+servers:
+  - url: https://devmiddleware1.assa.id
+    description: Server Dev ASSA Gateway (HTTPS)
+  - url: http://devmiddleware1.assa.id:6031
+    description: Server Dev ASSA (Nginx Port 6031)
+  - url: http://10.3.20.197:6031
+    description: Server Dev ASSA (Nginx IP Internal)
+  - url: http://localhost:8296
+    description: Local Docker Compose (Direct Port 8296)
+
+tags:
+  - name: Payments
+    description: Pengiriman dokumen akuntansi pembayaran ke SAP melalui FTP
+  - name: Health
+    description: Probe liveness dan readiness container
+
+paths:
+  /api/payments:
+    post:
+      tags:
+        - Payments
+      operationId: createPayment
+      summary: Mengirim dokumen akuntansi pembayaran (XML over FTP)
+      description: |
+        Menerima data transaksi pembayaran akuntansi dalam format JSON, membentuk dokumen XML `<PaymentAccountingDocument>`,
+        mencatat histori transaksi di MariaDB, dan mengunggah file XML ke server FTP SAP pada direktori remote `/payments`.
+
+        **Format Penamaan File**:
+        File XML dinamai secara deterministik dengan pola:
+        `PAYMENTS_<accountingDocumentNumber>_<companyCode>_<transactionId>.xml`
+        Contoh: `PAYMENTS_9300051904_1000_TRX-PAYMENT-DUE-LIST-20260908-0001.xml`
+
+        **Idempotency**:
+        Gunakan header `X-Transaction-Id`. Jika transaksi dengan ID yang sama dikirim ulang dan berstatus `SUCCESS`,
+        middleware akan mengembalikan respons replay `200 OK` tanpa mengunggah ulang file ke FTP.
+      security:
+        - bearerAuth:
+            - payments
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/TransactionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/FileName'
+        - $ref: '#/components/parameters/ForwardedFor'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentAccountingRequest'
+            example:
+              companyCodes: "1000/2000/6000/7000"
+              accountingDocumentNumber: "9300051904"
+              documentDate: "08.09.2026"
+              postingDate: "08.09.2026"
+              businessArea: "1100"
+              currency: "IDR"
+              glAccount: "1114000000"
+              text: "PBY BENGKEL REFF 3400082380 DLL"
+              assignment: "PT PRABU PENDAWA M"
+      responses:
+        '201':
+          description: Dokumen XML pembayaran berhasil dibentuk dan diunggah ke FTP SAP
+          headers:
+            X-Transaction-Id:
+              schema:
+                type: string
+                example: "TRX-PAYMENT-DUE-LIST-20260908-0001"
+            X-Correlation-Id:
+              schema:
+                type: string
+                example: "corr-20260908100001001"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSuccessResponse'
+              example:
+                success: true
+                message: "Payload accepted and delivered"
+                transactionId: "TRX-PAYMENT-DUE-LIST-20260908-0001"
+                fileName: "PAYMENTS_9300051904_1000_TRX-PAYMENT-DUE-LIST-20260908-0001.xml"
+        '200':
+          description: Idempotency Replay — transaksi payment sudah pernah berhasil diproses sebelumnya
+          headers:
+            X-Idempotent-Replay:
+              schema:
+                type: boolean
+                example: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentSuccessResponse'
+              example:
+                success: true
+                message: "Payload accepted and delivered"
+                transactionId: "TRX-PAYMENT-DUE-LIST-20260908-0001"
+                fileName: "PAYMENTS_9300051904_1000_TRX-PAYMENT-DUE-LIST-20260908-0001.xml"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /health/payments:
+    get:
+      tags:
+        - Health
+      operationId: getPaymentsHealth
+      summary: Health check liveness Payments Service
+      description: Memeriksa apakah Payments Service pada WSO2 MI hidup dan responsif.
+      security: []
+      responses:
+        '200':
+          description: Service sehat dan aktif
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "UP"
+                service: "payments-service"
+                timestamp: "2026-10-02T10:00:00Z"
+
+  /readiness/payments:
+    get:
+      tags:
+        - Health
+      operationId: getPaymentsReadiness
+      summary: Health check readiness Payments Service
+      description: Memeriksa kesiapan Payments Service (konektivitas DB dan runtime).
+      security: []
+      responses:
+        '200':
+          description: Service siap melayani traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "UP"
+                service: "payments-service"
+                database: "CONNECTED"
+                timestamp: "2026-10-02T10:00:00Z"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Token Bearer dari App Registry ASSA.
+        Token harus memiliki scope `payments` untuk mengakses Payments Service.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: ID pelacakan end-to-end (tracing) unik dari client. Jika tidak dikirim, middleware akan membuat secara otomatis.
+      schema:
+        type: string
+        example: "corr-20260908100001001"
+
+    TransactionId:
+      name: X-Transaction-Id
+      in: header
+      required: false
+      description: ID transaksi bisnis unik untuk idempotency key utama.
+      schema:
+        type: string
+        example: "TRX-PAYMENT-DUE-LIST-20260908-0001"
+
+    IdempotencyKey:
+      name: X-Idempotency-Key
+      in: header
+      required: false
+      description: Header alternatif untuk transaction ID idempotency.
+      schema:
+        type: string
+        example: "TRX-PAYMENT-DUE-LIST-20260908-0001"
+
+    FileName:
+      name: X-File-Name
+      in: header
+      required: false
+      description: Override nama file XML yang diunggah ke FTP (opsional).
+      schema:
+        type: string
+        example: "PAYMENTS_9300051904_1000_TRX-PAYMENT-DUE-LIST-20260908-0001.xml"
+
+    ForwardedFor:
+      name: X-Forwarded-For
+      in: header
+      required: false
+      description: Alamat IP client pemanggil (diteruskan oleh reverse proxy).
+      schema:
+        type: string
+        example: "127.0.0.1"
+
+  schemas:
+    PaymentAccountingRequest:
+      type: object
+      required:
+        - companyCodes
+        - accountingDocumentNumber
+        - documentDate
+        - postingDate
+        - businessArea
+        - currency
+        - glAccount
+      properties:
+        companyCodes:
+          type: string
+          description: Kode perusahaan SAP. Dapat berupa nilai tunggal (mis. "1000") atau gabungan separated slash (mis. "1000/2000/6000/7000").
+          maxLength: 100
+          example: "1000/2000/6000/7000"
+        companyCode:
+          type: string
+          description: Alternatif field kode perusahaan tunggal.
+          maxLength: 100
+          example: "1000"
+        accountingDocumentNumber:
+          type: string
+          description: Nomor dokumen akuntansi SAP (Document Number).
+          maxLength: 50
+          example: "9300051904"
+        documentDate:
+          type: string
+          description: Tanggal dokumen dengan format DD.MM.YYYY (contoh "08.09.2026") atau YYYY-MM-DD.
+          example: "08.09.2026"
+        postingDate:
+          type: string
+          description: Tanggal posting transaksi akuntansi dengan format DD.MM.YYYY atau YYYY-MM-DD.
+          example: "08.09.2026"
+        businessArea:
+          type: string
+          description: Kode Business Area SAP.
+          maxLength: 10
+          example: "1100"
+        currency:
+          type: string
+          description: Kode mata uang ISO 4217 (uppercase).
+          maxLength: 5
+          example: "IDR"
+        glAccount:
+          type: string
+          description: Nomor General Ledger Bank Account (GL BK) 10 digit SAP.
+          maxLength: 20
+          example: "1114000000"
+        text:
+          type: string
+          description: Keterangan atau teks transaksi pembayaran akuntansi.
+          maxLength: 255
+          example: "PBY BENGKEL REFF 3400082380 DLL"
+        assignment:
+          type: string
+          description: Nomor penugasan / assignment transaksi akuntansi.
+          maxLength: 255
+          example: "PT PRABU PENDAWA M"
+
+    PaymentSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Payload accepted and delivered"
+        transactionId:
+          type: string
+          example: "TRX-PAYMENT-DUE-LIST-20260908-0001"
+        fileName:
+          type: string
+          example: "PAYMENTS_9300051904_1000_TRX-PAYMENT-DUE-LIST-20260908-0001.xml"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Bad Request"
+        detail:
+          type: string
+          example: "Field 'accountingDocumentNumber' wajib diisi dan maksimal 50 karakter"
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "UP"
+        service:
+          type: string
+          example: "payments-service"
+        database:
+          type: string
+          example: "CONNECTED"
+        timestamp:
+          type: string
+          example: "2026-10-02T10:00:00Z"
+
+  responses:
+    BadRequest:
+      description: Request tidak valid, format JSON rusak, atau field mandatory tidak lengkap
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            message: "Bad Request"
+            detail: "Field 'accountingDocumentNumber' wajib diisi dan maksimal 50 karakter"
+
+    Unauthorized:
+      description: Header Authorization hilang, token salah format, atau token tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            message: "Unauthorized"
+            detail: "Authentication required. Please provide 'Authorization: Bearer <token>'."
+
+    Forbidden:
+      description: Token valid tetapi aplikasi pemanggil tidak memiliki scope 'payments'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            message: "Forbidden"
+            detail: "Application (app_b) does not have scope: payments"
+
+    Conflict:
+      description: Transaksi sedang dalam proses pengunggahan (status PROCESSING)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            message: "Conflict"
+            detail: "Transaction is currently being processed. Please retry shortly."
+
+    BadGateway:
+      description: Koneksi ke server FTP SAP gagal atau terjadi timeout
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: true
+            message: "Bad Gateway"
+            detail: "Failed to deliver file to SAP FTP endpoint after retry attempts."

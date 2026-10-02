@@ -7,6 +7,23 @@
     <property name="originalPayload" expression="json-eval($)" scope="default" type="STRING"/>
 
     <!-- Field extractions V2 -->
+    <property name="companyCode" expression="json-eval($.company_code)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:companyCode) = 0">
+        <then>
+            <property name="companyCode" expression="json-eval($.companyCode)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:companyCode) = 0">
+        <then>
+            <property name="companyCode" expression="get-property('file', 'vmd.default.companyCode')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:companyCode) = 0">
+        <then>
+            <property name="companyCode" value="1000/2000/6000/7000" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
     <property name="companyTitle" expression="json-eval($.companyTitle)" scope="default" type="STRING"/>
     <property name="companyName" expression="json-eval($.companyName)" scope="default" type="STRING"/>
     <property name="otv" expression="json-eval($.otv)" scope="default" type="STRING"/>
@@ -46,6 +63,17 @@
     <!-- ================================================================= -->
     <!-- 2. Specifications & Field Validations (GUIDE V2 Bagian 4)         -->
     <!-- ================================================================= -->
+    <!-- Field 0: companyCode (String, max 100 char) -->
+    <filter xpath="string-length($ctx:companyCode) &gt; 100">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'company_code' maksimal 100 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
     <!-- Field 1: companyTitle (Enum: PT, CV) -->
     <filter xpath="not($ctx:companyTitle = 'PT' or $ctx:companyTitle = 'CV')">
         <then>
@@ -309,21 +337,22 @@
                 </Header>
                 <TransactionDatas>
                     <TransactionData>
-                        <Company_title>$8</Company_title>
-                        <Company_Name>$9</Company_Name>
-                        <OTV>$10</OTV>
-                        <Account_Number>$11</Account_Number>
-                        <Account_Name>$12</Account_Name>
-                        <Bank_Name>$13</Bank_Name>
-                        <HO_Email>$14</HO_Email>
-                        <HO_Phone>$15</HO_Phone>
-                        <HO_Address>$16</HO_Address>
-                        <Contact_Name>$17</Contact_Name>
-                        <Contact_Phone>$18</Contact_Phone>
-                        <NPWP>$19</NPWP>
-                        <TOP>$20</TOP>
-                        <Account_Group>$21</Account_Group>
-                        <GL_Account>$22</GL_Account>
+                        <Company_Code>$8</Company_Code>
+                        <Company_title>$9</Company_title>
+                        <Company_Name>$10</Company_Name>
+                        <OTV>$11</OTV>
+                        <Account_Number>$12</Account_Number>
+                        <Account_Name>$13</Account_Name>
+                        <Bank_Name>$14</Bank_Name>
+                        <HO_Email>$15</HO_Email>
+                        <HO_Phone>$16</HO_Phone>
+                        <HO_Address>$17</HO_Address>
+                        <Contact_Name>$18</Contact_Name>
+                        <Contact_Phone>$19</Contact_Phone>
+                        <NPWP>$20</NPWP>
+                        <TOP>$21</TOP>
+                        <Account_Group>$22</Account_Group>
+                        <GL_Account>$23</GL_Account>
                     </TransactionData>
                 </TransactionDatas>
             </Transaction>
@@ -336,6 +365,7 @@
             <arg evaluator="xml" expression="$ctx:atlasDestUser"/>
             <arg evaluator="xml" expression="$ctx:atlasKey1"/>
             <arg evaluator="xml" expression="$ctx:atlasKey2"/>
+            <arg evaluator="xml" expression="$ctx:companyCode"/>
             <arg evaluator="xml" expression="$ctx:companyTitle"/>
             <arg evaluator="xml" expression="$ctx:companyName"/>
             <arg evaluator="xml" expression="$ctx:otv"/>

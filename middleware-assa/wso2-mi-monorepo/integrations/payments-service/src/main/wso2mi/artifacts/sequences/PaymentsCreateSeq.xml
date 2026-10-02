@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="PaymentsCreateSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- 1. Extract JSON Payload & Save Original Copy                      -->
+    <!-- Referensi: GUIDE_PAYMENTS_CREATE_XML_FTP.md                       -->
+    <!-- ================================================================= -->
+    <property name="originalPayload" expression="json-eval($)" scope="default" type="STRING"/>
+
+    <!-- Field extractions -->
+    <property name="companyCodes" expression="json-eval($.companyCodes)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:companyCodes) = 0">
+        <then>
+            <property name="companyCodes" expression="json-eval($.company_codes)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:companyCodes) = 0">
+        <then>
+            <property name="companyCodes" expression="json-eval($.companyCode)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:companyCodes) = 0">
+        <then>
+            <property name="companyCodes" expression="json-eval($.company_code)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:companyCodes) = 0">
+        <then>
+            <property name="companyCodes" expression="get-property('file', 'payments.default.companyCode')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:companyCodes) = 0">
+        <then>
+            <property name="companyCodes" value="1000/2000/6000/7000" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Extract primaryCompanyCode for filename (e.g. 1000 from 1000/2000/6000/7000) -->
+    <property name="primaryCompanyCode" expression="$ctx:companyCodes" scope="default" type="STRING"/>
+    <filter xpath="fn:contains($ctx:companyCodes, '/')">
+        <then>
+            <property name="primaryCompanyCode" expression="fn:normalize-space(fn:substring-before($ctx:companyCodes, '/'))" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:primaryCompanyCode) = 0">
+        <then>
+            <property name="primaryCompanyCode" value="1000" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="accountingDocumentNumber" expression="json-eval($.accountingDocumentNumber)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:accountingDocumentNumber) = 0">
+        <then>
+            <property name="accountingDocumentNumber" expression="json-eval($.accounting_document_number)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="documentDate" expression="json-eval($.documentDate)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:documentDate) = 0">
+        <then>
+            <property name="documentDate" expression="json-eval($.document_date)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="postingDate" expression="json-eval($.postingDate)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:postingDate) = 0">
+        <then>
+            <property name="postingDate" expression="json-eval($.posting_date)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="businessArea" expression="json-eval($.businessArea)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:businessArea) = 0">
+        <then>
+            <property name="businessArea" expression="json-eval($.business_area)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="currency" expression="json-eval($.currency)" scope="default" type="STRING"/>
+    <property name="glAccount" expression="json-eval($.glAccount)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:glAccount) = 0">
+        <then>
+            <property name="glAccount" expression="json-eval($.gl_account)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="text" expression="json-eval($.text)" scope="default" type="STRING"/>
+    <property name="assignment" expression="json-eval($.assignment)" scope="default" type="STRING"/>
+
+    <!-- Client IP Extraction (X-Forwarded-For -> X-Real-IP -> default 127.0.0.1) -->
+    <property name="clientIp" expression="$trp:X-Forwarded-For" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:clientIp) = 0">
+        <then>
+            <property name="clientIp" expression="$trp:X-Real-IP" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:clientIp) = 0">
+        <then>
+            <property name="clientIp" value="127.0.0.1" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="fn:contains($ctx:clientIp, ',')">
+        <then>
+            <property name="clientIp" expression="fn:normalize-space(fn:substring-before($ctx:clientIp, ','))" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 2. Specifications & Field Validations                             -->
+    <!-- ================================================================= -->
+    <!-- Field 1: accountingDocumentNumber (String, required, max 50 char) -->
+    <filter xpath="string-length($ctx:accountingDocumentNumber) = 0 or string-length($ctx:accountingDocumentNumber) &gt; 50">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'accountingDocumentNumber' wajib diisi dan maksimal 50 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 2: companyCodes (String, required, max 100 char) -->
+    <filter xpath="string-length($ctx:companyCodes) = 0 or string-length($ctx:companyCodes) &gt; 100">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'companyCodes' wajib diisi dan maksimal 100 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 3: documentDate (String, required) -->
+    <filter xpath="string-length($ctx:documentDate) = 0">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'documentDate' wajib diisi (format DD.MM.YYYY atau YYYY-MM-DD)" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 4: postingDate (String, required) -->
+    <filter xpath="string-length($ctx:postingDate) = 0">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'postingDate' wajib diisi (format DD.MM.YYYY atau YYYY-MM-DD)" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 5: businessArea (String, required, max 10 char) -->
+    <filter xpath="string-length($ctx:businessArea) = 0 or string-length($ctx:businessArea) &gt; 10">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'businessArea' wajib diisi dan maksimal 10 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 6: currency (String, required, max 5 char) -->
+    <filter xpath="string-length($ctx:currency) = 0 or string-length($ctx:currency) &gt; 5">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'currency' wajib diisi kode ISO valid (mis. IDR)" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field 7: glAccount (String, required, max 20 char) -->
+    <filter xpath="string-length($ctx:glAccount) = 0 or string-length($ctx:glAccount) &gt; 20">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'glAccount' wajib diisi kode GL BK SAP (mis. 1114000000)" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Normalize Date Format (DD.MM.YYYY -> YYYY-MM-DD) -->
+    <property name="formattedDocDate" expression="$ctx:documentDate" scope="default" type="STRING"/>
+    <filter xpath="fn:contains($ctx:documentDate, '.')">
+        <then>
+            <property name="docDay" expression="fn:substring-before($ctx:documentDate, '.')" scope="default" type="STRING"/>
+            <property name="docMonth" expression="fn:substring-before(fn:substring-after($ctx:documentDate, '.'), '.')" scope="default" type="STRING"/>
+            <property name="docYear" expression="fn:substring-after(fn:substring-after($ctx:documentDate, '.'), '.')" scope="default" type="STRING"/>
+            <property name="formattedDocDate" expression="fn:concat($ctx:docYear, '-', $ctx:docMonth, '-', $ctx:docDay)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="formattedPostDate" expression="$ctx:postingDate" scope="default" type="STRING"/>
+    <filter xpath="fn:contains($ctx:postingDate, '.')">
+        <then>
+            <property name="postDay" expression="fn:substring-before($ctx:postingDate, '.')" scope="default" type="STRING"/>
+            <property name="postMonth" expression="fn:substring-before(fn:substring-after($ctx:postingDate, '.'), '.')" scope="default" type="STRING"/>
+            <property name="postYear" expression="fn:substring-after(fn:substring-after($ctx:postingDate, '.'), '.')" scope="default" type="STRING"/>
+            <property name="formattedPostDate" expression="fn:concat($ctx:postYear, '-', $ctx:postMonth, '-', $ctx:postDay)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 3. Observability Logging & Idempotency Guard                      -->
+    <!-- ================================================================= -->
+    <property name="api.endpoint" value="/api/payments" scope="default" type="STRING"/>
+    <property name="api.params" expression="$ctx:originalPayload" scope="default" type="STRING"/>
+    <sequence key="LogRequestSeq"/>
+    <sequence key="IdempotencyGuardSeq"/>
+
+    <!-- ================================================================= -->
+    <!-- 4. Deterministic File Name Resolution                             -->
+    <!-- Format: PAYMENTS_<accountingDocumentNumber>_<companyCode>_<transactionId>.xml -->
+    <!-- Contoh: PAYMENTS_9300051904_1000_TRX-PAYMENT-DUE-LIST-20260908-0001.xml -->
+    <!-- ================================================================= -->
+    <property name="customFileName" expression="$trp:X-File-Name" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:customFileName) &gt; 0">
+        <then>
+            <property name="fileName" expression="$ctx:customFileName" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="fileName" expression="fn:concat('PAYMENTS_', $ctx:accountingDocumentNumber, '_', $ctx:primaryCompanyCode, '_', $ctx:transactionId, '.xml')" scope="default" type="STRING"/>
+        </else>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 5. Build XML Target Payload conforming to Payments Schema         -->
+    <!-- ================================================================= -->
+    <payloadFactory media-type="xml">
+        <format>
+            <PaymentAccountingDocument xmlns="urn:example:payments:TBD" schemaVersion="TBD">
+                <CompanyCode>$1</CompanyCode>
+                <AccountingDocumentNumber>$2</AccountingDocumentNumber>
+                <DocumentDate>$3</DocumentDate>
+                <PostingDate>$4</PostingDate>
+                <BusinessArea>$5</BusinessArea>
+                <Currency>$6</Currency>
+                <GLBK>$7</GLBK>
+                <Text>$8</Text>
+                <Assignment>$9</Assignment>
+            </PaymentAccountingDocument>
+        </format>
+        <args>
+            <arg evaluator="xml" expression="$ctx:companyCodes"/>
+            <arg evaluator="xml" expression="$ctx:accountingDocumentNumber"/>
+            <arg evaluator="xml" expression="$ctx:formattedDocDate"/>
+            <arg evaluator="xml" expression="$ctx:formattedPostDate"/>
+            <arg evaluator="xml" expression="$ctx:businessArea"/>
+            <arg evaluator="xml" expression="$ctx:currency"/>
+            <arg evaluator="xml" expression="$ctx:glAccount"/>
+            <arg evaluator="xml" expression="$ctx:text"/>
+            <arg evaluator="xml" expression="$ctx:assignment"/>
+        </args>
+    </payloadFactory>
+
+    <!-- Pretty-print XML structure with indentations & newlines -->
+    <xslt key="XmlPrettyPrintXslt"/>
+
+    <!-- ================================================================= -->
+    <!-- 6. Resolve Dynamic VFS FTP Destination (4-Layer Chain)            -->
+    <!-- ================================================================= -->
+    <!-- Layer 1: ENV -->
+    <property name="ftpHost" expression="get-property('env', 'FTP_PAYMENTS_HOST')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then>
+            <property name="ftpHost" expression="get-property('env', 'FTP_SAP_HOST')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then>
+            <!-- Layer 2: System -->
+            <property name="ftpHost" expression="get-property('system', 'ftp.payments.host')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then>
+            <!-- Layer 3: File -->
+            <property name="ftpHost" expression="get-property('file', 'ftp.payments.host')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then>
+            <!-- Layer 4: Fallback -->
+            <property name="ftpHost" value="devqaxmlpool.assa.id" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="ftpPort" expression="get-property('env', 'FTP_PAYMENTS_PORT')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then>
+            <property name="ftpPort" expression="get-property('env', 'FTP_SAP_PORT')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then>
+            <property name="ftpPort" expression="get-property('system', 'ftp.payments.port')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then>
+            <property name="ftpPort" expression="get-property('file', 'ftp.payments.port')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then>
+            <property name="ftpPort" value="21" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="ftpUsername" expression="get-property('env', 'FTP_PAYMENTS_USERNAME')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then>
+            <property name="ftpUsername" expression="get-property('env', 'FTP_SAP_USERNAME')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then>
+            <property name="ftpUsername" expression="get-property('system', 'ftp.payments.username')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then>
+            <property name="ftpUsername" expression="get-property('file', 'ftp.payments.username')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then>
+            <property name="ftpUsername" value="middlewaredev" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="ftpPassword" expression="get-property('env', 'FTP_PAYMENTS_PASSWORD')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then>
+            <property name="ftpPassword" expression="get-property('env', 'FTP_SAP_PASSWORD')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then>
+            <property name="ftpPassword" expression="get-property('system', 'ftp.payments.password')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then>
+            <property name="ftpPassword" expression="get-property('file', 'ftp.payments.password')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Priority resolution for directory: ENV -> Payments remote dir -> fallback /payments -->
+    <property name="ftpTargetDir" expression="get-property('env', 'FTP_PAYMENTS_TARGET')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ftpTargetDir" expression="get-property('system', 'ftp.payments.remote.dir')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ftpTargetDir" expression="get-property('file', 'ftp.payments.remote.dir')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ftpTargetDir" value="/payments" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Clean leading slash from ftpTargetDir if necessary -->
+    <filter xpath="fn:starts-with($ctx:ftpTargetDir, '/')">
+        <then>
+            <property name="cleanFtpDir" expression="fn:substring($ctx:ftpTargetDir, 2)" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="cleanFtpDir" expression="$ctx:ftpTargetDir" scope="default" type="STRING"/>
+        </else>
+    </filter>
+
+    <!-- URL-encode password character '#' to '%23' for standard RFC URI parsing -->
+    <filter xpath="fn:contains($ctx:ftpPassword, '#')">
+        <then>
+            <property name="ftpPasswordEncoded" expression="fn:concat(fn:substring-before($ctx:ftpPassword, '#'), '%23', fn:substring-after($ctx:ftpPassword, '#'))" scope="default" type="STRING"/>
+        </then>
+        <else>
+            <property name="ftpPasswordEncoded" expression="$ctx:ftpPassword" scope="default" type="STRING"/>
+        </else>
+    </filter>
+
+    <!-- Construct final VFS URI: vfs:ftp://user:pass@host:port/dir?vfs.passive=true -->
+    <property name="ftpTargetUrl" expression="fn:concat('vfs:ftp://', $ctx:ftpUsername, ':', $ctx:ftpPasswordEncoded, '@', $ctx:ftpHost, ':', $ctx:ftpPort, '/', $ctx:cleanFtpDir, '?vfs.passive=true')" scope="default" type="STRING"/>
+
+    <!-- Set VFS Transport Parameters -->
+    <header name="To" expression="$ctx:ftpTargetUrl" scope="default"/>
+    <property name="transport.vfs.ReplyFileName" expression="$ctx:fileName" scope="transport"/>
+    <property name="OUT_ONLY" value="true" scope="default"/>
+    <property name="messageType" value="application/xml" scope="axis2"/>
+    <property name="ContentType" value="application/xml" scope="axis2"/>
+    <property name="NO_SOAP_ENVELOPE" value="true" scope="axis2"/>
+
+    <!-- ================================================================= -->
+    <!-- 7. Invoke SafeApiCallWithRetrySeq with PaymentsFtpEndpoint        -->
+    <!-- ================================================================= -->
+    <property name="targetEndpointKey" value="PaymentsFtpEndpoint" scope="default" type="STRING"/>
+    <sequence key="SafeApiCallWithRetrySeq"/>
+</sequence>

@@ -245,6 +245,14 @@ components:
         - glAccount
         - documentNumber
       properties:
+        company_code:
+          type: string
+          description: Kode perusahaan SAP tujuan (mis. 1000/2000/6000/7000). Jika tidak disertakan, default ke 1000/2000/6000/7000.
+          example: "1000/2000/6000/7000"
+        companyCode:
+          type: string
+          description: Alias camelCase untuk company_code
+          example: "1000/2000/6000/7000"
         companyTitle:
           type: string
           description: Bentuk badan hukum (PT, CV, dll.)

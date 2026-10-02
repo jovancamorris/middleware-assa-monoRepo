@@ -6,6 +6,7 @@ $headers = @{
 }
 
 $body = @{
+    company_code = "1000/2000/6000/7000"
     companyTitle = "PT"
     companyName = "PT Adi Sarana Armada Tbk"
     otv = "No"

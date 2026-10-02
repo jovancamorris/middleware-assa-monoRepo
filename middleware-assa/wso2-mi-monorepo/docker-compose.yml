@@ -154,6 +154,28 @@ services:
       SR_TARGET_ATLAS_APIKEY: ${SR_TARGET_ATLAS_APIKEY:-umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd}
       SR_TARGET_EXTSERVICE_ENABLED: ${SR_TARGET_EXTSERVICE_ENABLED:-true}
 
+  payments-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: payments-service
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
+    image: assa/payments-service:1.0.0
+    container_name: payments-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8296:8290"
+    environment:
+      <<: *common-env
+      FTP_PAYMENTS_HOST: ${FTP_PAYMENTS_HOST:-devqaxmlpool.assa.id}
+      FTP_PAYMENTS_PORT: ${FTP_PAYMENTS_PORT:-21}
+      FTP_PAYMENTS_TARGET: ${FTP_PAYMENTS_TARGET:-/payments}
+      FTP_PAYMENTS_USERNAME: ${FTP_PAYMENTS_USERNAME:-middlewaredev}
+      FTP_PAYMENTS_PASSWORD: ${FTP_PAYMENTS_PASSWORD:-}
+
   nginx:
     image: nginx:alpine
     container_name: middleware-wso2-nginx
@@ -170,6 +192,7 @@ services:
       - vendor-service
       - spk-service
       - service-request-service
+      - payments-service
 
 volumes:
   mariadb_data:

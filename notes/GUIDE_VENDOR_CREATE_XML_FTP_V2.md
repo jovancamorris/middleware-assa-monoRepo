@@ -70,6 +70,7 @@ X-Forwarded-For: <IP pengirim, dipakai untuk Header/IPAddress>
 
 ```json
 {
+  "company_code": "1000/2000/6000/7000",
   "companyTitle": "PT",
   "companyName": "PT Adi Sarana Armada Tbk",
   "otv": "No",
@@ -90,7 +91,9 @@ X-Forwarded-For: <IP pengirim, dipakai untuk Header/IPAddress>
 }
 ```
 
-> **Catatan**: `accountGroup`, `top`, dan `glAccount` muncul pada contoh XML `VMD_000001.xml` sehingga disertakan di sini. `documentNumber` mengisi `<Header><DocumentNumber>` (vendor_id ATLAS).
+> **Catatan**: 
+> - `company_code` (atau `companyCode`): kode perusahaan SAP target (contoh: `1000/2000/6000/7000`). Jika tidak diisi pada request JSON, middleware otomatis menggunakan default `1000/2000/6000/7000`.
+> - `accountGroup`, `top`, dan `glAccount` muncul pada contoh XML ATLAS sehingga disertakan di sini. `documentNumber` mengisi `<Header><DocumentNumber>` (vendor_id ATLAS).
 
 ---
 
@@ -102,6 +105,7 @@ Validasi dilakukan di sequence sebelum XML dibentuk. Gagal → `400 Bad Request`
 
 | No | Field (JSON) | Label | Aturan Validasi | Wajib |
 |---|---|---|---|---|
+| 0 | `company_code` / `companyCode` | Company Code | Kode multi-company SAP (mis. `1000/2000/6000/7000`), max 100 char. Default `1000/2000/6000/7000` bila kosong | Opsional (auto-default) |
 | 1 | `companyTitle` | Company Title | Enum: `PT`, `CV` | Ya |
 | 2 | `companyName` | Company Name | Free text, disarankan max 80 char | Ya |
 | 3 | `otv` | OTV (One Time Vendor) | Enum: `Yes`, `No` | Ya |
@@ -155,6 +159,7 @@ XML **wajib** mengikuti format resmi ATLAS berikut (referensi `ref/VMD_000001.xm
 	</Header>
 	<TransactionDatas>
 		<TransactionData>
+			<Company_Code>1000/2000/6000/7000</Company_Code>
 			<Company_title>PT</Company_title>
 			<Company_Name>PT Adi Sarana Armada Tbk</Company_Name>
 			<OTV>No</OTV>
@@ -199,6 +204,7 @@ XML **wajib** mengikuti format resmi ATLAS berikut (referensi `ref/VMD_000001.xm
 
 | Field JSON | Tag XML | Keterangan |
 |---|---|---|
+| `company_code` / `companyCode` | `<Company_Code>` | Multi-company SAP (mis. `1000/2000/6000/7000`), default jika kosong |
 | `companyTitle` | `<Company_title>` | `PT` / `CV` |
 | `companyName` | `<Company_Name>` | Free text |
 | `otv` | `<OTV>` | `Yes` / `No` |

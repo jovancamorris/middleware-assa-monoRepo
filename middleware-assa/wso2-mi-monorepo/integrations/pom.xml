@@ -14,6 +14,7 @@
         <module>spk-service</module>
         <module>vehicle-service</module>
         <module>vendor-service</module>
+        <module>payments-service</module>
     </modules>
     <properties>
         <project.runtime.version>4.6.0</project.runtime.version>

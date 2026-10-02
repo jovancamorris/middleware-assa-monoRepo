@@ -258,6 +258,7 @@ curl -X POST "http://localhost:8293/api/vendors/create" \
   -H "Content-Type: application/json" \
   -H "X-Transaction-Id: TRX-VENDOR-001" \
   -d '{
+    "company_code": "1000/2000/6000/7000",
     "companyTitle": "PT",
     "companyName": "PT Adi Sarana Armada Tbk",
     "otv": "No",
@@ -292,6 +293,7 @@ curl -X POST "http://localhost:8293/api/vendors/create" \
   -H "Content-Type: application/json" \
   -H "X-Transaction-Id: TRX-VENDOR-001" \
   -d '{
+    "company_code": "1000/2000/6000/7000",
     "companyTitle": "PT",
     "companyName": "PT Adi Sarana Armada Tbk",
     "otv": "No",
