@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ASSA Middleware API Documentation — https://devmiddleware1.assa.id/docs</title>
+  <title>ASSA Middleware API Documentation</title>
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
   <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5/favicon-32x32.png" sizes="32x32" />
   <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5/favicon-16x16.png" sizes="16x16" />
@@ -115,6 +115,9 @@
     .swagger-ui .topbar {
       display: none;
     }
+    .swagger-ui .scheme-container {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -124,7 +127,7 @@
       <div class="brand-subtitle">Middleware Integration Gateway — OpenAPI Contract Documentation</div>
     </div>
     <div>
-      <span class="url-badge">Target: https://devmiddleware1.assa.id/docs</span>
+      <span class="url-badge" id="target-url">Target: loading...</span>
     </div>
   </header>
 
@@ -141,10 +144,28 @@
 
   <div id="swagger-ui"></div>
 
+  <script src="/docs/config.js"></script>
   <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
   <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
   <script>
     let currentUi = null;
+    const configuredServerUrl = window.__SWAGGER_CONFIG__ && window.__SWAGGER_CONFIG__.serverUrl;
+    const gatewayUrl = (configuredServerUrl || window.location.origin).replace(/\/+$/, '');
+
+    document.title = `ASSA Middleware API Documentation - ${gatewayUrl}/docs`;
+    document.getElementById('target-url').textContent = `Target: ${gatewayUrl}/docs`;
+
+    function routeApiRequest(request) {
+      const requestUrl = new URL(request.url, window.location.origin);
+      if (/\/(api|health|readiness)\//.test(requestUrl.pathname)) {
+        const targetUrl = new URL(gatewayUrl);
+        requestUrl.protocol = targetUrl.protocol;
+        requestUrl.hostname = targetUrl.hostname;
+        requestUrl.port = targetUrl.port;
+        request.url = requestUrl.toString();
+      }
+      return request;
+    }
 
     function renderSwagger(specUrl) {
       const swaggerContainer = document.getElementById('swagger-ui');
@@ -166,7 +187,8 @@
         defaultModelExpandDepth: 1,
         docExpansion: "list",
         displayRequestDuration: true,
-        persistAuthorization: true
+        persistAuthorization: true,
+        requestInterceptor: routeApiRequest
       });
     }
 

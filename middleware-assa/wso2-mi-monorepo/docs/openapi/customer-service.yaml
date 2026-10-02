@@ -7,14 +7,8 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://devmiddleware1.assa.id
-    description: Server Dev ASSA Gateway (HTTPS)
-  - url: http://devmiddleware1.assa.id:6031
-    description: Server Dev ASSA (Nginx Port 6031)
-  - url: http://10.3.20.197:6031
-    description: Server Dev ASSA (Nginx IP Internal)
-  - url: http://localhost:8291
-    description: Local Docker Compose (Direct Port 8291)
+  - url: /
+    description: Gateway URL configured by SWAGGER_SERVER_URL
 
 tags:
   - name: Customer

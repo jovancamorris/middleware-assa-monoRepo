@@ -174,17 +174,21 @@ services:
       FTP_PAYMENTS_PORT: ${FTP_PAYMENTS_PORT:-21}
       FTP_PAYMENTS_TARGET: ${FTP_PAYMENTS_TARGET:-/payments}
       FTP_PAYMENTS_USERNAME: ${FTP_PAYMENTS_USERNAME:-middlewaredev}
-      FTP_PAYMENTS_PASSWORD: ${FTP_PAYMENTS_PASSWORD:-}
+      FTP_PAYMENTS_PASSWORD: ${FTP_PAYMENTS_PASSWORD:-Gu34S5a#*232}
 
   nginx:
     image: nginx:alpine
     container_name: middleware-wso2-nginx
     restart: unless-stopped
+    entrypoint: ["/bin/sh", "/usr/local/bin/nginx-entrypoint.sh"]
     ports:
       - "${NGINX_HTTP_PORT:-6031}:80"
+    environment:
+      SWAGGER_SERVER_URL: ${SWAGGER_SERVER_URL:-http://localhost:6031}
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./docs:/usr/share/nginx/html/docs:ro
+      - ./platform/docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
     depends_on:
       - branch-service
       - customer-service
