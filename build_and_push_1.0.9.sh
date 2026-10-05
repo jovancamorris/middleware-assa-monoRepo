@@ -1,34 +1,34 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Script Otomatis Build & Push Image Release ASSA Middleware (WSO2 MI Monorepo)
+# Script Otomatis: Build & Push Container Registry ASSA Middleware Versi 1.0.9
 # Menyertakan:
-#   --platform linux/amd64 (Kompatibilitas Server Linux dari macOS M-Series)
-#   --provenance=false --sbom=false (Mencegah error 'Invalid tag' di GitLab Registry)
+#   - Build & Package CAR Artifacts WSO2 MI terbaru (clean packaging)
+#   - Build clean & optimal langsung dari base image wso2/wso2mi:4.6.0 (tanpa layer bloat)
+#   - Flag --platform linux/amd64 (kompatibilitas server Linux)
+#   - Flag --provenance=false --sbom=false (mencegah error 'invalid tag' GitLab)
 # ==============================================================================
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MONO_DIR="$(dirname "$SCRIPT_DIR")"
-cd "$MONO_DIR"
-
-if [ "$#" -lt 1 ]; then
-  echo "Usage: $0 <image-tag>" >&2
-  exit 1
-fi
-TAG="$1"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WSO2_DIR="$ROOT_DIR/middleware-assa/wso2-mi-monorepo"
+TAG="${1:-1.0.9}"
 IMAGE_NAME="registry.assa.id/nobi.sumariga/middleware-assa:${TAG}"
 
 echo "=========================================================="
-echo " [1/2] Packaging WSO2 CAR Artifacts..."
+echo " [1/3] Packaging WSO2 CAR Artifacts & Building Docs (TS)..."
 echo "=========================================================="
-if command -v mvn &> /dev/null; then
-  mvn -q clean package -DskipTests
-fi
+cd "$WSO2_DIR"
 python3 scripts/package_cars.py
+
+if [ -d "$WSO2_DIR/docs-src" ]; then
+  echo " --> Compiling Swagger UI from TypeScript (docs-src)..."
+  (cd "$WSO2_DIR/docs-src" && npm run build)
+fi
 
 echo ""
 echo "=========================================================="
-echo " [2/2] Building Docker Image: ${IMAGE_NAME}"
+echo " [2/3] Building Optimized Docker Image: ${IMAGE_NAME}"
+echo "       Base: wso2/wso2mi:4.6.0 (Clean build, zero layer duplication)"
 echo "       Flag: --platform linux/amd64 --provenance=false --sbom=false"
 echo "=========================================================="
 docker buildx build \
@@ -52,9 +52,18 @@ EOF
 
 echo ""
 echo "=========================================================="
-echo " SUCCESS! Image berhasil dibuat:"
+echo " SUCCESS! Image ${TAG} berhasil dibuild:"
 echo "   ${IMAGE_NAME}"
+echo "=========================================================="
 echo ""
-echo " Untuk push ke GitLab Registry ASSA:"
+echo "Untuk push ke GitLab Container Registry ASSA, jalankan:"
 echo "   docker push ${IMAGE_NAME}"
+echo ""
+echo "Langkah Deploy di Server (/var/www/devmiddleware):"
+echo " 1. Pastikan .env di server menggunakan tag ${TAG}:"
+echo "      MI_IMAGE=${IMAGE_NAME}"
+echo " 2. Restart container dengan image baru:"
+echo "      docker compose down"
+echo "      docker compose pull"
+echo "      docker compose up -d"
 echo "=========================================================="

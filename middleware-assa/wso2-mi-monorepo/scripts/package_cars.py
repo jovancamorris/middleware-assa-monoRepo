@@ -280,6 +280,35 @@ def update_branch_car():
     repack_car(car_src, extract_dir, out_car)
     print(f"  -> Generated {out_car}")
 
+def update_vendor_car():
+    print("[6/6] Updating vendor-service_1.0.0.car...")
+    vmd_dir = os.path.join(REPO_ROOT, "integrations", "vendor-service")
+    car_src = os.path.join(vmd_dir, "target", "vendor-service_1.0.0.car")
+    if not os.path.exists(car_src) or "VendorCreateSeq_1.0.0/VendorCreateSeq-1.0.0.xml" not in zipfile.ZipFile(car_src).namelist():
+        car_src = os.path.join(DIST_DIR, "vendor-service_1.0.0.car")
+    if not os.path.exists(car_src):
+        return
+    extract_dir = os.path.join(TMP_DIR, "vendor")
+    if os.path.exists(extract_dir):
+        shutil.rmtree(extract_dir)
+    os.makedirs(extract_dir, exist_ok=True)
+    with zipfile.ZipFile(car_src, 'r') as z:
+        z.extractall(extract_dir)
+    shutil.copy2(
+        os.path.join(vmd_dir, "src/main/wso2mi/artifacts/sequences/VendorCreateSeq.xml"),
+        os.path.join(extract_dir, "VendorCreateSeq_1.0.0/VendorCreateSeq-1.0.0.xml")
+    )
+    print("  -> Updated VendorCreateSeq-1.0.0.xml")
+    xslt_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/local-entries/VendorCreateXmlXslt.xml")
+    xslt_dest = os.path.join(extract_dir, "VendorCreateXmlXslt_1.0.0/VendorCreateXmlXslt-1.0.0.xml")
+    if os.path.exists(xslt_dest):
+        shutil.copy2(xslt_src, xslt_dest)
+        print("  -> Updated VendorCreateXmlXslt-1.0.0.xml")
+    fix_db_urls(extract_dir)
+    out_car = os.path.join(DIST_DIR, "vendor-service_1.0.0.car")
+    repack_car(car_src, extract_dir, out_car)
+    print(f"  -> Generated {out_car}")
+
 def stage_service_car(car_src):
     if os.path.exists(car_src):
         out_car = os.path.join(DIST_DIR, os.path.basename(car_src))
@@ -292,8 +321,9 @@ if __name__ == "__main__":
     update_vehicle_car()
     update_customer_car()
     update_branch_car()
+    update_vendor_car()
     for s in OTHER_SERVICES:
-        if s in ["customer-service", "branch-service"]:
+        if s in ["customer-service", "branch-service", "vendor-service"]:
             continue
         car_path = os.path.join(REPO_ROOT, "integrations", s, "target", f"{s}_1.0.0.car")
         stage_service_car(car_path)

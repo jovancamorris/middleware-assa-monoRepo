@@ -6,8 +6,13 @@
     <!-- ================================================================= -->
     <property name="originalPayload" expression="json-eval($)" scope="default" type="STRING"/>
 
-    <!-- Field extractions V2 -->
-    <property name="companyCode" expression="json-eval($.company_code)" scope="default" type="STRING"/>
+    <!-- Field extractions V2 (prioritizing exact XML tag casing) -->
+    <property name="companyCode" expression="json-eval($.Company_Code)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:companyCode) = 0">
+        <then>
+            <property name="companyCode" expression="json-eval($.company_code)" scope="default" type="STRING"/>
+        </then>
+    </filter>
     <filter xpath="string-length($ctx:companyCode) = 0">
         <then>
             <property name="companyCode" expression="json-eval($.companyCode)" scope="default" type="STRING"/>
@@ -20,27 +25,196 @@
     </filter>
     <filter xpath="string-length($ctx:companyCode) = 0">
         <then>
-            <property name="companyCode" value="1000/2000/6000/7000" scope="default" type="STRING"/>
+            <property name="companyCode" value="1000" scope="default" type="STRING"/>
         </then>
     </filter>
 
-    <property name="companyTitle" expression="json-eval($.companyTitle)" scope="default" type="STRING"/>
-    <property name="companyName" expression="json-eval($.companyName)" scope="default" type="STRING"/>
-    <property name="otv" expression="json-eval($.otv)" scope="default" type="STRING"/>
-    <property name="paymentCycle" expression="json-eval($.paymentCycle)" scope="default" type="STRING"/>
-    <property name="accountNumber" expression="json-eval($.accountNumber)" scope="default" type="STRING"/>
-    <property name="accountName" expression="json-eval($.accountName)" scope="default" type="STRING"/>
-    <property name="bankName" expression="json-eval($.bankName)" scope="default" type="STRING"/>
-    <property name="hoEmail" expression="json-eval($.hoEmail)" scope="default" type="STRING"/>
-    <property name="hoPhone" expression="json-eval($.hoPhone)" scope="default" type="STRING"/>
-    <property name="hoAddress" expression="json-eval($.hoAddress)" scope="default" type="STRING"/>
-    <property name="contactName" expression="json-eval($.contactName)" scope="default" type="STRING"/>
-    <property name="contactPhone" expression="json-eval($.contactPhone)" scope="default" type="STRING"/>
-    <property name="npwp" expression="json-eval($.npwp)" scope="default" type="STRING"/>
-    <property name="accountGroup" expression="json-eval($.accountGroup)" scope="default" type="STRING"/>
-    <property name="top" expression="json-eval($.top)" scope="default" type="STRING"/>
-    <property name="glAccount" expression="json-eval($.glAccount)" scope="default" type="STRING"/>
-    <property name="documentNumber" expression="json-eval($.documentNumber)" scope="default" type="STRING"/>
+    <property name="vendorId" expression="json-eval($.Vendor_ID)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:vendorId) = 0">
+        <then>
+            <property name="vendorId" expression="json-eval($.vendor_id)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:vendorId) = 0">
+        <then>
+            <property name="vendorId" expression="json-eval($.vendorId)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="vendorType" expression="json-eval($.Vendor_Type)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:vendorType) = 0">
+        <then>
+            <property name="vendorType" expression="json-eval($.vendor_type)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:vendorType) = 0">
+        <then>
+            <property name="vendorType" expression="json-eval($.vendorType)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="companyName" expression="json-eval($.Company_Name)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:companyName) = 0">
+        <then>
+            <property name="companyName" expression="json-eval($.company_name)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:companyName) = 0">
+        <then>
+            <property name="companyName" expression="json-eval($.companyName)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="accountNumber" expression="json-eval($.Account_Number)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:accountNumber) = 0">
+        <then>
+            <property name="accountNumber" expression="json-eval($.account_number)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:accountNumber) = 0">
+        <then>
+            <property name="accountNumber" expression="json-eval($.accountNumber)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="accountName" expression="json-eval($.Account_Name)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:accountName) = 0">
+        <then>
+            <property name="accountName" expression="json-eval($.account_name)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:accountName) = 0">
+        <then>
+            <property name="accountName" expression="json-eval($.accountName)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="bankName" expression="json-eval($.Bank_Name)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:bankName) = 0">
+        <then>
+            <property name="bankName" expression="json-eval($.bank_name)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:bankName) = 0">
+        <then>
+            <property name="bankName" expression="json-eval($.bankName)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="hoEmail" expression="json-eval($.HO_Email)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:hoEmail) = 0">
+        <then>
+            <property name="hoEmail" expression="json-eval($.ho_email)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:hoEmail) = 0">
+        <then>
+            <property name="hoEmail" expression="json-eval($.hoEmail)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="hoPhone" expression="json-eval($.HO_Phone)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:hoPhone) = 0">
+        <then>
+            <property name="hoPhone" expression="json-eval($.ho_phone)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:hoPhone) = 0">
+        <then>
+            <property name="hoPhone" expression="json-eval($.hoPhone)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="hoAddress" expression="json-eval($.HO_Address)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:hoAddress) = 0">
+        <then>
+            <property name="hoAddress" expression="json-eval($.ho_address)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:hoAddress) = 0">
+        <then>
+            <property name="hoAddress" expression="json-eval($.hoAddress)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="contactName" expression="json-eval($.Contact_Name)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:contactName) = 0">
+        <then>
+            <property name="contactName" expression="json-eval($.contact_name)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:contactName) = 0">
+        <then>
+            <property name="contactName" expression="json-eval($.contactName)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="contactPhone" expression="json-eval($.Contact_Phone)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:contactPhone) = 0">
+        <then>
+            <property name="contactPhone" expression="json-eval($.contact_phone)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:contactPhone) = 0">
+        <then>
+            <property name="contactPhone" expression="json-eval($.contactPhone)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="npwp" expression="json-eval($.NPWP)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:npwp) = 0">
+        <then>
+            <property name="npwp" expression="json-eval($.npwp)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="accountGroup" expression="json-eval($.Account_Group)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:accountGroup) = 0">
+        <then>
+            <property name="accountGroup" expression="json-eval($.account_group)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:accountGroup) = 0">
+        <then>
+            <property name="accountGroup" expression="json-eval($.accountGroup)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="top" expression="json-eval($.TOP)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:top) = 0">
+        <then>
+            <property name="top" expression="json-eval($.top)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="glAccount" expression="json-eval($.GL_Account)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:glAccount) = 0">
+        <then>
+            <property name="glAccount" expression="json-eval($.gl_account)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:glAccount) = 0">
+        <then>
+            <property name="glAccount" expression="json-eval($.glAccount)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="documentNumber" expression="json-eval($.DocumentNumber)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:documentNumber) = 0">
+        <then>
+            <property name="documentNumber" expression="json-eval($.Document_Number)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:documentNumber) = 0">
+        <then>
+            <property name="documentNumber" expression="json-eval($.document_number)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:documentNumber) = 0">
+        <then>
+            <property name="documentNumber" expression="json-eval($.documentNumber)" scope="default" type="STRING"/>
+        </then>
+    </filter>
 
     <!-- Client IP Extraction (X-Forwarded-For -> X-Real-IP -> default 127.0.0.1) -->
     <property name="clientIp" expression="$trp:X-Forwarded-For" scope="default" type="STRING"/>
@@ -61,183 +235,157 @@
     </filter>
 
     <!-- ================================================================= -->
-    <!-- 2. Specifications & Field Validations (GUIDE V2 Bagian 4)         -->
+    <!-- 2. Specifications & Field Validations                             -->
     <!-- ================================================================= -->
-    <!-- Field 0: companyCode (String, max 100 char) -->
+    <!-- Field: Vendor_ID (String, max 50 char, wajib) -->
+    <filter xpath="string-length($ctx:vendorId) = 0 or string-length($ctx:vendorId) &gt; 50">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'Vendor_ID' wajib diisi dan maksimal 50 karakter" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Field: Company_Code (String, max 100 char) -->
     <filter xpath="string-length($ctx:companyCode) &gt; 100">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'company_code' maksimal 100 karakter" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'Company_Code' maksimal 100 karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 1: companyTitle (Enum: PT, CV) -->
-    <filter xpath="not($ctx:companyTitle = 'PT' or $ctx:companyTitle = 'CV')">
-        <then>
-            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
-            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'companyTitle' wajib diisi dengan nilai 'PT' atau 'CV'" scope="default" type="STRING"/>
-            <sequence key="ErrorResponseSeq"/>
-            <drop/>
-        </then>
-    </filter>
-
-    <!-- Field 2: companyName (String, max 80 char, wajib) -->
+    <!-- Field: Company_Name (String, max 80 char, wajib) -->
     <filter xpath="string-length($ctx:companyName) = 0 or string-length($ctx:companyName) &gt; 80">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'companyName' wajib diisi dan maksimal 80 karakter" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'Company_Name' wajib diisi dan maksimal 80 karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 3: otv (Enum: Yes, No, wajib) -->
-    <filter xpath="not($ctx:otv = 'Yes' or $ctx:otv = 'No')">
+    <!-- Field: Vendor_Type (String, max 50 char, wajib) -->
+    <filter xpath="string-length($ctx:vendorType) = 0 or string-length($ctx:vendorType) &gt; 50">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'otv' harus 'Yes' atau 'No'" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'Vendor_Type' wajib diisi dan maksimal 50 karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 4: paymentCycle (Enum: Daily, Weekly, Monthly, wajib) -->
-    <filter xpath="not($ctx:paymentCycle = 'Daily' or $ctx:paymentCycle = 'Weekly' or $ctx:paymentCycle = 'Monthly')">
+    <!-- Field: Bank Details (Account_Number max 18, Account_Name max 60, Bank_Name max 40, wajib) -->
+    <filter xpath="string-length($ctx:accountNumber) = 0 or string-length($ctx:accountNumber) &gt; 18 or string-length($ctx:accountName) = 0 or string-length($ctx:accountName) &gt; 60 or string-length($ctx:bankName) = 0 or string-length($ctx:bankName) &gt; 40">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'paymentCycle' wajib bernilai 'Daily', 'Weekly', atau 'Monthly'" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'Account_Number' (max 18), 'Account_Name' (max 60), dan 'Bank_Name' (max 40) wajib diisi" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 5-7: Bank Details Conditional Check based on otv -->
-    <filter xpath="$ctx:otv = 'No'">
-        <then>
-            <filter xpath="string-length($ctx:accountNumber) = 0 or string-length($ctx:accountNumber) &gt; 18 or string-length($ctx:accountName) = 0 or string-length($ctx:accountName) &gt; 60 or string-length($ctx:bankName) = 0 or string-length($ctx:bankName) &gt; 40">
-                <then>
-                    <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
-                    <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-                    <property name="ERROR_DETAIL" value="Bila otv bernilai 'No', field 'accountNumber' (max 18), 'accountName' (max 60), dan 'bankName' (max 40) wajib diisi" scope="default" type="STRING"/>
-                    <sequence key="ErrorResponseSeq"/>
-                    <drop/>
-                </then>
-            </filter>
-        </then>
-        <else>
-            <filter xpath="string-length($ctx:accountNumber) &gt; 18 or string-length($ctx:accountName) &gt; 60 or string-length($ctx:bankName) &gt; 40">
-                <then>
-                    <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
-                    <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-                    <property name="ERROR_DETAIL" value="Field accountNumber (max 18), accountName (max 60), atau bankName (max 40) melebihi batas karakter" scope="default" type="STRING"/>
-                    <sequence key="ErrorResponseSeq"/>
-                    <drop/>
-                </then>
-            </filter>
-        </else>
-    </filter>
-
-    <!-- Field 8: hoEmail (Email valid, max 241 char, wajib) -->
+    <!-- Field: HO_Email (Email valid, max 241 char, wajib) -->
     <filter xpath="string-length($ctx:hoEmail) = 0 or string-length($ctx:hoEmail) &gt; 241 or not(fn:contains($ctx:hoEmail, '@')) or not(fn:contains($ctx:hoEmail, '.'))">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'hoEmail' wajib diisi dengan format email valid dan maksimal 241 karakter" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'HO_Email' wajib diisi dengan format email valid dan maksimal 241 karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 9: hoPhone (String, max 30 char, wajib) -->
+    <!-- Field: HO_Phone (String, max 30 char, wajib) -->
     <filter xpath="string-length($ctx:hoPhone) = 0 or string-length($ctx:hoPhone) &gt; 30">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'hoPhone' wajib diisi dan maksimal 30 karakter" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'HO_Phone' wajib diisi dan maksimal 30 karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 10: hoAddress (String, max 241 char, wajib) -->
+    <!-- Field: HO_Address (String, max 241 char, wajib) -->
     <filter xpath="string-length($ctx:hoAddress) = 0 or string-length($ctx:hoAddress) &gt; 241">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'hoAddress' wajib diisi dan maksimal 241 karakter" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'HO_Address' wajib diisi dan maksimal 241 karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 11-12: Contact Details (Opsional: contactName max 35, contactPhone max 16) -->
+    <!-- Field: Contact Details (Opsional: Contact_Name max 35, Contact_Phone max 16) -->
     <filter xpath="string-length($ctx:contactName) &gt; 35 or string-length($ctx:contactPhone) &gt; 16">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field contactName (max 35) atau contactPhone (max 16) melebihi batas karakter" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'Contact_Name' (max 35) atau 'Contact_Phone' (max 16) melebihi batas karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 13: npwp (String, max 20 char, wajib) -->
+    <!-- Field: NPWP (String, max 20 char, wajib) -->
     <filter xpath="string-length($ctx:npwp) = 0 or string-length($ctx:npwp) &gt; 20">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'npwp' wajib diisi dan maksimal 20 karakter" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'NPWP' wajib diisi dan maksimal 20 karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 14: accountGroup (Enum: V010, V020, V030, wajib) -->
+    <!-- Field: Account_Group (Enum: V010, V020, V030, wajib) -->
     <filter xpath="not($ctx:accountGroup = 'V010' or $ctx:accountGroup = 'V020' or $ctx:accountGroup = 'V030')">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'accountGroup' wajib diisi dengan kode valid (V010, V020, V030)" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'Account_Group' wajib diisi dengan kode valid (V010, V020, V030)" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 15: top (Payment Terms, wajib) -->
+    <!-- Field: TOP (Payment Terms, wajib) -->
     <filter xpath="string-length($ctx:top) = 0">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'top' wajib diisi dengan kode payment terms valid (mis. T014)" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'TOP' wajib diisi dengan kode payment terms valid (mis. T014)" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 16: glAccount (GL Account SAP, wajib) -->
+    <!-- Field: GL_Account (GL Account SAP, wajib) -->
     <filter xpath="string-length($ctx:glAccount) = 0 or string-length($ctx:glAccount) &gt; 20">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'glAccount' wajib diisi dengan kode GL account valid" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'GL_Account' wajib diisi dengan kode GL account valid" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
     </filter>
 
-    <!-- Field 17: documentNumber (Vendor ID ATLAS, wajib) -->
+    <!-- Field: DocumentNumber (Vendor Document Number ATLAS, wajib) -->
     <filter xpath="string-length($ctx:documentNumber) = 0 or string-length($ctx:documentNumber) &gt; 50">
         <then>
             <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Field 'documentNumber' wajib diisi" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'DocumentNumber' wajib diisi dan maksimal 50 karakter" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
@@ -254,25 +402,13 @@
     <!-- ================================================================= -->
     <!-- 4. Format TOP, Header Constants, and Build XML Payload            -->
     <!-- ================================================================= -->
-    <!-- Format Payment Terms (top): {kode} - {deskripsi} -->
+    <!-- Resolve TOP (Payment Terms) clean code (e.g. T014) -->
     <filter xpath="fn:contains($ctx:top, ' - ')">
         <then>
-            <property name="topFormatted" expression="$ctx:top" scope="default" type="STRING"/>
+            <property name="cleanTop" expression="fn:normalize-space(fn:substring-before($ctx:top, ' - '))" scope="default" type="STRING"/>
         </then>
         <else>
-            <property name="topFormatted" expression="$ctx:top" scope="default" type="STRING"/>
-            <filter xpath="$ctx:top = 'T000'"><then><property name="topFormatted" value="T000 - 0 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T003'"><then><property name="topFormatted" value="T003 - 3 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T007'"><then><property name="topFormatted" value="T007 - 7 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T014'"><then><property name="topFormatted" value="T014 - 14 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T021'"><then><property name="topFormatted" value="T021 - 21 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T030'"><then><property name="topFormatted" value="T030 - 30 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T045'"><then><property name="topFormatted" value="T045 - 45 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T060'"><then><property name="topFormatted" value="T060 - 60 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T075'"><then><property name="topFormatted" value="T075 - 75 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T090'"><then><property name="topFormatted" value="T090 - 90 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T105'"><then><property name="topFormatted" value="T105 - 105 Hari" scope="default" type="STRING"/></then></filter>
-            <filter xpath="$ctx:top = 'T120'"><then><property name="topFormatted" value="T120 - 120 Hari" scope="default" type="STRING"/></then></filter>
+            <property name="cleanTop" expression="fn:normalize-space($ctx:top)" scope="default" type="STRING"/>
         </else>
     </filter>
 
@@ -337,10 +473,10 @@
                 </Header>
                 <TransactionDatas>
                     <TransactionData>
-                        <Company_Code>$8</Company_Code>
-                        <Company_title>$9</Company_title>
+                        <Vendor_ID>$8</Vendor_ID>
+                        <Company_Code>$9</Company_Code>
                         <Company_Name>$10</Company_Name>
-                        <OTV>$11</OTV>
+                        <Vendor_Type>$11</Vendor_Type>
                         <Account_Number>$12</Account_Number>
                         <Account_Name>$13</Account_Name>
                         <Bank_Name>$14</Bank_Name>
@@ -365,10 +501,10 @@
             <arg evaluator="xml" expression="$ctx:atlasDestUser"/>
             <arg evaluator="xml" expression="$ctx:atlasKey1"/>
             <arg evaluator="xml" expression="$ctx:atlasKey2"/>
+            <arg evaluator="xml" expression="$ctx:vendorId"/>
             <arg evaluator="xml" expression="$ctx:companyCode"/>
-            <arg evaluator="xml" expression="$ctx:companyTitle"/>
             <arg evaluator="xml" expression="$ctx:companyName"/>
-            <arg evaluator="xml" expression="$ctx:otv"/>
+            <arg evaluator="xml" expression="$ctx:vendorType"/>
             <arg evaluator="xml" expression="$ctx:accountNumber"/>
             <arg evaluator="xml" expression="$ctx:accountName"/>
             <arg evaluator="xml" expression="$ctx:bankName"/>
@@ -378,7 +514,7 @@
             <arg evaluator="xml" expression="$ctx:contactName"/>
             <arg evaluator="xml" expression="$ctx:contactPhone"/>
             <arg evaluator="xml" expression="$ctx:npwp"/>
-            <arg evaluator="xml" expression="$ctx:topFormatted"/>
+            <arg evaluator="xml" expression="$ctx:cleanTop"/>
             <arg evaluator="xml" expression="$ctx:accountGroup"/>
             <arg evaluator="xml" expression="$ctx:glAccount"/>
         </args>

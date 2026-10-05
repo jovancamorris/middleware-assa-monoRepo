@@ -70,72 +70,79 @@ X-Forwarded-For: <IP pengirim, dipakai untuk Header/IPAddress>
 
 ```json
 {
-  "company_code": "1000/2000/6000/7000",
-  "companyTitle": "PT",
-  "companyName": "PT Adi Sarana Armada Tbk",
-  "otv": "No",
-  "paymentCycle": "Monthly",
-  "accountNumber": "1200010978489",
-  "accountName": "Robby Yulianto Setiawan",
-  "bankName": "Mandiri",
-  "hoEmail": "assa@assarent.co.id",
-  "hoPhone": "082246605199",
-  "hoAddress": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
-  "contactName": "Robby Contact",
-  "contactPhone": "08224660189",
-  "npwp": "3173080209920003",
-  "accountGroup": "V010",
-  "top": "T014",
-  "glAccount": "2121000000",
-  "documentNumber": "VENDOR-ATLAS-000123"
+  "Vendor_ID": "82165871",
+  "Company_Code": "1000",
+  "Company_Name": "PT Adi Sarana Armada Tbk",
+  "Vendor_Type": "New/Extend",
+  "Account_Number": "1200010978489",
+  "Account_Name": "Robby Yulianto Setiawan",
+  "Bank_Name": "Mandiri",
+  "HO_Email": "assa@assarent.co.id",
+  "HO_Phone": "082246605199",
+  "HO_Address": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
+  "Contact_Name": "Robby Contact",
+  "Contact_Phone": "08224660189",
+  "NPWP": "3173080209920003",
+  "TOP": "T014",
+  "Account_Group": "V010",
+  "GL_Account": "2121000000",
+  "DocumentNumber": "VENDOR-ATLAS-000123"
 }
 ```
 
 > **Catatan**: 
-> - `company_code` (atau `companyCode`): kode perusahaan SAP target (contoh: `1000/2000/6000/7000`). Jika tidak diisi pada request JSON, middleware otomatis menggunakan default `1000/2000/6000/7000`.
-> - `accountGroup`, `top`, dan `glAccount` muncul pada contoh XML ATLAS sehingga disertakan di sini. `documentNumber` mengisi `<Header><DocumentNumber>` (vendor_id ATLAS).
+> - `Vendor_ID`: ID unik master vendor dari ATLAS/SAP (misal: `82165871`).
+> - `Company_Code`: kode perusahaan SAP target (contoh: `1000`). Jika tidak diisi pada request JSON, middleware otomatis menggunakan default `1000`.
+> - `Company_Name`: nama lengkap perusahaan vendor (maksimal 80 karakter).
+> - `Vendor_Type`: tipe vendor (misal: `New/Extend`).
+> - `Account_Number`: nomor rekening bank vendor (maksimal 18 karakter).
+> - `Account_Name`: nama pemilik rekening bank (maksimal 60 karakter).
+> - `Bank_Name`: nama bank rekanan (misal: `Mandiri`, maksimal 40 karakter).
+> - `HO_Email`: email resmi kantor pusat (valid email format, maksimal 241 karakter).
+> - `HO_Phone`: nomor telepon kantor pusat (maksimal 30 karakter).
+> - `HO_Address`: alamat kantor pusat lengkap (maksimal 241 karakter).
+> - `Contact_Name`: nama PIC/kontak vendor (opsional, maksimal 35 karakter).
+> - `Contact_Phone`: telepon PIC/kontak vendor (opsional, maksimal 16 karakter).
+> - `NPWP`: nomor pokok wajib pajak 15/16 digit (maksimal 20 karakter).
+> - `TOP`: kode payment terms SAP (misal: `T014`).
+> - `Account_Group`: grup akun SAP (`V010`, `V020`, `V030`).
+> - `GL_Account`: nomor General Ledger SAP (misal: `2121000000`, maksimal 20 karakter).
+> - `DocumentNumber`: nomor referensi dokumen ATLAS → mengisi `<Header><DocumentNumber>` (maksimal 50 karakter).
 
 ---
 
 ## 4. Spesifikasi & Validasi Field
 
 Validasi dilakukan di sequence sebelum XML dibentuk. Gagal → `400 Bad Request` via `ErrorResponseSeq`.
+Format nama field JSON disesuaikan 100% dengan nama tag XML target (CamelCase / PascalCase / snake_case kapital) untuk konsistensi end-to-end.
 
-### 4.1 Field Utama (dari daftar penyesuaian v2)
-
-| No | Field (JSON) | Label | Aturan Validasi | Wajib |
-|---|---|---|---|---|
-| 0 | `company_code` / `companyCode` | Company Code | Kode multi-company SAP (mis. `1000/2000/6000/7000`), max 100 char. Default `1000/2000/6000/7000` bila kosong | Opsional (auto-default) |
-| 1 | `companyTitle` | Company Title | Enum: `PT`, `CV` | Ya |
-| 2 | `companyName` | Company Name | Free text, disarankan max 80 char | Ya |
-| 3 | `otv` | OTV (One Time Vendor) | Enum: `Yes`, `No` | Ya |
-| 4 | `paymentCycle` | Payment Cycle | Enum: `Daily`, `Weekly`, `Monthly` | Ya |
-| 5 | `accountNumber` | Account Number | Free text (nomor rekening), max 18 char | Kondisional* |
-| 6 | `accountName` | Account Name | Free text, max 60 char | Kondisional* |
-| 7 | `bankName` | Bank Name | Free text, max 40 char | Kondisional* |
-| 8 | `hoEmail` | Head Office - Official Email | Format email valid, max 241 char | Ya |
-| 9 | `hoPhone` | Head Office - Official Phone | Free text, max 30 char | Ya |
-| 10 | `hoAddress` | Head Office - Address | Free text, max 241 char | Ya |
-| 11 | `contactName` | Contact Name | Free text, max 35 char | Tidak |
-| 12 | `contactPhone` | Contact Phone | Free text, max 16 char | Tidak |
-| 13 | `npwp` | NPWP Document Number | Free text (15/16 digit NPWP), max 20 char | Ya |
-
-> **\* Bank details (5–7)**: jika `otv = No`, ketiga field bank (`accountNumber`, `accountName`, `bankName`) wajib diisi. Jika `otv = Yes` (One Time Vendor), field bank boleh kosong. Konfirmasikan aturan final dengan tim SAP.
-
-### 4.2 Field Tambahan (muncul di XML ATLAS)
+### 4.1 Tabel 17 Field Master Data Vendor (V2)
 
 | No | Field (JSON) | Label | Aturan Validasi | Wajib |
 |---|---|---|---|---|
-| 14 | `accountGroup` | Account Group | Enum kode: `V010` (Vendor Unit), `V020` (Vendor Non Unit), `V030` (Vendor Cabang) | Ya |
-| 15 | `top` | TOP / Payment Terms | Kode payment terms (mis. `T014`). Di XML ditulis `T014 - 14 Hari` | Ya |
-| 16 | `glAccount` | GL Account | Kode GL account SAP (mis. `2121000000`) | Ya |
-| 17 | `documentNumber` | Document Number | Vendor ID dari ATLAS → `<Header><DocumentNumber>` | Ya |
+| 1 | `Vendor_ID` | Vendor ID | ID unik vendor ATLAS/SAP, max 50 char | Ya |
+| 2 | `Company_Code` | Company Code | Kode multi-company SAP (mis. `1000`), max 100 char. Auto-default `1000` bila kosong | Opsional (auto-default) |
+| 3 | `Company_Name` | Company Name | Nama lengkap perusahaan vendor, max 80 char | Ya |
+| 4 | `Vendor_Type` | Vendor Type | Tipe vendor SAP (mis. `New/Extend`), max 50 char | Ya |
+| 5 | `Account_Number` | Account Number | Nomor rekening bank, max 18 char | Ya |
+| 6 | `Account_Name` | Account Name | Nama pemilik rekening bank, max 60 char | Ya |
+| 7 | `Bank_Name` | Bank Name | Nama bank rekanan, max 40 char | Ya |
+| 8 | `HO_Email` | Head Office - Official Email | Format email valid, max 241 char | Ya |
+| 9 | `HO_Phone` | Head Office - Official Phone | Nomor telepon kantor pusat, max 30 char | Ya |
+| 10 | `HO_Address` | Head Office - Address | Alamat kantor pusat lengkap, max 241 char | Ya |
+| 11 | `Contact_Name` | Contact Name | Nama PIC/kontak vendor, max 35 char | Tidak (opsional) |
+| 12 | `Contact_Phone` | Contact Phone | Telepon PIC/kontak vendor, max 16 char | Tidak (opsional) |
+| 13 | `NPWP` | NPWP Document Number | 15/16 digit NPWP, max 20 char | Ya |
+| 14 | `TOP` | TOP / Payment Terms | Kode payment terms SAP (mis. `T014`) | Ya |
+| 15 | `Account_Group` | Account Group | Enum kode SAP: `V010`, `V020`, `V030` | Ya |
+| 16 | `GL_Account` | GL Account | Kode General Ledger SAP (mis. `2121000000`), max 20 char | Ya |
+| 17 | `DocumentNumber` | Document Number | Nomor referensi dokumen ATLAS → `<Header><DocumentNumber>`, max 50 char | Ya |
 
-### 4.3 Aturan validasi umum
+### 4.2 Aturan validasi umum
 - Trim whitespace pada field string sebelum cek panjang.
-- Field enum: bandingkan **kode/nilai** (mis. `PT`, `V010`, `Monthly`), case-sensitive sesuai kesepakatan.
-- `hoEmail`: validasi format email.
-- Panjang melebihi batas → `400` (jangan auto-truncate).
+- Field enum `Account_Group`: wajib bernilai salah satu dari `V010`, `V020`, `V030`.
+- `HO_Email`: validasi format email (harus mengandung `@` dan `.`).
+- Panjang melebihi batas → `400 Bad Request` (jangan auto-truncate).
 
 ---
 
@@ -159,10 +166,10 @@ XML **wajib** mengikuti format resmi ATLAS berikut (referensi `ref/VMD_000001.xm
 	</Header>
 	<TransactionDatas>
 		<TransactionData>
-			<Company_Code>1000/2000/6000/7000</Company_Code>
-			<Company_title>PT</Company_title>
+			<Vendor_ID>82165871</Vendor_ID>
+			<Company_Code>1000</Company_Code>
 			<Company_Name>PT Adi Sarana Armada Tbk</Company_Name>
-			<OTV>No</OTV>
+			<Vendor_Type>New/Extend</Vendor_Type>
 			<Account_Number>1200010978489</Account_Number>
 			<Account_Name>Robby Yulianto Setiawan</Account_Name>
 			<Bank_Name>Mandiri</Bank_Name>
@@ -172,7 +179,7 @@ XML **wajib** mengikuti format resmi ATLAS berikut (referensi `ref/VMD_000001.xm
 			<Contact_Name>Robby Contact</Contact_Name>
 			<Contact_Phone>08224660189</Contact_Phone>
 			<NPWP>3173080209920003</NPWP>
-			<TOP>T014 - 14 Hari</TOP>
+			<TOP>T014</TOP>
 			<Account_Group>V010</Account_Group>
 			<GL_Account>2121000000</GL_Account>
 		</TransactionData>
@@ -186,7 +193,7 @@ XML **wajib** mengikuti format resmi ATLAS berikut (referensi `ref/VMD_000001.xm
 |---|---|---|
 | `ID` | `ATLAS` | Konstanta |
 | `TransGuID` | `{yyyy-MM-dd HH:mm:ss}-VMD` | Timestamp server (Asia/Jakarta) + suffix `-VMD` |
-| `DocumentNumber` | Vendor ID ATLAS | Field `documentNumber` |
+| `DocumentNumber` | Vendor Document Number ATLAS | Field `DocumentNumber` |
 | `FileType` | `XML` | Konstanta |
 | `IPAddress` | IP pengirim | Header `X-Forwarded-For` / remote address |
 | `DestinationUser` | `SAP` | Konstanta |
@@ -194,38 +201,29 @@ XML **wajib** mengikuti format resmi ATLAS berikut (referensi `ref/VMD_000001.xm
 | `Key2` | `VMD` | Konstanta (penanda interface Vendor Master Data) |
 | `DataLength` | `1` | Jumlah `<TransactionData>` (VMD = 1 per file) |
 
-> **Encoding**: escape karakter khusus (`&`, `<`, `>`). Field seperti `HO_Address` sering mengandung koma/karakter khusus — gunakan argumen berparameter `payloadFactory` agar escaping aman dari XML injection.
->
-> **TOP di XML**: nilai ditulis sebagai `{kode} - {deskripsi}` (mis. `T014 - 14 Hari`). Middleware menyusun string ini dari kode `top` + tabel deskripsi payment terms.
-
 ---
 
 ## 6. Pemetaan Field JSON → XML
 
 | Field JSON | Tag XML | Keterangan |
 |---|---|---|
-| `company_code` / `companyCode` | `<Company_Code>` | Multi-company SAP (mis. `1000/2000/6000/7000`), default jika kosong |
-| `companyTitle` | `<Company_title>` | `PT` / `CV` |
-| `companyName` | `<Company_Name>` | Free text |
-| `otv` | `<OTV>` | `Yes` / `No` |
-| `accountNumber` | `<Account_Number>` | |
-| `accountName` | `<Account_Name>` | |
-| `bankName` | `<Bank_Name>` | |
-| `hoEmail` | `<HO_Email>` | |
-| `hoPhone` | `<HO_Phone>` | |
-| `hoAddress` | `<HO_Address>` | |
-| `contactName` | `<Contact_Name>` | |
-| `contactPhone` | `<Contact_Phone>` | |
-| `npwp` | `<NPWP>` | |
-| `top` | `<TOP>` | Format `kode - deskripsi` |
-| `accountGroup` | `<Account_Group>` | `V010`/`V020`/`V030` |
-| `glAccount` | `<GL_Account>` | |
-| `documentNumber` | `<Header><DocumentNumber>` | Vendor ID ATLAS |
-| `paymentCycle` | *(lihat catatan)* | **Belum ada tag di contoh XML** — perlu konfirmasi |
-
-> ⚠️ **Perlu konfirmasi**: field **`Payment Cycle`** ada di daftar penyesuaian v2 tetapi **tidak muncul** di contoh `VMD_000001.xml`. Tanyakan ke tim SAP/ATLAS apakah perlu tag baru (mis. `<Payment_Cycle>`) atau field ini hanya dipakai internal middleware. Jangan tambahkan tag ke XML sebelum dikonfirmasi agar tidak ditolak parser SAP.
-
----
+| `Vendor_ID` | `<Vendor_ID>` | ID unik master vendor ATLAS/SAP |
+| `Company_Code` | `<Company_Code>` | Multi-company SAP (mis. `1000`), default 1000 jika kosong |
+| `Company_Name` | `<Company_Name>` | Nama lengkap perusahaan vendor |
+| `Vendor_Type` | `<Vendor_Type>` | Tipe vendor SAP (mis. `New/Extend`) |
+| `Account_Number` | `<Account_Number>` | Nomor rekening bank |
+| `Account_Name` | `<Account_Name>` | Nama pemilik rekening |
+| `Bank_Name` | `<Bank_Name>` | Nama bank rekanan |
+| `HO_Email` | `<HO_Email>` | Email resmi kantor pusat |
+| `HO_Phone` | `<HO_Phone>` | Telepon kantor pusat |
+| `HO_Address` | `<HO_Address>` | Alamat kantor pusat lengkap |
+| `Contact_Name` | `<Contact_Name>` | Nama PIC vendor (opsional) |
+| `Contact_Phone` | `<Contact_Phone>` | Telepon PIC vendor (opsional) |
+| `NPWP` | `<NPWP>` | 15/16 digit NPWP |
+| `TOP` | `<TOP>` | Kode payment terms SAP (mis. `T014`) |
+| `Account_Group` | `<Account_Group>` | Grup akun SAP (`V010`/`V020`/`V030`) |
+| `GL_Account` | `<GL_Account>` | Nomor GL account SAP |
+| `DocumentNumber` | `<Header><DocumentNumber>` | Nomor dokumen referensi ATLAS |
 
 ## 7. Aturan Penamaan File & Tujuan FTP
 

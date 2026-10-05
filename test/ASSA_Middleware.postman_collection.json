@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "179cfbe1-f019-4e72-a76d-f2a9eb3ec4e3",
+    "_postman_id": "e83f172a-b228-4ee6-991b-2464dd9c7cf8",
     "name": "ASSA Middleware API Collection",
     "description": "Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: http://localhost:6031\nKoleksi Postman resmi untuk pengujian lengkap seluruh fitur ASSA Middleware (WSO2 Micro Integrator Monorepo).\n\nCakupan Layanan (Semua 7 Microservice):\n- 1. Health & Readiness Probes (16 Endpoint: General & Seluruh 7 Microservice)\n- 2. Auth & Scope Security Guards (15 Skenario: 401 Unauthorized & 403 Forbidden cross-services)\n- 3. Parameter & Input Validation (14 Skenario: 400 Bad Request validasi bisnis)\n- 4. Inquiry, Search & Pagination (22 Skenario: 200 OK dengan filter filterBy, plat_no, CustomerCode/CustomerName, & metadata pagination)\n- 5. Transactional & Fan-Out Endpoints (12 Skenario: Service Request Fan-out 10x Retries, Barantum Public Gateway nested unit, Vendor Create V2 XML FTP, SPK Due List V2 dengan Invoice/Pajak, Payments Service Create & Idempotency Replay)\n- 6. Background Retry Worker (2 Skenario: GET & POST Trigger)\n\nTotal Skenario: 81 requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -3953,7 +3953,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"company_code\": \"1000/2000/6000/7000\",\n  \"companyTitle\": \"PT\",\n  \"companyName\": \"PT Adi Sarana Armada Tbk\",\n  \"otv\": \"No\",\n  \"paymentCycle\": \"Monthly\",\n  \"accountNumber\": \"1200010978489\",\n  \"accountName\": \"Robby Yulianto Setiawan\",\n  \"bankName\": \"Mandiri\",\n  \"hoEmail\": \"assa@assarent.co.id\",\n  \"hoPhone\": \"082246605199\",\n  \"hoAddress\": \"Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410\",\n  \"contactName\": \"Robby Contact\",\n  \"contactPhone\": \"08224660189\",\n  \"npwp\": \"3173080209920003\",\n  \"accountGroup\": \"V010\",\n  \"top\": \"T014\",\n  \"glAccount\": \"2121000000\",\n  \"documentNumber\": \"VENDOR-ATLAS-000123\"\n}",
+              "raw": "{\n  \"Vendor_ID\": \"82165871\",\n  \"Company_Code\": \"1000\",\n  \"Company_Name\": \"PT Adi Sarana Armada Tbk\",\n  \"Vendor_Type\": \"New/Extend\",\n  \"Account_Number\": \"1200010978489\",\n  \"Account_Name\": \"Robby Yulianto Setiawan\",\n  \"Bank_Name\": \"Mandiri\",\n  \"HO_Email\": \"assa@assarent.co.id\",\n  \"HO_Phone\": \"082246605199\",\n  \"HO_Address\": \"Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410\",\n  \"Contact_Name\": \"Robby Contact\",\n  \"Contact_Phone\": \"08224660189\",\n  \"NPWP\": \"3173080209920003\",\n  \"TOP\": \"T014\",\n  \"Account_Group\": \"V010\",\n  \"GL_Account\": \"2121000000\",\n  \"DocumentNumber\": \"VENDOR-ATLAS-000123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4031,7 +4031,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"company_code\": \"1000/2000/6000/7000\",\n  \"companyTitle\": \"CV\",\n  \"companyName\": \"CV Mitra Armada Jaya\",\n  \"otv\": \"No\",\n  \"paymentCycle\": \"Monthly\",\n  \"accountNumber\": \"880019283746\",\n  \"accountName\": \"Budi Handoko\",\n  \"bankName\": \"BCA\",\n  \"hoEmail\": \"contact@mitrajaya.id\",\n  \"hoPhone\": \"08119876543\",\n  \"hoAddress\": \"Kawasan Industri MM2100 Blok B-14, Cikarang Barat, Bekasi, Jawa Barat, 17530\",\n  \"contactName\": \"Budi Handoko\",\n  \"contactPhone\": \"08119876543\",\n  \"npwp\": \"013456789012000\",\n  \"accountGroup\": \"V010\",\n  \"top\": \"T014\",\n  \"glAccount\": \"2121000000\",\n  \"documentNumber\": \"VENDOR-ATLAS-CV-001\"\n}",
+              "raw": "{\n  \"Vendor_ID\": \"82165872\",\n  \"Company_Code\": \"1000\",\n  \"Company_Name\": \"CV Mitra Armada Jaya\",\n  \"Vendor_Type\": \"New/Extend\",\n  \"Account_Number\": \"880019283746\",\n  \"Account_Name\": \"Budi Handoko\",\n  \"Bank_Name\": \"BCA\",\n  \"HO_Email\": \"contact@mitrajaya.id\",\n  \"HO_Phone\": \"08119876543\",\n  \"HO_Address\": \"Kawasan Industri MM2100 Blok B-14, Cikarang Barat, Bekasi, Jawa Barat, 17530\",\n  \"Contact_Name\": \"Budi Handoko\",\n  \"Contact_Phone\": \"08119876543\",\n  \"NPWP\": \"013456789012000\",\n  \"TOP\": \"T014\",\n  \"Account_Group\": \"V010\",\n  \"GL_Account\": \"2121000000\",\n  \"DocumentNumber\": \"VENDOR-ATLAS-CV-001\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4099,7 +4099,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"company_code\": \"1000/2000/6000/7000\",\n  \"companyTitle\": \"PT\",\n  \"companyName\": \"PT Adi Sarana Armada Tbk\",\n  \"otv\": \"No\",\n  \"paymentCycle\": \"Monthly\",\n  \"accountNumber\": \"1200010978489\",\n  \"accountName\": \"Robby Yulianto Setiawan\",\n  \"bankName\": \"Mandiri\",\n  \"hoEmail\": \"assa@assarent.co.id\",\n  \"hoPhone\": \"082246605199\",\n  \"hoAddress\": \"Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410\",\n  \"contactName\": \"Robby Contact\",\n  \"contactPhone\": \"08224660189\",\n  \"npwp\": \"3173080209920003\",\n  \"accountGroup\": \"V010\",\n  \"top\": \"T014\",\n  \"glAccount\": \"2121000000\",\n  \"documentNumber\": \"VENDOR-ATLAS-000123\"\n}",
+              "raw": "{\n  \"Vendor_ID\": \"82165871\",\n  \"Company_Code\": \"1000\",\n  \"Company_Name\": \"PT Adi Sarana Armada Tbk\",\n  \"Vendor_Type\": \"New/Extend\",\n  \"Account_Number\": \"1200010978489\",\n  \"Account_Name\": \"Robby Yulianto Setiawan\",\n  \"Bank_Name\": \"Mandiri\",\n  \"HO_Email\": \"assa@assarent.co.id\",\n  \"HO_Phone\": \"082246605199\",\n  \"HO_Address\": \"Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410\",\n  \"Contact_Name\": \"Robby Contact\",\n  \"Contact_Phone\": \"08224660189\",\n  \"NPWP\": \"3173080209920003\",\n  \"TOP\": \"T014\",\n  \"Account_Group\": \"V010\",\n  \"GL_Account\": \"2121000000\",\n  \"DocumentNumber\": \"VENDOR-ATLAS-000123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

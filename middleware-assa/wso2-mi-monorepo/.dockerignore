@@ -15,3 +15,9 @@ mvnw.cmd
 *.tmp
 *.bak
 node_modules/
+docs-src/
+test_all.ps1
+test_local.sh
+*.md
+notes/
+.vscode/

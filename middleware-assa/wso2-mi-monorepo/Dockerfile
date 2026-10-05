@@ -13,25 +13,18 @@ RUN mvn -q clean package -DskipTests && \
 FROM ${BASE_IMAGE} AS base-runtime
 USER root
 
-# Selalu salin shared artifacts CAR ke runtime
-COPY --from=build /app/shared/target/*.car \
+# Selalu salin shared artifacts CAR ke runtime dengan ownership yang tepat
+COPY --chown=wso2carbon:wso2 --from=build /app/shared/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 # The shared DB sequences use the MariaDB driver at runtime.
-COPY --from=build /app/integrations/branch-service/deployment/docker/libs/mariadb-java-client-*.jar \
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/branch-service/deployment/docker/libs/mariadb-java-client-*.jar \
     ${WSO2_SERVER_HOME}/lib/
 
 # Salin SSL certificates, entrypoint forwarder & skema SQL
-COPY --from=build /app/platform/docker/resources/*.jks ${WSO2_SERVER_HOME}/repository/resources/security/
-COPY platform/docker/entrypoint.sh /home/wso2carbon/entrypoint.sh
-COPY --from=build /app/scripts/db/init_mariadb_schema.sql /docker-entrypoint-initdb.d/01_init.sql
-# Salin dokumentasi & kontrak OpenAPI 3.0 ke dalam image container
-COPY --from=build /app/docs /app/docs
-
-RUN sed -i 's/\r$//' /home/wso2carbon/entrypoint.sh && \
-    chmod +x /home/wso2carbon/entrypoint.sh && \
-    chown -R wso2carbon:wso2 /home/wso2carbon/entrypoint.sh \
-        ${WSO2_SERVER_HOME}/lib/ \
-        ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/platform/docker/resources/*.jks ${WSO2_SERVER_HOME}/repository/resources/security/
+COPY --chown=wso2carbon:wso2 --chmod=755 platform/docker/entrypoint.sh /home/wso2carbon/entrypoint.sh
+COPY --chown=wso2carbon:wso2 --from=build /app/scripts/db/init_mariadb_schema.sql /docker-entrypoint-initdb.d/01_init.sql
+COPY --chown=wso2carbon:wso2 --from=build /app/docs /app/docs
 
 USER wso2carbon
 EXPOSE 8290 8253 9164
@@ -42,37 +35,37 @@ ENTRYPOINT ["/home/wso2carbon/entrypoint.sh"]
 # ----------------------------------------------------
 FROM base-runtime AS branch-service
 USER root
-COPY --from=build /app/integrations/branch-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/branch-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
 FROM base-runtime AS customer-service
 USER root
-COPY --from=build /app/integrations/customer-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/customer-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
 FROM base-runtime AS vehicle-service
 USER root
-COPY --from=build /app/integrations/vehicle-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/vehicle-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
 FROM base-runtime AS vendor-service
 USER root
-COPY --from=build /app/integrations/vendor-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/vendor-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
 FROM base-runtime AS spk-service
 USER root
-COPY --from=build /app/integrations/spk-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/spk-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
 FROM base-runtime AS service-request-service
 USER root
-COPY --from=build /app/integrations/service-request-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/service-request-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
 FROM base-runtime AS payments-service
 USER root
-COPY --from=build /app/integrations/payments-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/payments-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
 # ----------------------------------------------------
@@ -80,18 +73,18 @@ USER wso2carbon
 # ----------------------------------------------------
 FROM base-runtime AS all-in-one
 USER root
-COPY --from=build /app/integrations/branch-service/target/*.car \
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/branch-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-COPY --from=build /app/integrations/customer-service/target/*.car \
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/customer-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-COPY --from=build /app/integrations/vehicle-service/target/*.car \
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/vehicle-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-COPY --from=build /app/integrations/vendor-service/target/*.car \
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/vendor-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-COPY --from=build /app/integrations/spk-service/target/*.car \
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/spk-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-COPY --from=build /app/integrations/service-request-service/target/*.car \
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/service-request-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-COPY --from=build /app/integrations/payments-service/target/*.car \
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/payments-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon

@@ -54,6 +54,24 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VendorCreateRequest'
+            example:
+              Vendor_ID: "82165871"
+              Company_Code: "1000"
+              Company_Name: "PT Adi Sarana Armada Tbk"
+              Vendor_Type: "New/Extend"
+              Account_Number: "1200010978489"
+              Account_Name: "Robby Yulianto Setiawan"
+              Bank_Name: "Mandiri"
+              HO_Email: "assa@assarent.co.id"
+              HO_Phone: "082246605199"
+              HO_Address: "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410"
+              Contact_Name: "Robby Contact"
+              Contact_Phone: "08224660189"
+              NPWP: "3173080209920003"
+              TOP: "T014"
+              Account_Group: "V010"
+              GL_Account: "2121000000"
+              DocumentNumber: "VENDOR-ATLAS-000123"
       responses:
         '201':
           description: Vendor berhasil dibuat dan diunggah ke FTP
@@ -221,100 +239,87 @@ components:
     VendorCreateRequest:
       type: object
       required:
-        - companyTitle
-        - companyName
-        - otv
-        - paymentCycle
-        - accountNumber
-        - accountName
-        - bankName
-        - hoEmail
-        - hoPhone
-        - hoAddress
-        - contactName
-        - contactPhone
-        - npwp
-        - accountGroup
-        - top
-        - glAccount
-        - documentNumber
+        - Vendor_ID
+        - Company_Name
+        - Vendor_Type
+        - Account_Number
+        - Account_Name
+        - Bank_Name
+        - HO_Email
+        - HO_Phone
+        - HO_Address
+        - NPWP
+        - TOP
+        - Account_Group
+        - GL_Account
+        - DocumentNumber
       properties:
-        company_code:
+        Vendor_ID:
           type: string
-          description: Kode perusahaan SAP tujuan (mis. 1000/2000/6000/7000). Jika tidak disertakan, default ke 1000/2000/6000/7000.
-          example: "1000/2000/6000/7000"
-        companyCode:
+          description: ID unik master vendor dari ATLAS/SAP (mis. 82165871)
+          example: '82165871'
+        Company_Code:
           type: string
-          description: Alias camelCase untuk company_code
-          example: "1000/2000/6000/7000"
-        companyTitle:
-          type: string
-          description: Bentuk badan hukum (PT, CV, dll.)
-          enum: [PT, CV, UD, PO, Yayasan, Koperasi, Perorangan]
-          example: PT
-        companyName:
+          description: Kode perusahaan SAP tujuan (mis. 1000). Jika tidak disertakan, default ke 1000.
+          example: "1000"
+        Company_Name:
           type: string
           description: Nama lengkap perusahaan vendor
           example: PT Adi Sarana Armada Tbk
-        otv:
+        Vendor_Type:
           type: string
-          description: One Time Vendor flag
-          enum: ["Yes", "No"]
-          example: "No"
-        paymentCycle:
-          type: string
-          description: Siklus pembayaran tagihan
-          example: Monthly
-        accountNumber:
+          description: Tipe vendor SAP (mis. New/Extend)
+          example: 'New/Extend'
+        Account_Number:
           type: string
           description: Nomor rekening bank
           example: '1200010978489'
-        accountName:
+        Account_Name:
           type: string
           description: Nama rekening buku tabungan
           example: Robby Yulianto Setiawan
-        bankName:
+        Bank_Name:
           type: string
           description: Nama bank rekanan
           example: Mandiri
-        hoEmail:
+        HO_Email:
           type: string
           format: email
           description: Email kantor pusat
           example: assa@assarent.co.id
-        hoPhone:
+        HO_Phone:
           type: string
           description: Telepon kantor pusat
           example: '082246605199'
-        hoAddress:
+        HO_Address:
           type: string
           description: Alamat kantor pusat lengkap
-          example: Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat
-        contactName:
+          example: Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410
+        Contact_Name:
           type: string
-          description: Nama PIC vendor
+          description: Nama PIC vendor (opsional)
           example: Robby Contact
-        contactPhone:
+        Contact_Phone:
           type: string
-          description: Telepon PIC vendor
+          description: Telepon PIC vendor (opsional)
           example: '08224660189'
-        npwp:
+        NPWP:
           type: string
           description: 16 digit NPWP
           example: '3173080209920003'
-        accountGroup:
-          type: string
-          description: Grup akun SAP (V010, dll.)
-          example: V010
-        top:
+        TOP:
           type: string
           description: Term of Payment SAP (T014, dll.)
           example: T014
-        glAccount:
+        Account_Group:
+          type: string
+          description: Grup akun SAP (V010, V020, V030)
+          example: V010
+        GL_Account:
           type: string
           description: Nomor General Ledger SAP
           example: '2121000000'
-        documentNumber:
+        DocumentNumber:
           type: string
           description: Nomor referensi dokumen ATLAS
           example: VENDOR-ATLAS-000123

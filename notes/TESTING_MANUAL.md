@@ -258,24 +258,23 @@ curl -X POST "http://localhost:8293/api/vendors/create" \
   -H "Content-Type: application/json" \
   -H "X-Transaction-Id: TRX-VENDOR-001" \
   -d '{
-    "company_code": "1000/2000/6000/7000",
-    "companyTitle": "PT",
-    "companyName": "PT Adi Sarana Armada Tbk",
-    "otv": "No",
-    "paymentCycle": "Monthly",
-    "accountNumber": "1200010978489",
-    "accountName": "Robby Yulianto Setiawan",
-    "bankName": "Mandiri",
-    "hoEmail": "assa@assarent.co.id",
-    "hoPhone": "082246605199",
-    "hoAddress": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
-    "contactName": "Robby Contact",
-    "contactPhone": "08224660189",
-    "npwp": "3173080209920003",
-    "accountGroup": "V010",
-    "top": "T014",
-    "glAccount": "2121000000",
-    "documentNumber": "VENDOR-ATLAS-000123"
+    "Vendor_ID": "82165871",
+    "Company_Code": "1000",
+    "Company_Name": "PT Adi Sarana Armada Tbk",
+    "Vendor_Type": "New/Extend",
+    "Account_Number": "1200010978489",
+    "Account_Name": "Robby Yulianto Setiawan",
+    "Bank_Name": "Mandiri",
+    "HO_Email": "assa@assarent.co.id",
+    "HO_Phone": "082246605199",
+    "HO_Address": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
+    "Contact_Name": "Robby Contact",
+    "Contact_Phone": "08224660189",
+    "NPWP": "3173080209920003",
+    "TOP": "T014",
+    "Account_Group": "V010",
+    "GL_Account": "2121000000",
+    "DocumentNumber": "VENDOR-ATLAS-000123"
   }'
 ```
 
@@ -293,24 +292,23 @@ curl -X POST "http://localhost:8293/api/vendors/create" \
   -H "Content-Type: application/json" \
   -H "X-Transaction-Id: TRX-VENDOR-001" \
   -d '{
-    "company_code": "1000/2000/6000/7000",
-    "companyTitle": "PT",
-    "companyName": "PT Adi Sarana Armada Tbk",
-    "otv": "No",
-    "paymentCycle": "Monthly",
-    "accountNumber": "1200010978489",
-    "accountName": "Robby Yulianto Setiawan",
-    "bankName": "Mandiri",
-    "hoEmail": "assa@assarent.co.id",
-    "hoPhone": "082246605199",
-    "hoAddress": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
-    "contactName": "Robby Contact",
-    "contactPhone": "08224660189",
-    "npwp": "3173080209920003",
-    "accountGroup": "V010",
-    "top": "T014",
-    "glAccount": "2121000000",
-    "documentNumber": "VENDOR-ATLAS-000123"
+    "Vendor_ID": "82165871",
+    "Company_Code": "1000",
+    "Company_Name": "PT Adi Sarana Armada Tbk",
+    "Vendor_Type": "New/Extend",
+    "Account_Number": "1200010978489",
+    "Account_Name": "Robby Yulianto Setiawan",
+    "Bank_Name": "Mandiri",
+    "HO_Email": "assa@assarent.co.id",
+    "HO_Phone": "082246605199",
+    "HO_Address": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
+    "Contact_Name": "Robby Contact",
+    "Contact_Phone": "08224660189",
+    "NPWP": "3173080209920003",
+    "TOP": "T014",
+    "Account_Group": "V010",
+    "GL_Account": "2121000000",
+    "DocumentNumber": "VENDOR-ATLAS-000123"
   }'
 ```
 
