@@ -333,6 +333,8 @@ run_test "VALID-05" "Validasi: Service Request tanpa field wajib app_id" "POST" 
 echo -e "\n${BOLD}${CYAN}>>> BAGIAN 5: INQUIRY & DATA RETRIEVAL (GET 200 OK)${RESET}"
 
 run_test "GET-01" "Branch Inquiry (App A Token)" "GET" "${BASE_URL_BRANCH}/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5" "200" "$TOKEN_APP_A" "" "" "" 15
+run_test "GET-01A" "Branch filterBy by code (case-insensitive partial)" "GET" "${BASE_URL_BRANCH}/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5&filterBy=1101" "200" "$TOKEN_APP_A" "" "" "" 15
+run_test "GET-01B" "Branch filterBy by name (case-insensitive partial)" "GET" "${BASE_URL_BRANCH}/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5&filterBy=jakarta" "200" "$TOKEN_APP_A" "" "" "" 15
 run_test "GET-02" "Customer Inquiry (App A Token)" "GET" "${BASE_URL_CUSTOMER}/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5" "200" "$TOKEN_APP_A" "" "" "" 15
 
 # Catatan Vehicle: Jika upstream devfmsapi.assa.id membutuhkan API key dan env kosong, kode 403 adalah respon resmi upstream

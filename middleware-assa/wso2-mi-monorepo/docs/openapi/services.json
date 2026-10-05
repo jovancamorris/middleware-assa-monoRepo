@@ -33,9 +33,9 @@
   },
   {
     "id": "spk-service",
-    "name": "SPK Service",
+    "name": "SPK Due List",
     "port": 8294,
-    "description": "Penerbitan Surat Perintah Kerja Duelist XML -> FTP SAP dengan validasi total harga.",
+    "description": "Penerbitan Surat Perintah Kerja Due List XML -> FTP SAP dengan validasi total harga.",
     "specUrl": "/docs/openapi/spk-service.yaml",
     "scope": "spk"
   },
@@ -49,7 +49,7 @@
   },
   {
     "id": "payments-service",
-    "name": "Payments Service",
+    "name": "Payment Due List",
     "port": 8296,
     "description": "Layanan posting payment accounting document XML -> FTP SAP.",
     "specUrl": "/docs/openapi/payments-service.yaml",

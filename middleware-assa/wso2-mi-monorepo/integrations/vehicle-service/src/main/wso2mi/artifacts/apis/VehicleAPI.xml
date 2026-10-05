@@ -3,6 +3,7 @@
     <!-- Vehicle / Operations Domain API (Vehicle Atlas Integration) -->
     <resource methods="GET" uri-template="/getByLicensePlate">
         <inSequence>
+            <property name="api.endpoint" value="/api/vehicles/getByLicensePlate" scope="default" type="STRING"/>
             <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
             <sequence key="AuthGuardSeq"/>
             <sequence key="VehicleGetByLicensePlateSeq"/>
@@ -14,6 +15,7 @@
 
     <resource methods="GET" uri-template="/vehicleatlas">
         <inSequence>
+            <property name="api.endpoint" value="/api/vehicles/vehicleatlas" scope="default" type="STRING"/>
             <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
             <sequence key="AuthGuardSeq"/>
             <sequence key="VehicleGetByLicensePlateSeq"/>

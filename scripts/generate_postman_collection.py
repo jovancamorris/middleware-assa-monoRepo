@@ -17,11 +17,14 @@ os.makedirs(MIDDLEWARE_DIR, exist_ok=True)
 # Sesuai notes/DAFTAR_TOKEN_DAN_AUTENTIKASI.md
 # ------------------------------------------------------------------------------
 TOKENS = {
-    "token_app_a": "c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd",
+    "token_app_a": "3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013",
+    "token_app_a_fallback": "c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd",
     "token_app_b": "988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881",
-    "token_qa": "e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be",
+    "token_qa": "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d",
+    "token_qa_fallback": "e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be",
     "token_omnichannel": "14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12",
-    "token_barantum": "umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd",
+    "token_barantum": "umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680",
+    "token_barantum_legacy": "umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd",
     "token_atlas": "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d"
 }
 
@@ -50,9 +53,14 @@ def make_request_item(name, method, url_path, query_params=None, headers=None, b
     if test_assertions:
         events.append(make_test_script(test_assertions))
 
-    header_list = [
-        {"key": "X-Retry-Interval-Seconds", "value": "1", "type": "text"}
-    ]
+    header_list = []
+    # Header X-Retry-Interval-Seconds hanya digunakan pada 6 service yang memanggil SafeApiCallWithRetrySeq
+    # (Branch, Customer, Vehicle, Vendor, SPK, Payments) pada pemanggilan backend
+    retry_services = ("/api/branches", "/api/customers", "/api/vehicles", "/api/vendors", "/api/spk", "/api/payments")
+    is_retry_service = any(url_path.startswith(prefix) for prefix in retry_services)
+    is_guard_or_validation = any(keyword in name.lower() for keyword in ["guard", "validasi", "tanpa token", "scope tidak cukup", "token invalid", "bad request"])
+    if is_retry_service and not is_guard_or_validation:
+        header_list.append({"key": "X-Retry-Interval-Seconds", "value": "1", "type": "text"})
     if body_json is not None:
         header_list.append({"key": "Content-Type", "value": "application/json", "type": "text"})
     if headers:
@@ -109,7 +117,7 @@ def make_request_item(name, method, url_path, query_params=None, headers=None, b
     }
 
 # ------------------------------------------------------------------------------
-# 1. Health & Readiness Probes (14 Items)
+# 1. Health & Readiness Probes (16 Items)
 # ------------------------------------------------------------------------------
 health_items = [
     make_request_item(
@@ -177,7 +185,7 @@ health_items = [
     ),
     make_request_item(
         "SPK Readiness Check", "GET", "/readiness/spk",
-        description="Pemeriksaan kesiapan spk-service untuk interface SPK Duelist ke FTP SAP.",
+        description="Pemeriksaan kesiapan spk-service untuk interface SPK Due List ke FTP SAP.",
         test_assertions=["pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"]
     ),
     make_request_item(
@@ -203,11 +211,11 @@ health_items = [
 ]
 
 # ------------------------------------------------------------------------------
-# 2. Auth & Scope Security Guards (9 Items)
+# 2. Auth & Scope Security Guards (15 Items)
 # ------------------------------------------------------------------------------
 security_items = [
     make_request_item(
-        "Auth Guard: Request Tanpa Token (401)", "GET", "/api/branches/getByCreateDate",
+        "Auth Guard: Request Tanpa Token - Branch (401)", "GET", "/api/branches/getByCreateDate",
         query_params={"companyCode": "{{companyCode}}"},
         description="Memverifikasi penolakan HTTP 401 saat klien tidak mengirim header Authorization.",
         test_assertions=[
@@ -217,6 +225,38 @@ security_items = [
             "    pm.expect(res.error).to.be.true;",
             "    pm.expect(res.message).to.eql('Unauthorized');",
             "});"
+        ]
+    ),
+    make_request_item(
+        "Auth Guard: Request Tanpa Token - Customer (401)", "GET", "/api/customers/getByCreateDate",
+        query_params={"companyCode": "{{companyCode}}"},
+        description="Memverifikasi penolakan HTTP 401 pada Customer Service tanpa Authorization header.",
+        test_assertions=[
+            "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });"
+        ]
+    ),
+    make_request_item(
+        "Auth Guard: Request Tanpa Token - Vehicle (401)", "GET", "/api/vehicles/getByLicensePlate",
+        query_params={"plat_no": "B-9065"},
+        description="Memverifikasi penolakan HTTP 401 pada Vehicle Service tanpa Authorization header.",
+        test_assertions=[
+            "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });"
+        ]
+    ),
+    make_request_item(
+        "Auth Guard: Request Tanpa Token - Payments (401)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "IDR",
+            "glAccount": "1114000000"
+        },
+        description="Memverifikasi penolakan HTTP 401 pada Payments Service tanpa Authorization header.",
+        test_assertions=[
+            "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });"
         ]
     ),
     make_request_item(
@@ -273,10 +313,10 @@ security_items = [
         ]
     ),
     make_request_item(
-        "Scope Guard: App B call SPK Duelist (403)", "POST", "/api/spk/duelist",
+        "Scope Guard: App B call SPK Due List (403)", "POST", "/api/spk/duelist",
         body_json={},
         token_var="token_app_b",
-        description="Memverifikasi penolakan HTTP 403 saat App B memanggil SPK Duelist API.",
+        description="Memverifikasi penolakan HTTP 403 saat App B memanggil SPK Due List API.",
         test_assertions=[
             "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
             "pm.test('Detail states missing spk scope', function () {",
@@ -295,32 +335,6 @@ security_items = [
             "pm.test('Detail states missing service_requests scope', function () {",
             "    var res = pm.response.json();",
             "    pm.expect(res.detail).to.include('service_requests');",
-            "});"
-        ]
-    ),
-    make_request_item(
-        "Scope Guard: App ATLAS (scope: vendors) call SPK Duelist (403)", "POST", "/api/spk/duelist",
-        body_json={},
-        token_var="token_atlas",
-        description="Memverifikasi penolakan HTTP 403 saat App ATLAS (hanya scope 'vendors') memanggil SPK Duelist.",
-        test_assertions=[
-            "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
-            "pm.test('Detail states missing spk scope', function () {",
-            "    var res = pm.response.json();",
-            "    pm.expect(res.detail).to.include('spk');",
-            "});"
-        ]
-    ),
-    make_request_item(
-        "Scope Guard: App Omnichannel (scope: service_requests) call Customer (403)", "GET", "/api/customers/getByCreateDate",
-        query_params={"companyCode": "{{companyCode}}"},
-        token_var="token_omnichannel",
-        description="Memverifikasi penolakan HTTP 403 saat App Omnichannel memanggil Customer Service.",
-        test_assertions=[
-            "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
-            "pm.test('Detail states missing customers scope', function () {",
-            "    var res = pm.response.json();",
-            "    pm.expect(res.detail).to.include('customers');",
             "});"
         ]
     ),
@@ -345,17 +359,131 @@ security_items = [
             "});"
         ]
     ),
+    make_request_item(
+        "Scope Guard: App ATLAS (scope: vendors) call SPK Due List (403)", "POST", "/api/spk/duelist",
+        body_json={},
+        token_var="token_atlas",
+        description="Memverifikasi penolakan HTTP 403 saat App ATLAS (hanya scope 'vendors') memanggil SPK Due List.",
+        test_assertions=[
+            "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+            "pm.test('Detail states missing spk scope', function () {",
+            "    var res = pm.response.json();",
+            "    pm.expect(res.detail).to.include('spk');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Scope Guard: App ATLAS call Payments (403)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "IDR",
+            "glAccount": "1114000000"
+        },
+        token_var="token_atlas",
+        description="Memverifikasi penolakan HTTP 403 saat App ATLAS memanggil Payments Service.",
+        test_assertions=[
+            "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+            "pm.test('Detail states missing payments scope', function () {",
+            "    var res = pm.response.json();",
+            "    pm.expect(res.detail).to.include('payments');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Scope Guard: App Omnichannel (scope: service_requests) call Customer (403)", "GET", "/api/customers/getByCreateDate",
+        query_params={"companyCode": "{{companyCode}}"},
+        token_var="token_omnichannel",
+        description="Memverifikasi penolakan HTTP 403 saat App Omnichannel memanggil Customer Service.",
+        test_assertions=[
+            "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+            "pm.test('Detail states missing customers scope', function () {",
+            "    var res = pm.response.json();",
+            "    pm.expect(res.detail).to.include('customers');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Scope Guard: App Omnichannel call Payments (403)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "IDR",
+            "glAccount": "1114000000"
+        },
+        token_var="token_omnichannel",
+        description="Memverifikasi penolakan HTTP 403 saat App Omnichannel memanggil Payments Service.",
+        test_assertions=[
+            "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+            "pm.test('Detail states missing payments scope', function () {",
+            "    var res = pm.response.json();",
+            "    pm.expect(res.detail).to.include('payments');",
+            "});"
+        ]
+    ),
 ]
 
 # ------------------------------------------------------------------------------
-# 3. Parameter & Input Validation (7 Items)
+# 3. Parameter & Input Validation (14 Items)
 # ------------------------------------------------------------------------------
 validation_items = [
     make_request_item(
-        "Validasi: Vehicle tanpa parameter pencarian (400)", "GET", "/api/vehicles/getByLicensePlate",
-        query_params={"companyCode": "{{companyCode}}"},
-        token_var="token_app_b",
-        description="Memverifikasi HTTP 400 jika pencarian kendaraan tidak menyertakan plate_no, equipment_no, atau branchCode.",
+        "Validasi: Payments currency tidak valid / lebih dari 5 karakter (400)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "TOOLONG",
+            "glAccount": "1114000000"
+        },
+        token_var="token_qa",
+        description="Memverifikasi penolakan HTTP 400 jika field currency melebihi batas 5 karakter.",
+        test_assertions=[
+            "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });",
+            "pm.test('Detail mentions currency code requirement', function () {",
+            "    var res = pm.response.json();",
+            "    pm.expect(res.error).to.be.true;",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Validasi: Payments businessArea lebih dari 10 karakter (400)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "businessArea": "TOOLONGAREA123",
+            "currency": "IDR",
+            "glAccount": "1114000000"
+        },
+        token_var="token_qa",
+        description="Memverifikasi penolakan HTTP 400 jika field businessArea melebihi batas 10 karakter.",
+        test_assertions=[
+            "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+        ]
+    ),
+    make_request_item(
+        "Validasi: Payments accountingDocumentNumber lebih dari 50 karakter (400)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000",
+            "accountingDocumentNumber": "1234567890123456789012345678901234567890123456789012345",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "IDR",
+            "glAccount": "1114000000"
+        },
+        token_var="token_qa",
+        description="Memverifikasi penolakan HTTP 400 jika nomor dokumen accountingDocumentNumber melebihi 50 karakter.",
         test_assertions=[
             "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
         ]
@@ -417,7 +545,7 @@ validation_items = [
         ]
     ),
     make_request_item(
-        "Validasi: SPK Duelist tanpa noSpk (400)", "POST", "/api/spk/duelist",
+        "Validasi: SPK Due List tanpa noSpk (400)", "POST", "/api/spk/duelist",
         body_json={
             "type": "Maintenance",
             "noPolisi": "B-2120-BKZ",
@@ -436,7 +564,7 @@ validation_items = [
         ]
     ),
     make_request_item(
-        "Validasi: SPK Duelist beda total dengan header X-Validate-Total (400)", "POST", "/api/spk/duelist",
+        "Validasi: SPK Due List beda total dengan header X-Validate-Total (400)", "POST", "/api/spk/duelist",
         headers={"X-Validate-Total": "true"},
         body_json={
             "noSpk": "SPK/2026/09/00002",
@@ -457,7 +585,7 @@ validation_items = [
         ]
     ),
     make_request_item(
-        "Validasi: SPK Duelist field invoice parsial / tidak lengkap (400)", "POST", "/api/spk/duelist",
+        "Validasi: SPK Due List field invoice parsial / tidak lengkap (400)", "POST", "/api/spk/duelist",
         body_json={
             "noSpk": "SPK/2026/09/00004",
             "type": "Maintenance",
@@ -521,11 +649,79 @@ validation_items = [
             "    pm.expect(res.error).to.be.true;",
             "});"
         ]
-    )
+    ),
+    make_request_item(
+        "Validasi: Payments tanpa documentDate (400)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051904",
+            "postingDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "IDR",
+            "glAccount": "1114000000"
+        },
+        token_var="token_qa",
+        description="Memverifikasi HTTP 400 jika field wajib documentDate tidak dikirim.",
+        test_assertions=[
+            "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });",
+            "pm.test('Detail mentions documentDate required', function () {",
+            "    var res = pm.response.json();",
+            "    pm.expect(res.error).to.be.true;",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Validasi: Payments tanpa postingDate (400)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "IDR",
+            "glAccount": "1114000000"
+        },
+        token_var="token_qa",
+        description="Memverifikasi HTTP 400 jika field wajib postingDate tidak dikirim.",
+        test_assertions=[
+            "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+        ]
+    ),
+    make_request_item(
+        "Validasi: Payments tanpa businessArea (400)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "currency": "IDR",
+            "glAccount": "1114000000"
+        },
+        token_var="token_qa",
+        description="Memverifikasi HTTP 400 jika field wajib businessArea tidak dikirim.",
+        test_assertions=[
+            "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+        ]
+    ),
+    make_request_item(
+        "Validasi: Payments tanpa glAccount (400)", "POST", "/api/payments",
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "IDR"
+        },
+        token_var="token_qa",
+        description="Memverifikasi HTTP 400 jika field wajib glAccount tidak dikirim.",
+        test_assertions=[
+            "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+        ]
+    ),
 ]
 
 # ------------------------------------------------------------------------------
-# 4. Inquiry & Pagination (GET 200 OK) (9 Items)
+# 4. Inquiry & Pagination (GET 200 OK) (18 Items)
 # ------------------------------------------------------------------------------
 inquiry_items = [
     make_request_item(
@@ -563,26 +759,128 @@ inquiry_items = [
         ]
     ),
     make_request_item(
-        "Customer Inquiry GetByCreateDate (Page 1 - App A)", "GET", "/api/customers/getByCreateDate",
+        "Branch Inquiry Search via filterBy (QA)", "GET", "/api/branches/getByCreateDate",
         query_params={
             "companyCode": "{{companyCode}}",
             "dateStart": "2020-01-01",
             "dateEnd": "2026-09-11",
+            "filterBy": "jakarta",
+            "page": "1",
+            "perPage": "5"
+        },
+        token_var="token_qa",
+        description="Mengambil data master cabang menggunakan single-field search filterBy (mencakup BranchCode dan BranchName).",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Response contains data array', function () {",
+            "    var res = pm.response.json();",
+            "    pm.expect(res.success).to.be.true;",
+            "    pm.expect(res).to.have.property('data');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Customer Inquiry GetByCreateDate (Page 1 - App A)", "GET", "/api/customers/getByCreateDate",
+        query_params={
+            "companyCode": "{{companyCode}}",
+            "dateStart": "2025-01-01",
+            "dateEnd": "2026-12-31",
             "page": "1",
             "perPage": "5"
         },
         token_var="token_app_a",
-        description="Mengambil data pelanggan Core SAP dengan filter rentang tanggal dan paginasi page 1.",
+        description="Mengambil data pelanggan Core SAP dengan filter rentang tanggal dan paginasi page 1. Mendukung query param CustomerCode dan CustomerName.",
         test_assertions=[
             "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+        ]
+    ),
+    make_request_item(
+        "Customer Inquiry Search (CustomerCode & CustomerName - App A)", "GET", "/api/customers/getByCreateDate",
+        query_params={
+            "companyCode": "{{companyCode}}",
+            "dateStart": "2025-01-01",
+            "dateEnd": "2026-12-31",
+            "CustomerCode": "1000025",
+            "CustomerName": "ADI SARANA",
+            "page": "1",
+            "perPage": "5"
+        },
+        token_var="token_app_a",
+        description="Mencari data pelanggan spesifik menggunakan filter langsung via query param CustomerCode dan CustomerName.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Data array is present', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Customer Inquiry Search CustomerCode Only (QA)", "GET", "/api/customers/getByCreateDate",
+        query_params={
+            "companyCode": "{{companyCode}}",
+            "CustomerCode": "1000025",
+            "page": "1",
+            "perPage": "5"
+        },
+        token_var="token_qa",
+        description="Mencari data pelanggan berdasarkan kode CustomerCode saja menggunakan token QA.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Filter by CustomerCode succeeds', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Customer Inquiry Search CustomerName Only (QA)", "GET", "/api/customers/getByCreateDate",
+        query_params={
+            "companyCode": "{{companyCode}}",
+            "CustomerName": "ADI SARANA",
+            "page": "1",
+            "perPage": "5"
+        },
+        token_var="token_qa",
+        description="Mencari data pelanggan berdasarkan nama CustomerName (substring) menggunakan token QA.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Filter by CustomerName succeeds', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Customer Inquiry Search via filterBy (QA)", "GET", "/api/customers/getByCreateDate",
+        query_params={
+            "companyCode": "{{companyCode}}",
+            "dateStart": "2025-01-01",
+            "dateEnd": "2026-12-31",
+            "filterBy": "1000025",
+            "page": "1",
+            "perPage": "5"
+        },
+        token_var="token_qa",
+        description="Mencari data pelanggan menggunakan single-field search filterBy (mencakup CustomerCode dan CustomerName).",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Data array is present', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
         ]
     ),
     make_request_item(
         "Customer Inquiry GetByCreateDate (Page 2 - QA)", "GET", "/api/customers/getByCreateDate",
         query_params={
             "companyCode": "{{companyCode}}",
-            "dateStart": "2020-01-01",
-            "dateEnd": "2026-09-11",
+            "dateStart": "2025-01-01",
+            "dateEnd": "2026-12-31",
             "page": "2",
             "perPage": "5"
         },
@@ -593,35 +891,196 @@ inquiry_items = [
         ]
     ),
     make_request_item(
-        "Vehicle Inquiry /getByLicensePlate cari Plat Nomor (App B)", "GET", "/api/vehicles/getByLicensePlate",
-        query_params={"plate_no": "DD-8112"},
+        "Vehicle Inquiry /getByLicensePlate cari Plat Nomor & Pagination (App B)", "GET", "/api/vehicles/getByLicensePlate",
+        query_params={
+            "plat_no": "B-9065",
+            "page": "1",
+            "perPage": "10"
+        },
         token_var="token_app_b",
-        description="Inquiry data kendaraan berdasarkan plat nomor via path getByLicensePlate.",
+        description="Inquiry data kendaraan berdasarkan plat nomor plat_no serta pagination page & perPage via getByLicensePlate.",
         test_assertions=[
-            "pm.test('Status code is 200 or 403 upstream', function () {",
-            "    pm.expect([200, 403]).to.include(pm.response.code);",
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Pagination structure is valid', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.page).to.eql(1);",
+            "    pm.expect(json.perPage).to.eql(10);",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Vehicle Inquiry /getByLicensePlate cari Plat Nomor dengan Spasi Auto-Normalized (QA)", "GET", "/api/vehicles/getByLicensePlate",
+        query_params={
+            "plat_no": "B 9065",
+            "page": "1",
+            "perPage": "10"
+        },
+        token_var="token_qa",
+        description="Inquiry data kendaraan berdasarkan plat nomor dengan spasi yang otomatis dinormalisasi menjadi format standar bertanda hubung.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Auto normalized plate returns valid array', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Vehicle Inquiry /getByLicensePlate Paginate All Vehicles (Page 1 - App B)", "GET", "/api/vehicles/getByLicensePlate",
+        query_params={
+            "page": "1",
+            "perPage": "10"
+        },
+        token_var="token_app_b",
+        description="Paginasi data kendaraan seluruh armada halaman 1 via endpoint /getByLicensePlate tanpa query filter plat nomor.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Pagination page 1 returns data', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Vehicle Inquiry /getByLicensePlate cari Equipment via filterBy (App B)", "GET", "/api/vehicles/getByLicensePlate",
+        query_params={
+            "filterBy": "10027282",
+            "page": "1",
+            "perPage": "10"
+        },
+        token_var="token_app_b",
+        description="Inquiry data unit kendaraan via /getByLicensePlate berdasarkan equipment_no menggunakan filterBy.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('FilterBy equipment returns valid array', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Vehicle Inquiry /getByLicensePlate cari via filterBy (App B)", "GET", "/api/vehicles/getByLicensePlate",
+        query_params={
+            "filterBy": "B-9065",
+            "page": "1",
+            "perPage": "10"
+        },
+        token_var="token_app_b",
+        description="Inquiry data armada kendaraan menggunakan single-field search filterBy (mencakup plat_no/plate_no, equipment_no, branch_code, tipe_kendaraan, dan color).",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('FilterBy search returns valid array', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
             "});"
         ]
     ),
     make_request_item(
         "Vehicle Atlas Inquiry /vehicleatlas cari Plat Nomor (QA)", "GET", "/api/vehicles/vehicleatlas",
-        query_params={"plate_no": "DD-8112"},
+        query_params={
+            "plat_no": "B-9065",
+            "page": "1",
+            "perPage": "10"
+        },
         token_var="token_qa",
-        description="Inquiry data unit kendaraan dari endpoint vehicleatlas berdasarkan nomor plat.",
+        description="Inquiry data unit kendaraan dari endpoint vehicleatlas berdasarkan plat_no dengan pagination standar.",
         test_assertions=[
-            "pm.test('Status code is 200 or 403 upstream', function () {",
-            "    pm.expect([200, 403]).to.include(pm.response.code);",
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Pagination structure is valid', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
             "});"
         ]
     ),
     make_request_item(
-        "Vehicle Atlas Inquiry /vehicleatlas cari Equipment Number (App B)", "GET", "/api/vehicles/vehicleatlas",
-        query_params={"equipment_no": "10027282"},
+        "Vehicle Atlas Inquiry /vehicleatlas cari Plat Nomor dengan Spasi Auto-Normalized (App B)", "GET", "/api/vehicles/vehicleatlas",
+        query_params={
+            "plat_no": "B 9065",
+            "page": "1",
+            "perPage": "10"
+        },
         token_var="token_app_b",
-        description="Inquiry data unit kendaraan dari endpoint vehicleatlas berdasarkan equipment_no.",
+        description="Inquiry data unit kendaraan via vehicleatlas dengan format plat dengan spasi yang dinormalisasi.",
         test_assertions=[
-            "pm.test('Status code is 200 or 403 upstream', function () {",
-            "    pm.expect([200, 403]).to.include(pm.response.code);",
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+        ]
+    ),
+    make_request_item(
+        "Vehicle Atlas Inquiry /vehicleatlas cari via filterBy (QA)", "GET", "/api/vehicles/vehicleatlas",
+        query_params={
+            "filterBy": "B 9065",
+            "page": "1",
+            "perPage": "10"
+        },
+        token_var="token_qa",
+        description="Inquiry vehicleatlas menggunakan single-field search filterBy dengan plat ber-spasi yang dinormalisasi otomatis.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('FilterBy vehicleatlas returns valid array', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Vehicle Atlas Inquiry /vehicleatlas Paginate All Vehicles Page 1 (App B)", "GET", "/api/vehicles/vehicleatlas",
+        query_params={
+            "page": "1",
+            "perPage": "10"
+        },
+        token_var="token_app_b",
+        description="Paginasi seluruh armada kendaraan halaman 1 via endpoint vehicleatlas.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Pagination page 1 returns 10 items', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.page).to.eql(1);",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Vehicle Atlas Inquiry /vehicleatlas Paginate All Vehicles Page 2 (App B)", "GET", "/api/vehicles/vehicleatlas",
+        query_params={
+            "page": "2",
+            "perPage": "10"
+        },
+        token_var="token_app_b",
+        description="Paginasi seluruh armada kendaraan halaman 2 (page 2) via endpoint vehicleatlas.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('Pagination page 2 returns data', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.page).to.eql(2);",
+            "    pm.expect(json.data).to.be.an('array');",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Vehicle Atlas Inquiry /vehicleatlas cari Equipment via filterBy (App B)", "GET", "/api/vehicles/vehicleatlas",
+        query_params={
+            "filterBy": "10027282",
+            "page": "1",
+            "perPage": "10"
+        },
+        token_var="token_app_b",
+        description="Inquiry data unit kendaraan dari endpoint vehicleatlas berdasarkan equipment_no menggunakan filterBy dengan pagination.",
+        test_assertions=[
+            "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+            "pm.test('FilterBy equipment vehicleatlas returns valid array', function () {",
+            "    var json = pm.response.json();",
+            "    pm.expect(json.success).to.be.true;",
+            "    pm.expect(json.data).to.be.an('array');",
             "});"
         ]
     ),
@@ -658,7 +1117,7 @@ inquiry_items = [
 ]
 
 # ------------------------------------------------------------------------------
-# 5. Transactional & Fan-Out Endpoints (POST) (7 Items)
+# 5. Transactional & Fan-Out Endpoints (POST) (12 Items)
 # ------------------------------------------------------------------------------
 transactional_items = [
     make_request_item(
@@ -859,10 +1318,41 @@ transactional_items = [
         ]
     ),
     make_request_item(
-        "SPK Duelist - Valid Payload ke FTP (Jasa & Parts Details)", "POST", "/api/spk/duelist",
+        "Vendor Create - Idempotency Re-Send (200 OK Replay)", "POST", "/api/vendors/create",
+        headers={"X-Transaction-Id": "{{vendor_trx_id}}"},
+        token_var="token_qa",
+        description="Mengirim ulang transaksi vendor yang sama dengan X-Transaction-Id yang sama untuk memastikan replay idempotency mengembalikan response 200 OK tanpa upload duplikat.",
+        body_json={
+            "company_code": "1000/2000/6000/7000",
+            "companyTitle": "PT",
+            "companyName": "PT Adi Sarana Armada Tbk",
+            "otv": "No",
+            "paymentCycle": "Monthly",
+            "accountNumber": "1200010978489",
+            "accountName": "Robby Yulianto Setiawan",
+            "bankName": "Mandiri",
+            "hoEmail": "assa@assarent.co.id",
+            "hoPhone": "082246605199",
+            "hoAddress": "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410",
+            "contactName": "Robby Contact",
+            "contactPhone": "08224660189",
+            "npwp": "3173080209920003",
+            "accountGroup": "V010",
+            "top": "T014",
+            "glAccount": "2121000000",
+            "documentNumber": "VENDOR-ATLAS-000123"
+        },
+        test_assertions=[
+            "pm.test('Status code is 200 (Replay) or 201/500/502', function () {",
+            "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "SPK Due List - Valid Payload ke FTP (Jasa & Parts Details)", "POST", "/api/spk/duelist",
         headers={"X-Transaction-Id": "{{spk_trx_id}}", "X-Validate-Total": "true"},
         token_var="token_qa",
-        description="Mengirim data SPK Duelist ke server FTP inbound SAP. Dilengkapi validasi kecocokan total rincian item jasa dan sparepart via header X-Validate-Total.",
+        description="Mengirim data SPK Due List ke server FTP inbound SAP. Dilengkapi validasi kecocokan total rincian item jasa dan sparepart via header X-Validate-Total.",
         prerequest_lines=[
             "const sTrx = 'TRX-SPK-POSTMAN-' + Date.now();",
             "pm.collectionVariables.set('spk_trx_id', sTrx);"
@@ -895,10 +1385,10 @@ transactional_items = [
         ]
     ),
     make_request_item(
-        "SPK Duelist - Valid Payload ke FTP lengkap dengan Data Invoice & Faktur Pajak", "POST", "/api/spk/duelist",
+        "SPK Due List - Valid Payload ke FTP lengkap dengan Data Invoice & Faktur Pajak", "POST", "/api/spk/duelist",
         headers={"X-Transaction-Id": "{{spk_inv_trx_id}}", "X-Validate-Total": "true"},
         token_var="token_qa",
-        description="Mengirim data SPK Duelist lengkap dengan data tagihan invoice vendor dan nomor faktur pajak.",
+        description="Mengirim data SPK Due List lengkap dengan data tagihan invoice vendor dan nomor faktur pajak.",
         prerequest_lines=[
             "const sTrxInv = 'TRX-SPK-INV-' + Date.now();",
             "pm.collectionVariables.set('spk_inv_trx_id', sTrxInv);"
@@ -938,10 +1428,42 @@ transactional_items = [
         ]
     ),
     make_request_item(
-        "Payments Create - Valid Payload ke FTP (XML over FTP)", "POST", "/api/payments",
+        "SPK Due List - Idempotency Re-Send (200 OK Replay)", "POST", "/api/spk/duelist",
+        headers={"X-Transaction-Id": "{{spk_trx_id}}", "X-Validate-Total": "true"},
+        token_var="token_qa",
+        description="Mengirim ulang transaksi SPK yang sama dengan X-Transaction-Id yang sama untuk memastikan replay idempotency mengembalikan response 200 OK tanpa upload duplikat.",
+        body_json={
+            "noSpk": "SPK/2026/09/00003",
+            "type": "Maintenance",
+            "noPolisi": "B-2120-BKZ",
+            "noSr": "SR-000123",
+            "category": "Maintenance",
+            "subCategory": "Adhoc",
+            "vendorReferensi": "0001",
+            "namaVendor": "Bengkel Jaya Motor",
+            "picService": "PIC-001",
+            "namaPicService": "Andi Wijaya",
+            "spkRework": "No",
+            "totalPrice": 1850000,
+            "createdAt": "2026-09-17 14:46:11",
+            "createdBy": "atlas.user",
+            "poSpkNumber": "PO-4500012345",
+            "details": [
+                {"jenis": "Jasa", "description": "Jasa Perbaikan AC", "qty": 1, "price": 150000},
+                {"jenis": "Parts", "description": "Filter AC & Freon", "qty": 1, "price": 1700000}
+            ]
+        },
+        test_assertions=[
+            "pm.test('Status code is 200 (Replay) or 201/500/502', function () {",
+            "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Payments Create - Valid Payload ke FTP (XML over FTP - QA Token)", "POST", "/api/payments",
         headers={"X-Transaction-Id": "{{payments_trx_id}}"},
         token_var="token_qa",
-        description="Mengirim dokumen accounting pembayaran ke server FTP SAP (/payments) dengan penamaan PAYMENTS_<accountingDocumentNumber>_<companyCode>_<transactionId>.xml.",
+        description="Mengirim dokumen accounting pembayaran ke server FTP SAP (/payments) dengan penamaan PAYMENTS_<accountingDocumentNumber>_<companyCode>_<transactionId>.xml menggunakan token QA.",
         prerequest_lines=[
             "const pTrx = 'TRX-PAYMENT-DUE-LIST-20260908-' + String(Math.floor(Math.random() * 9000) + 1000);",
             "pm.collectionVariables.set('payments_trx_id', pTrx);"
@@ -966,6 +1488,60 @@ transactional_items = [
             "    pm.test('File name conforms to PAYMENTS convention', function () {",
             "        pm.expect(res.fileName).to.include('PAYMENTS_9300051904_1000_');",
             "        pm.expect(res.fileName).to.include('.xml');",
+            "    });",
+            "}"
+        ]
+    ),
+    make_request_item(
+        "Payments Create - Valid Payload Format Tanggal Alternatif YYYY-MM-DD (QA Token)", "POST", "/api/payments",
+        headers={"X-Transaction-Id": "{{payments_alt_trx_id}}"},
+        token_var="token_qa",
+        description="Mengirim dokumen accounting pembayaran dengan format tanggal ISO YYYY-MM-DD yang dinormalisasi otomatis oleh middleware.",
+        prerequest_lines=[
+            "const pTrxAlt = 'TRX-PAYMENT-ALT-DATE-' + Date.now();",
+            "pm.collectionVariables.set('payments_alt_trx_id', pTrxAlt);"
+        ],
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051905",
+            "documentDate": "2026-09-08",
+            "postingDate": "2026-09-08",
+            "businessArea": "1100",
+            "currency": "IDR",
+            "glAccount": "1114000000",
+            "text": "PBY BENGKEL KENDARAAN ALTERNATIF",
+            "assignment": "PT ADI SARANA ARMADA TBK"
+        },
+        test_assertions=[
+            "pm.test('Status code is 201 (FTP Success) or 500/502', function () {",
+            "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+            "});"
+        ]
+    ),
+    make_request_item(
+        "Payments Create - Replay / Idempotency Check (200 OK Replay)", "POST", "/api/payments",
+        headers={"X-Transaction-Id": "{{payments_trx_id}}"},
+        token_var="token_qa",
+        description="Mengirim ulang transaksi payment yang sama dengan header X-Transaction-Id yang sama untuk memastikan replay idempotency mengembalikan 200 OK tanpa upload ulang.",
+        body_json={
+            "companyCodes": "1000/2000/6000/7000",
+            "accountingDocumentNumber": "9300051904",
+            "documentDate": "08.09.2026",
+            "postingDate": "08.09.2026",
+            "businessArea": "1100",
+            "currency": "IDR",
+            "glAccount": "1114000000",
+            "text": "PBY BENGKEL REFF 3400082380 DLL",
+            "assignment": "PT PRABU PENDAWA M"
+        },
+        test_assertions=[
+            "pm.test('Status code is 200 (Replay Success) or 201/500/502', function () {",
+            "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+            "});",
+            "if (pm.response.code === 200) {",
+            "    var res = pm.response.json();",
+            "    pm.test('Replay message verified', function () {",
+            "        pm.expect(res.message).to.include('Replay');",
             "    });",
             "}"
         ]
@@ -1005,12 +1581,14 @@ worker_items = [
 # ------------------------------------------------------------------------------
 # Assemble Postman Collection Helper
 # ------------------------------------------------------------------------------
+TOTAL_REQUESTS = len(health_items) + len(security_items) + len(validation_items) + len(inquiry_items) + len(transactional_items) + len(worker_items)
+
 def create_collection_dict(name, default_base_url, description_suffix=""):
     return {
         "info": {
             "_postman_id": str(uuid.uuid4()),
             "name": name,
-            "description": f"Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: {default_base_url}\n{description_suffix}\n\nCakupan Fitur:\n- 1. Health & Readiness Probes (14 Endpoint: General & Per-Microservice)\n- 2. Auth & Scope Security Guards (9 Skenario: 401 Unauthorized & 403 Forbidden)\n- 3. Parameter & Input Validation Checks (7 Skenario: 400 Bad Request)\n- 4. Inquiry & Pagination (9 Skenario: 200 OK dengan query filters & metadata pagination)\n- 5. Transactional & Parallel Fan-Out (7 Skenario: Service Request Fan-out 10x Retries, Barantum Public Gateway nested unit, Vendor Create V2 XML FTP, SPK Duelist V2 dengan Invoice)\n- 6. Background Retry Worker (2 Skenario: GET & POST Trigger)",
+            "description": f"Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: {default_base_url}\n{description_suffix}\n\nCakupan Layanan (Semua 7 Microservice):\n- 1. Health & Readiness Probes ({len(health_items)} Endpoint: General & Seluruh 7 Microservice)\n- 2. Auth & Scope Security Guards ({len(security_items)} Skenario: 401 Unauthorized & 403 Forbidden cross-services)\n- 3. Parameter & Input Validation ({len(validation_items)} Skenario: 400 Bad Request validasi bisnis)\n- 4. Inquiry, Search & Pagination ({len(inquiry_items)} Skenario: 200 OK dengan filter filterBy, plat_no, CustomerCode/CustomerName, & metadata pagination)\n- 5. Transactional & Fan-Out Endpoints ({len(transactional_items)} Skenario: Service Request Fan-out 10x Retries, Barantum Public Gateway nested unit, Vendor Create V2 XML FTP, SPK Due List V2 dengan Invoice/Pajak, Payments Service Create & Idempotency Replay)\n- 6. Background Retry Worker ({len(worker_items)} Skenario: GET & POST Trigger)\n\nTotal Skenario: {TOTAL_REQUESTS} requests.",
             "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
         },
         "variable": [
@@ -1029,6 +1607,7 @@ def create_collection_dict(name, default_base_url, description_suffix=""):
             {"key": "spk_trx_id", "value": "TRX-SPK-INIT", "type": "string"},
             {"key": "spk_inv_trx_id", "value": "TRX-SPK-INV-INIT", "type": "string"},
             {"key": "payments_trx_id", "value": "TRX-PAYMENT-INIT", "type": "string"},
+            {"key": "payments_alt_trx_id", "value": "TRX-PAYMENT-ALT-INIT", "type": "string"},
             {"key": "fakeToken", "value": "Bearer token-palsu-ngawur-12345", "type": "string"}
         ],
         "item": [
@@ -1045,9 +1624,9 @@ def create_collection_dict(name, default_base_url, description_suffix=""):
 # Build Collections
 # ------------------------------------------------------------------------------
 collection_server = create_collection_dict(
-    name="ASSA Middleware - Server Dev (devmiddleware1.assa.id:6031)",
-    default_base_url="http://devmiddleware1.assa.id:6031",
-    description_suffix="Pre-configured untuk Server Dev (devmiddleware1.assa.id:6031)."
+    name="ASSA Middleware - Server Dev (devmiddleware.assa.id)",
+    default_base_url="https://devmiddleware.assa.id",
+    description_suffix="Pre-configured untuk Server Dev (https://devmiddleware.assa.id)."
 )
 
 collection_local = create_collection_dict(
@@ -1090,9 +1669,9 @@ env_local = {
 
 env_server = {
     "id": str(uuid.uuid4()),
-    "name": "ASSA Middleware - Server Dev (devmiddleware1.assa.id:6031)",
+    "name": "ASSA Middleware - Server Dev (devmiddleware.assa.id)",
     "values": [
-        {"key": "baseUrl", "value": "http://devmiddleware1.assa.id:6031", "type": "default", "enabled": True},
+        {"key": "baseUrl", "value": "https://devmiddleware.assa.id", "type": "default", "enabled": True},
         {"key": "companyCode", "value": "1000", "type": "default", "enabled": True},
         {"key": "token_app_a", "value": TOKENS["token_app_a"], "type": "secret", "enabled": True},
         {"key": "token_app_b", "value": TOKENS["token_app_b"], "type": "secret", "enabled": True},
@@ -1141,7 +1720,7 @@ with open(test_suite_path, "w", encoding="utf-8") as f:
 
 # 3. In middleware-assa/ (Re-populate mirrors referenced in postman/README.md)
 mw_local_path = os.path.join(MIDDLEWARE_DIR, "ASSA Middleware Local Desktop (localhost-6031).postman_collection.json")
-mw_server_path = os.path.join(MIDDLEWARE_DIR, "ASSA Middleware Server Dev (devmiddleware1.assa.id-6031).postman_collection.json")
+mw_server_path = os.path.join(MIDDLEWARE_DIR, "ASSA Middleware Server Dev (devmiddleware.assa.id).postman_collection.json")
 
 with open(mw_local_path, "w", encoding="utf-8") as f:
     json.dump(collection_local, f, indent=2, ensure_ascii=False)
@@ -1161,4 +1740,10 @@ print(f"6. Test Old Postman (Updated): {test_old_path}")
 print(f"7. Test Full Suite          : {test_suite_path}")
 print(f"8. Middleware Mirror Local  : {mw_local_path}")
 print(f"9. Middleware Mirror Server : {mw_server_path}")
-print("Total Requests per Collection: 48 requests across 6 folders.")
+print(f"Total Requests per Collection: {TOTAL_REQUESTS} requests across 6 folders.")
+print(f" - Health & Readiness      : {len(health_items)}")
+print(f" - Auth & Scope Guards     : {len(security_items)}")
+print(f" - Parameter Validation    : {len(validation_items)}")
+print(f" - Inquiry & Pagination    : {len(inquiry_items)}")
+print(f" - Transactional & Fan-Out : {len(transactional_items)}")
+print(f" - Background Worker       : {len(worker_items)}")

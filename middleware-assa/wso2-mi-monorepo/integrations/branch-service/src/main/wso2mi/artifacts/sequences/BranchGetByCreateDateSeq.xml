@@ -85,8 +85,25 @@
         </then>
     </filter>
 
+    <property name="filterBy" expression="$url:filterBy" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filterdby" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filteredBy" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filter_by" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
     <property name="api.endpoint" value="/api/branches/getByCreateDate" scope="default" type="STRING"/>
-    <property name="api.params" expression="fn:concat('companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage)" scope="default" type="STRING"/>
+    <property name="api.params" expression="fn:concat('companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage, '&amp;filterBy=', $ctx:filterBy)" scope="default" type="STRING"/>
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>
 

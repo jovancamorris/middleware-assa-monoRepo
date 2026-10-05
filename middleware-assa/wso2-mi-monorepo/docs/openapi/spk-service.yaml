@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: SPK Service API
   description: |
-    API integrasi penerbitan Surat Perintah Kerja (SPK Duelist XML -> FTP SAP) melalui WSO2 Integrator: MI.
+    API integrasi penerbitan Surat Perintah Kerja (SPK Due List XML -> FTP SAP) melalui WSO2 Integrator: MI.
     Sesuai standar `API_DEVELOPMENT_GUIDE.md` pada repository `wso2-mi-monorepo`.
   version: 1.0.0
 
@@ -12,7 +12,7 @@ servers:
 
 tags:
   - name: SPK
-    description: Penerbitan dan validasi Surat Perintah Kerja Duelist
+    description: Penerbitan dan validasi Surat Perintah Kerja Due List
   - name: Health
     description: Probe liveness dan readiness container
 
@@ -22,7 +22,7 @@ paths:
       tags:
         - SPK
       operationId: createSpkDuelist
-      summary: Menerbitkan dokumen SPK Duelist (XML over FTP)
+      summary: Menerbitkan dokumen SPK Due List (XML over FTP)
       description: |
         Menerima data SPK (header dan baris rincian pekerjaan/parts), membentuk dokumen XML SPK,
         menyimpan data ke MariaDB, dan mengunggahnya ke server FTP Inbound SAP (`/spk`).
@@ -338,7 +338,7 @@ components:
           example: true
         message:
           type: string
-          example: SPK Duelist successfully delivered to FTP
+          example: SPK Due List successfully delivered to FTP
         transactionId:
           type: string
           example: SPK-TRX-20260924-001

@@ -32,10 +32,13 @@ paths:
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/CompanyCode'
+        - $ref: '#/components/parameters/CustomerCode'
+        - $ref: '#/components/parameters/CustomerName'
         - $ref: '#/components/parameters/DateStart'
         - $ref: '#/components/parameters/DateEnd'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/FilterBy'
       responses:
         '200':
           description: Request berhasil
@@ -117,6 +120,22 @@ components:
       schema:
         type: string
         example: '1000'
+    CustomerCode:
+      name: CustomerCode
+      in: query
+      required: false
+      description: Filter nomor / kode customer SAP (pencarian kode pelanggan, case-insensitive)
+      schema:
+        type: string
+        example: '1000025'
+    CustomerName:
+      name: CustomerName
+      in: query
+      required: false
+      description: Filter nama customer SAP (pencarian teks nama perusahaan/pelanggan, case-insensitive)
+      schema:
+        type: string
+        example: 'ADI SARANA'
     DateStart:
       name: dateStart
       in: query
@@ -125,7 +144,7 @@ components:
       schema:
         type: string
         format: date
-        example: '2020-01-01'
+        example: '2025-01-01'
     DateEnd:
       name: dateEnd
       in: query
@@ -134,7 +153,7 @@ components:
       schema:
         type: string
         format: date
-        example: '2026-09-11'
+        example: '2026-12-31'
     Page:
       name: page
       in: query
@@ -151,6 +170,14 @@ components:
         type: integer
         default: 10
         example: 10
+    FilterBy:
+      name: filterBy
+      in: query
+      required: false
+      description: Single field search (case-insensitive partial match against CustomerCode or CustomerName). Filtering is applied by WSO2 before pagination.
+      schema:
+        type: string
+        example: '1000025'
 
   schemas:
     HealthResponse:

@@ -36,6 +36,7 @@ paths:
         - $ref: '#/components/parameters/DateEnd'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/FilterBy'
       responses:
         '200':
           description: Request berhasil
@@ -153,6 +154,14 @@ components:
         type: integer
         default: 10
         example: 10
+    FilterBy:
+      name: filterBy
+      in: query
+      required: false
+      description: Case-insensitive partial match against BranchCode or BranchName. Filtering is applied by WSO2 before pagination.
+      schema:
+        type: string
+        example: jakarta
 
   schemas:
     HealthResponse:

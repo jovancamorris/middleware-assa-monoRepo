@@ -22,70 +22,52 @@ paths:
       tags:
         - Vehicle
       operationId: getVehicleByLicensePlate
-      summary: Mengambil data kendaraan berdasarkan nomor plat / parameter pencarian
+      summary: Mengambil data kendaraan dengan pagination dan filter plat_no
       description: |
-        Mencari data kendaraan dan alokasi unit berdasarkan nomor polisi (`plate_no`).
-        Jika request dikirim tanpa parameter pencarian sama sekali, service akan mengembalikan `400 Bad Request`.
+        Mencari data kendaraan dan alokasi unit berdasarkan parameter pencarian nomor polisi (`plat_no`).
+        Mendukung paginasi data menggunakan `page` dan `perPage` seperti pada Customer Service.
         Memerlukan token terdaftar dengan scope `vehicles`.
       security:
         - bearerAuth:
             - vehicles
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
-        - name: plate_no
+        - name: plat_no
           in: query
           required: false
-          description: Nomor polisi kendaraan (pencarian parsial / LIKE)
+          description: Nomor polisi kendaraan untuk filter / pencarian (misal B-9065, DD-8112)
           schema:
             type: string
-            example: 'DD-8112'
-        - name: licensePlate
+            example: 'B-9065'
+        - name: page
           in: query
           required: false
-          description: Alias legacy untuk parameter `plate_no`
-          schema:
-            type: string
-            example: 'DD-8112'
-        - name: equipment_no
-          in: query
-          required: false
-          description: Nomor equipment unik kendaraan (exact match)
-          schema:
-            type: string
-            example: '10027282'
-        - name: branchCode
-          in: query
-          required: false
-          description: Filter kode cabang (mendukung branchCode atau alias legacy branch_code)
-          schema:
-            type: string
-            example: '1411'
-        - name: status_id
-          in: query
-          required: false
-          description: Filter status unit kendaraan
+          description: Nomor halaman data (default 1)
           schema:
             type: integer
-            example: 11
-        - name: color
+            default: 1
+            example: 1
+        - name: perPage
           in: query
           required: false
-          description: Filter warna kendaraan
+          description: Jumlah data per halaman (default 10)
           schema:
-            type: string
-            example: 'WHITE'
+            type: integer
+            default: 10
+            example: 10
+        - $ref: '#/components/parameters/FilterBy'
         - name: limit
           in: query
           required: false
-          description: Jumlah maksimal data yang dikembalikan
+          description: Alias limit data (ekuivalen perPage)
           schema:
             type: integer
-            default: 20
-            example: 20
+            default: 10
+            example: 10
         - name: offset
           in: query
           required: false
-          description: Offset pagination data
+          description: Alias offset pagination data
           schema:
             type: integer
             default: 0
@@ -111,40 +93,45 @@ paths:
       tags:
         - Vehicle
       operationId: getVehicleAtlas
-      summary: Endpoint alias / legacy Vehicle Atlas
+      summary: Endpoint alias / legacy Vehicle Atlas dengan pagination dan filter plat_no
       description: |
         Endpoint integrasi pencarian data armada untuk aplikasi ATLAS.
-        Rute ini memanggil sequence domain yang sama dengan `/getByLicensePlate` dan dipertahankan untuk kompatibilitas.
+        Rute ini memanggil sequence domain yang sama dengan `/getByLicensePlate` dan mendukung filter `plat_no` serta pagination `page` & `perPage`.
       security:
         - bearerAuth:
             - vehicles
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
-        - name: plate_no
+        - name: plat_no
           in: query
           required: false
+          description: Nomor polisi kendaraan untuk filter / pencarian (misal B-9065, DD-8112)
           schema:
             type: string
-            example: 'DD-8112'
-        - name: equipment_no
+            example: 'B-9065'
+        - name: page
           in: query
           required: false
+          description: Nomor halaman data (default 1)
           schema:
-            type: string
-            example: '10027282'
-        - name: branchCode
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
           in: query
           required: false
-          description: Filter kode cabang (mendukung branchCode atau alias legacy branch_code)
+          description: Jumlah data per halaman (default 10)
           schema:
-            type: string
-            example: '1411'
+            type: integer
+            default: 10
+            example: 10
+        - $ref: '#/components/parameters/FilterBy'
         - name: limit
           in: query
           required: false
           schema:
             type: integer
-            default: 20
+            default: 10
         - name: offset
           in: query
           required: false
@@ -219,6 +206,21 @@ components:
         type: string
         maxLength: 128
         example: corr-vehicle-001
+    FilterBy:
+      name: filterBy
+      in: query
+      required: false
+      description: |
+        Parameter pencarian serbaguna (single field search). Nilai parameter ini dapat berupa:
+        - Nomor polisi / plat kendaraan (misal `B-9065`, `DD-8112`, atau alias `plate_no`/`licensePlate`)
+        - Nomor equipment unik kendaraan (`equipment_no`, misal `10027282`)
+        - Kode cabang (`branchCode`, misal `1411`)
+        - Filter status unit kendaraan (`status_id`, misal `11`)
+        - Filter warna kendaraan (`color`, misal `WHITE`)
+        - Nama cabang atau tipe kendaraan
+      schema:
+        type: string
+        example: 'B-9065'
 
   schemas:
     HealthResponse:
@@ -273,25 +275,20 @@ components:
 
     VehicleDataResponse:
       type: object
+      description: Response payload data armada kendaraan dengan paginasi standar ASSA Middleware
       properties:
-        message:
-          type: string
-          example: success
-        code:
-          type: integer
-          example: 200
-        offset:
-          type: integer
-          example: 0
-        limit:
-          type: integer
-          example: 20
-        count:
-          type: integer
-          example: 1
+        success:
+          type: boolean
+          example: true
         total:
           type: integer
+          example: 30370
+        page:
+          type: integer
           example: 1
+        perPage:
+          type: integer
+          example: 10
         data:
           type: array
           items:

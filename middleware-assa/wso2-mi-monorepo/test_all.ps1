@@ -300,6 +300,8 @@ Run-Test -TestNumber "TEST 8" -TestName "Vehicle Service Atlas /getByLicensePlat
 Run-Test -TestNumber "TEST 9" -TestName "Vehicle Service Atlas /vehicleatlas (QA Token, plate_no)" -Url "$baseUrlVehicle/api/vehicles/vehicleatlas?plate_no=DD-8112" -Token $tokenQA -ExpectedStatus 200
 Run-Test -TestNumber "TEST 10" -TestName "Customer Service (App A Token)" -Url "$baseUrlCustomer/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -Token $tokenAppA -ExpectedStatus 200
 Run-Test -TestNumber "TEST 11" -TestName "Branch Service (App A Token)" -Url "$baseUrl/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10" -Token $tokenAppA -ExpectedStatus 200
+Run-Test -TestNumber "TEST 11A" -TestName "Branch filterBy by code (case-insensitive partial)" -Url "$baseUrl/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10&filterBy=1101" -Token $tokenAppA -ExpectedStatus 200
+Run-Test -TestNumber "TEST 11B" -TestName "Branch filterBy by name (case-insensitive partial)" -Url "$baseUrl/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10&filterBy=jakarta" -Token $tokenAppA -ExpectedStatus 200
 Run-Pagination-Test -TestNumber "PAGINATION 1" -TestName "Customer pagination (page/perPage)" -BaseUrl $baseUrlCustomer -Token $tokenAppA -Path "/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11"
 Run-Pagination-Test -TestNumber "PAGINATION 2" -TestName "Branch pagination (page/perPage)" -BaseUrl $baseUrl -Token $tokenAppA -Path "/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11"
 

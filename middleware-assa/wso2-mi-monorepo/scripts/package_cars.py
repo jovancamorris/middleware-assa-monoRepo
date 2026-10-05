@@ -77,6 +77,12 @@ def update_shared_car():
     if os.path.exists(src_dbal):
         shutil.copy2(src_dbal, dest_dbal)
         print("  -> Updated DbRecordAttemptLogSeq-1.0.0.xml")
+
+    src_gps = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/GenericPaginationSeq.xml")
+    dest_gps = os.path.join(extract_dir, "GenericPaginationSeq_1.0.0/GenericPaginationSeq-1.0.0.xml")
+    if os.path.exists(src_gps):
+        shutil.copy2(src_gps, dest_gps)
+        print("  -> Updated GenericPaginationSeq-1.0.0.xml")
     
     # Fix database URLs for docker networking
     fix_db_urls(extract_dir)
@@ -218,8 +224,59 @@ def update_vehicle_car():
         os.path.join(veh_dir, "src/main/wso2mi/artifacts/sequences/VehicleGetByLicensePlateSeq.xml"),
         os.path.join(extract_dir, "VehicleGetByLicensePlateSeq_1.0.0/VehicleGetByLicensePlateSeq-1.0.0.xml")
     )
+    api_src = os.path.join(veh_dir, "src/main/wso2mi/artifacts/apis/VehicleAPI.xml")
+    api_dest = os.path.join(extract_dir, "VehicleAPI_1.0.0/VehicleAPI-1.0.0.xml")
+    if os.path.exists(api_dest):
+        shutil.copy2(api_src, api_dest)
+        print("  -> Updated VehicleAPI-1.0.0.xml")
     fix_db_urls(extract_dir)
     out_car = os.path.join(DIST_DIR, "vehicle-service_1.0.0.car")
+    repack_car(car_src, extract_dir, out_car)
+    print(f"  -> Generated {out_car}")
+
+def update_customer_car():
+    print("[4/4] Updating customer-service_1.0.0.car...")
+    cust_dir = os.path.join(REPO_ROOT, "integrations", "customer-service")
+    car_src = os.path.join(cust_dir, "target", "customer-service_1.0.0.car")
+    if not os.path.exists(car_src) or "CustomerGetByCreateDateSeq_1.0.0/CustomerGetByCreateDateSeq-1.0.0.xml" not in zipfile.ZipFile(car_src).namelist():
+        car_src = os.path.join(DIST_DIR, "customer-service_1.0.0.car")
+    if not os.path.exists(car_src):
+        return
+    extract_dir = os.path.join(TMP_DIR, "customer")
+    if os.path.exists(extract_dir):
+        shutil.rmtree(extract_dir)
+    os.makedirs(extract_dir, exist_ok=True)
+    with zipfile.ZipFile(car_src, 'r') as z:
+        z.extractall(extract_dir)
+    shutil.copy2(
+        os.path.join(cust_dir, "src/main/wso2mi/artifacts/sequences/CustomerGetByCreateDateSeq.xml"),
+        os.path.join(extract_dir, "CustomerGetByCreateDateSeq_1.0.0/CustomerGetByCreateDateSeq-1.0.0.xml")
+    )
+    fix_db_urls(extract_dir)
+    out_car = os.path.join(DIST_DIR, "customer-service_1.0.0.car")
+    repack_car(car_src, extract_dir, out_car)
+    print(f"  -> Generated {out_car}")
+
+def update_branch_car():
+    print("[5/5] Updating branch-service_1.0.0.car...")
+    br_dir = os.path.join(REPO_ROOT, "integrations", "branch-service")
+    car_src = os.path.join(br_dir, "target", "branch-service_1.0.0.car")
+    if not os.path.exists(car_src) or "BranchGetByCreateDateSeq_1.0.0/BranchGetByCreateDateSeq-1.0.0.xml" not in zipfile.ZipFile(car_src).namelist():
+        car_src = os.path.join(DIST_DIR, "branch-service_1.0.0.car")
+    if not os.path.exists(car_src):
+        return
+    extract_dir = os.path.join(TMP_DIR, "branch")
+    if os.path.exists(extract_dir):
+        shutil.rmtree(extract_dir)
+    os.makedirs(extract_dir, exist_ok=True)
+    with zipfile.ZipFile(car_src, 'r') as z:
+        z.extractall(extract_dir)
+    shutil.copy2(
+        os.path.join(br_dir, "src/main/wso2mi/artifacts/sequences/BranchGetByCreateDateSeq.xml"),
+        os.path.join(extract_dir, "BranchGetByCreateDateSeq_1.0.0/BranchGetByCreateDateSeq-1.0.0.xml")
+    )
+    fix_db_urls(extract_dir)
+    out_car = os.path.join(DIST_DIR, "branch-service_1.0.0.car")
     repack_car(car_src, extract_dir, out_car)
     print(f"  -> Generated {out_car}")
 
@@ -233,7 +290,11 @@ if __name__ == "__main__":
     update_shared_car()
     update_sr_car()
     update_vehicle_car()
+    update_customer_car()
+    update_branch_car()
     for s in OTHER_SERVICES:
+        if s in ["customer-service", "branch-service"]:
+            continue
         car_path = os.path.join(REPO_ROOT, "integrations", s, "target", f"{s}_1.0.0.car")
         stage_service_car(car_path)
     print("Done! All CAR packages staged successfully.")

@@ -108,6 +108,7 @@ if [[ "$MODE" == "gateway" ]]; then
     BASE_URL_VENDOR="${GATEWAY_URL}"
     BASE_URL_SPK="${GATEWAY_URL}"
     BASE_URL_SR="${GATEWAY_URL}"
+    BASE_URL_PAYMENTS="${GATEWAY_URL}"
 else
     BASE_URL_BRANCH="${BASE_URL_BRANCH:-http://localhost:8290}"
     BASE_URL_CUSTOMER="${BASE_URL_CUSTOMER:-http://localhost:8291}"
@@ -115,6 +116,7 @@ else
     BASE_URL_VENDOR="${BASE_URL_VENDOR:-http://localhost:8293}"
     BASE_URL_SPK="${BASE_URL_SPK:-http://localhost:8294}"
     BASE_URL_SR="${BASE_URL_SR:-http://localhost:8295}"
+    BASE_URL_PAYMENTS="${BASE_URL_PAYMENTS:-http://localhost:8296}"
 fi
 
 TOKEN_APP_A="${AUTH_APP_A_TOKEN:-c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd}"
@@ -289,6 +291,9 @@ run_test "HEALTH-10" "SPK Readiness Check" "GET" "${BASE_URL_SPK}/readiness/spk"
 run_test "HEALTH-11" "Service Request Health Check (Liveness)" "GET" "${BASE_URL_SR}/health/service-request" "200" "" "" "" "" 5
 run_test "HEALTH-12" "Service Request Readiness Check" "GET" "${BASE_URL_SR}/readiness/service-request" "200" "" "" "" "" 5
 
+run_test "HEALTH-13" "Payments Health Check (Liveness)" "GET" "${BASE_URL_PAYMENTS}/health/payments" "200" "" "" "" "" 5
+run_test "HEALTH-14" "Payments Readiness Check" "GET" "${BASE_URL_PAYMENTS}/readiness/payments" "200" "" "" "" "" 5
+
 # ------------------------------------------------------------------------------
 # BAGIAN 2: Authentication Guard (Harus 401 Unauthorized)
 # ------------------------------------------------------------------------------
@@ -307,13 +312,15 @@ run_test "SCOPE-02" "Scope Guard: App B panggil Customer" "GET" "${BASE_URL_CUST
 run_test "SCOPE-03" "Scope Guard: App B panggil Vendor" "POST" "${BASE_URL_VENDOR}/api/vendors/create" "403" "$TOKEN_APP_B" "{}" "" "" 5
 run_test "SCOPE-04" "Scope Guard: App B panggil SPK" "POST" "${BASE_URL_SPK}/api/spk/duelist" "403" "$TOKEN_APP_B" "{}" "" "" 5
 run_test "SCOPE-05" "Scope Guard: App B panggil Service Request" "POST" "${BASE_URL_SR}/api/service-requests" "403" "$TOKEN_APP_B" "{}" "" "" 5
+run_test "SCOPE-06" "Scope Guard: App B panggil Payments Service" "POST" "${BASE_URL_PAYMENTS}/api/payments" "403" "$TOKEN_APP_B" "{}" "" "" 5
 
 # ------------------------------------------------------------------------------
 # BAGIAN 4: Input Validation (Harus 400 Bad Request)
 # ------------------------------------------------------------------------------
 echo -e "\n${BOLD}${CYAN}>>> BAGIAN 4: VALIDASI INPUT (400 BAD REQUEST)${RESET}"
 
-run_test "VALID-01" "Validasi: Vehicle tanpa parameter pencarian" "GET" "${BASE_URL_VEHICLE}/api/vehicles/getByLicensePlate?companyCode=1000" "400" "$TOKEN_APP_B" "" "" "" 5
+INVALID_PAYMENT_NODATE_JSON='{"companyCodes":"1000","accountingDocumentNumber":"9300051904","postingDate":"08.09.2026","businessArea":"1100","currency":"IDR","glAccount":"1114000000"}'
+run_test "VALID-01" "Validasi: Payments tanpa documentDate" "POST" "${BASE_URL_PAYMENTS}/api/payments" "400" "$TOKEN_APP_QA" "$INVALID_PAYMENT_NODATE_JSON" "" "" 5
 
 INVALID_VENDOR_JSON='{"companyTitle":"INVALID","companyName":"PT Test","otv":"No","paymentCycle":"Monthly","accountNumber":"123","accountName":"Test","bankName":"BCA","hoEmail":"test@assa.id","hoPhone":"08123","hoAddress":"Jakarta","npwp":"12345","accountGroup":"V010","top":"T014","glAccount":"2121000000","documentNumber":"DOC-01"}'
 run_test "VALID-02" "Validasi: Vendor create dengan companyTitle invalid" "POST" "${BASE_URL_VENDOR}/api/vendors/create" "400" "$TOKEN_APP_QA" "$INVALID_VENDOR_JSON" "" "" 5
@@ -327,6 +334,9 @@ run_test "VALID-04" "Validasi: SPK Duelist dengan total tidak cocok (X-Validate-
 INVALID_SR_JSON='{"reff_number":"REF01","branchCode":"JKT01","created_datetime":"17-09-2026","created_by":"admin","ticket_no":"TCK01"}'
 run_test "VALID-05" "Validasi: Service Request tanpa field wajib app_id" "POST" "${BASE_URL_SR}/api/service-requests" "400" "$TOKEN_OMNICHANNEL" "$INVALID_SR_JSON" "" "" 5
 
+INVALID_PAYMENT_JSON='{"companyCodes":"1000/2000","documentDate":"08.09.2026","postingDate":"08.09.2026","businessArea":"1100","currency":"IDR","glAccount":"1114000000"}'
+run_test "VALID-06" "Validasi: Payments tanpa accountingDocumentNumber" "POST" "${BASE_URL_PAYMENTS}/api/payments" "400" "$TOKEN_APP_QA" "$INVALID_PAYMENT_JSON" "" "" 5
+
 # ------------------------------------------------------------------------------
 # BAGIAN 5: Inquiry & Data Retrieval (GET 200 OK)
 # ------------------------------------------------------------------------------
@@ -335,21 +345,22 @@ echo -e "\n${BOLD}${CYAN}>>> BAGIAN 5: INQUIRY & DATA RETRIEVAL (GET 200 OK)${RE
 run_test "GET-01" "Branch Inquiry (App A Token)" "GET" "${BASE_URL_BRANCH}/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5" "200" "$TOKEN_APP_A" "" "" "" 15
 run_test "GET-02" "Customer Inquiry (App A Token)" "GET" "${BASE_URL_CUSTOMER}/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5" "200" "$TOKEN_APP_A" "" "" "" 15
 
-# Catatan Vehicle: Jika upstream devfmsapi.assa.id membutuhkan API key dan env kosong, kode 403 adalah respon resmi upstream
-run_test "GET-03" "Vehicle Inquiry /getByLicensePlate (App B Token)" "GET" "${BASE_URL_VEHICLE}/api/vehicles/getByLicensePlate?plate_no=DD-8112" "(200|403)" "$TOKEN_APP_B" "" "" "" 15
-run_test "GET-04" "Vehicle Inquiry /vehicleatlas (QA Token)" "GET" "${BASE_URL_VEHICLE}/api/vehicles/vehicleatlas?plate_no=DD-8112" "(200|403)" "$TOKEN_APP_QA" "" "" "" 15
+# Catatan Vehicle: Mendukung filter plat_no dan pagination page & perPage
+run_test "GET-03" "Vehicle Inquiry /getByLicensePlate (App B Token)" "GET" "${BASE_URL_VEHICLE}/api/vehicles/getByLicensePlate?plat_no=B-9065&page=1&perPage=5" "200" "$TOKEN_APP_B" "" "" "" 15
+run_test "GET-04" "Vehicle Inquiry /vehicleatlas (QA Token)" "GET" "${BASE_URL_VEHICLE}/api/vehicles/vehicleatlas?plat_no=B-9065&page=1&perPage=5" "200" "$TOKEN_APP_QA" "" "" "" 15
 
 # Service Request GET Inquiry (Fitur yang telah diperbaiki: 200 OK dengan JSON Pagination)
 run_test "GET-05" "Service Request GET Inquiry (Omnichannel Token)" "GET" "${BASE_URL_SR}/api/service-requests?dateStart=2026-01-01&dateEnd=2026-09-28&page=1&perPage=10" "200" "$TOKEN_OMNICHANNEL" "" "" "" 15
 
 # ------------------------------------------------------------------------------
-# BAGIAN 6: Verifikasi Pagination (Customer, Branch, Service Request)
+# BAGIAN 6: Verifikasi Pagination (Customer, Branch, Service Request, Vehicle)
 # ------------------------------------------------------------------------------
 echo -e "\n${BOLD}${CYAN}>>> BAGIAN 6: VERIFIKASI PAGINASI (PAGE / PER_PAGE)${RESET}"
 
 run_pagination_test "PAGE-01" "Branch Pagination (page 1 vs 2 vs perPage 10)" "${BASE_URL_BRANCH}" "/api/branches/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11" "$TOKEN_APP_A"
 run_pagination_test "PAGE-02" "Customer Pagination (page 1 vs 2 vs perPage 10)" "${BASE_URL_CUSTOMER}" "/api/customers/getByCreateDate?companyCode=1000&dateStart=2020-01-01&dateEnd=2026-09-11" "$TOKEN_APP_A"
 run_pagination_test "PAGE-03" "Service Request Pagination (page 1 vs 2 vs perPage 10)" "${BASE_URL_SR}" "/api/service-requests?dateStart=2026-01-01&dateEnd=2026-09-28" "$TOKEN_OMNICHANNEL"
+run_pagination_test "PAGE-04" "Vehicle Pagination (page 1 vs 2 vs perPage 10)" "${BASE_URL_VEHICLE}" "/api/vehicles/vehicleatlas" "$TOKEN_APP_B"
 
 # ------------------------------------------------------------------------------
 # BAGIAN 7: Background Worker Endpoint
@@ -411,6 +422,25 @@ run_test "SR-01" "Service Request Paralel Fan-out (10x Retry on Failure)" "POST"
 # Uji Re-eksekusi / Idempotency Retry (Mengirim ulang payload dengan transactionId yang sama)
 # Jika transaksi sebelumnya FAILED, IdempotencyGuard mengizinkan re-eksekusi ulang (10x retries).
 run_test "SR-02" "Re-send Transaksi yang Sama (Idempotency Re-try / Re-execute)" "POST" "${BASE_URL_SR}/api/service-requests" "(200|502)" "$TOKEN_OMNICHANNEL" "$VALID_SR_JSON" "X-Transaction-Id" "$SR_TEST_TRX_ID" 35
+
+# Pengujian Payments Service (FTP Inbound XML)
+PAYMENT_TEST_TRX_ID="TRX-PAY-LOCAL-${UNIQUE_TRX_SUFFIX}"
+VALID_PAYMENT_JSON=$(cat <<EOF
+{
+  "companyCodes": "1000/2000/6000/7000",
+  "accountingDocumentNumber": "9300051904",
+  "documentDate": "08.09.2026",
+  "postingDate": "08.09.2026",
+  "businessArea": "1100",
+  "currency": "IDR",
+  "glAccount": "1114000000",
+  "text": "PBY BENGKEL REFF 3400082380 DLL",
+  "assignment": "PT PRABU PENDAWA M"
+}
+EOF
+)
+run_test "PAY-01" "Payments Create XML to FTP" "POST" "${BASE_URL_PAYMENTS}/api/payments" "(200|201|500|502)" "$TOKEN_APP_QA" "$VALID_PAYMENT_JSON" "X-Transaction-Id" "$PAYMENT_TEST_TRX_ID" 20
+run_test "PAY-02" "Payments Re-Send (Idempotency Replay)" "POST" "${BASE_URL_PAYMENTS}/api/payments" "(200|201|500|502)" "$TOKEN_APP_QA" "$VALID_PAYMENT_JSON" "X-Transaction-Id" "$PAYMENT_TEST_TRX_ID" 20
 
 # ------------------------------------------------------------------------------
 # BAGIAN 9: Verifikasi Database Audit Log (MariaDB)

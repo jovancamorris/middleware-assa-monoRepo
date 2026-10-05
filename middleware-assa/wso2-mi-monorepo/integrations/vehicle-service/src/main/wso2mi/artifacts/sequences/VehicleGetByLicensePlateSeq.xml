@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="VehicleGetByLicensePlateSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- 1. Parameter Extraction -->
     <property name="companyCode" expression="$url:companyCode" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:companyCode) = 0">
         <then>
@@ -7,41 +8,180 @@
         </then>
     </filter>
 
-    <!-- Support both the current plate_no parameter and legacy licensePlate. -->
-    <property name="plateNo" expression="$url:plate_no" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:plateNo) = 0">
+    <!-- Support plat_no (primary) and aliases: plate_no, licensePlate, plateNo -->
+    <property name="platNo" expression="$url:plat_no" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:platNo) = 0">
         <then>
-            <property name="plateNo" expression="$url:licensePlate" scope="default" type="STRING"/>
+            <property name="platNo" expression="$url:plate_no" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:platNo) = 0">
+        <then>
+            <property name="platNo" expression="$url:licensePlate" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:platNo) = 0">
+        <then>
+            <property name="platNo" expression="$url:plateNo" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <property name="plateNo" expression="$ctx:platNo" scope="default" type="STRING"/>
+
+    <!-- Pagination parameters identical to Customer service (page, perPage) -->
+    <property name="page" expression="$url:page" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:page) = 0">
+        <then>
+            <property name="page" expression="get-property('file', 'default.page')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:page) = 0">
+                <then>
+                    <property name="page" expression="get-property('system', 'default.page')" scope="default" type="STRING"/>
+                </then>
+            </filter>
         </then>
     </filter>
 
+    <property name="perPage" expression="$url:perPage" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:perPage) = 0">
+        <then>
+            <property name="perPage" expression="$url:per_page" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:perPage) = 0">
+        <then>
+            <property name="perPage" expression="get-property('file', 'default.perPage')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:perPage) = 0">
+                <then>
+                    <property name="perPage" expression="get-property('system', 'default.perPage')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+        </then>
+    </filter>
+
+    <property name="limitParam" expression="$url:limit" scope="default" type="STRING"/>
+    <property name="offsetParam" expression="$url:offset" scope="default" type="STRING"/>
+
+    <!-- Filter parameters: equipment_no, branchCode, status_id, color -->
     <property name="equipmentNo" expression="$url:equipment_no" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:equipmentNo) = 0">
+        <then>
+            <property name="equipmentNo" expression="$url:equipmentNo" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
     <property name="branchCode" expression="$url:branchCode" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:branchCode) = 0">
         <then>
             <property name="branchCode" expression="$url:branch_code" scope="default" type="STRING"/>
         </then>
     </filter>
-    <property name="limitParam" expression="$url:limit" scope="default" type="STRING"/>
-    <property name="offsetParam" expression="$url:offset" scope="default" type="STRING"/>
+
     <property name="statusId" expression="$url:status_id" scope="default" type="STRING"/>
     <property name="colorParam" expression="$url:color" scope="default" type="STRING"/>
 
-    <filter xpath="string-length($ctx:plateNo) = 0 and string-length($ctx:equipmentNo) = 0 and string-length($ctx:branchCode) = 0">
+    <!-- Support single-field search filterBy (and aliases: filterdby, filteredBy, filter_by) -->
+    <property name="filterBy" expression="$url:filterBy" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:filterBy) = 0">
         <then>
-            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
-            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Query parameter 'plate_no' (atau 'licensePlate') wajib disertakan (contoh: DD-8112 atau B-9065-UCU)." scope="default" type="STRING"/>
-            <sequence key="ErrorResponseSeq"/>
-            <drop/>
+            <property name="filterBy" expression="$url:filterdby" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filteredBy" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filter_by" scope="default" type="STRING"/>
         </then>
     </filter>
 
-    <property name="api.endpoint" value="/api/vehicles/getByLicensePlate" scope="default" type="STRING"/>
-    <property name="api.params" expression="fn:concat('plate_no=', $ctx:plateNo, '&amp;equipment_no=', $ctx:equipmentNo, '&amp;branchCode=', $ctx:branchCode)" scope="default" type="STRING"/>
+    <!-- 2. Normalization & Pagination Calculation Script -->
+    <script language="js"><![CDATA[
+        // If filterBy is provided, check if it maps to plate_no, equipment_no, branchCode, status_id, or color
+        var rawFilter = mc.getProperty("filterBy");
+        var rawPlat = mc.getProperty("platNo") || mc.getProperty("plateNo");
+        var rawEquip = mc.getProperty("equipmentNo");
+        var rawBranch = mc.getProperty("branchCode");
+        var rawStatus = mc.getProperty("statusId");
+        var rawColor = mc.getProperty("colorParam");
+
+        if (rawFilter) {
+            var trimmedFilter = String(rawFilter).trim();
+            var platePattern = /^[A-Za-z]{1,2}[\s-]?\d{1,4}([\s-]?[A-Za-z]{1,3})?$/;
+            if (!rawPlat && platePattern.test(trimmedFilter)) {
+                rawPlat = trimmedFilter;
+            } else if (!rawEquip && /^\d{7,10}$/.test(trimmedFilter)) {
+                mc.setProperty("equipmentNo", trimmedFilter);
+            } else if (!rawBranch && /^\d{4}$/.test(trimmedFilter)) {
+                mc.setProperty("branchCode", trimmedFilter);
+            } else if (!rawStatus && /^\d{1,2}$/.test(trimmedFilter)) {
+                mc.setProperty("statusId", trimmedFilter);
+            } else if (!rawColor && /^[A-Za-z]+(\s+[A-Za-z0-9]+)*$/.test(trimmedFilter)) {
+                mc.setProperty("colorParam", trimmedFilter);
+            }
+        }
+
+        // License plate normalization (e.g. "B 9065 UCU" -> "B-9065-UCU", "B9065UCU" -> "B-9065-UCU")
+        if (rawPlat) {
+            var s = String(rawPlat).trim();
+            if (s.indexOf('-') === -1) {
+                if (s.indexOf(' ') !== -1) {
+                    s = s.replace(/\s+/g, '-');
+                } else {
+                    var m = s.match(/^([A-Za-z]{1,2})(\d+)([A-Za-z]*)$/);
+                    if (m) {
+                        s = m[3] ? m[1] + '-' + m[2] + '-' + m[3] : m[1] + '-' + m[2];
+                    }
+                }
+            }
+            mc.setProperty("plateNo", s);
+            mc.setProperty("platNo", s);
+        }
+
+        // Pagination calculation (page, perPage -> limit, offset)
+        var rawPage = mc.getProperty("page");
+        var rawPerPage = mc.getProperty("perPage");
+        var rawLimit = mc.getProperty("limitParam");
+        var rawOffset = mc.getProperty("offsetParam");
+
+        var perPage = parseInt(rawPerPage, 10);
+        if (!(perPage > 0) && rawLimit) {
+            perPage = parseInt(rawLimit, 10);
+        }
+        if (!(perPage > 0)) {
+            perPage = 10;
+        }
+
+        var page = parseInt(rawPage, 10);
+        if (!(page > 0) && rawOffset) {
+            var offsetVal = parseInt(rawOffset, 10);
+            if (offsetVal >= 0) {
+                page = Math.floor(offsetVal / perPage) + 1;
+            }
+        }
+        if (!(page > 0)) {
+            page = 1;
+        }
+
+        var offset = (page - 1) * perPage;
+        mc.setProperty("page", String(page));
+        mc.setProperty("perPage", String(perPage));
+        mc.setProperty("limitParam", String(perPage));
+        mc.setProperty("offsetParam", String(offset));
+    ]]></script>
+
+    <!-- 3. Observability Logging & Idempotency Guard -->
+    <filter xpath="string-length($ctx:api.endpoint) = 0">
+        <then>
+            <property name="api.endpoint" value="/api/vehicles/getByLicensePlate" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <property name="api.params" expression="fn:concat('plat_no=', $ctx:plateNo, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage, '&amp;equipment_no=', $ctx:equipmentNo, '&amp;branchCode=', $ctx:branchCode, '&amp;filterBy=', $ctx:filterBy)" scope="default" type="STRING"/>
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>
 
+    <!-- 4. Base URL Resolution & External Vehicle API Config -->
     <property name="baseUrlConfigKey" value="assa.ext.base.url" scope="default" type="STRING"/>
     <property name="envVarKey" value="ASSA_EXT_BASE_URL" scope="default" type="STRING"/>
     <sequence key="ResolveBaseUrlSeq"/>
@@ -64,11 +204,17 @@
             <property name="vehicleApiKey" expression="get-property('file', 'assa.ext.vehicle.apikey')" scope="default" type="STRING"/>
         </then>
     </filter>
+    <filter xpath="string-length($ctx:vehicleApiKey) = 0">
+        <then>
+            <property name="vehicleApiKey" value="XxfOtMSMhjoMQEPUHju4u7jkCEpZ09" scope="default" type="STRING"/>
+        </then>
+    </filter>
 
     <header name="Authorization" action="remove" scope="transport"/>
     <header name="Key" expression="$ctx:vehicleApiKey" scope="transport"/>
     <header name="x-api-key" expression="$ctx:vehicleApiKey" scope="transport"/>
 
+    <!-- 5. Compose Query String for Upstream Vehicle Atlas -->
     <property name="queryString" value="" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:plateNo) &gt; 0">
         <then>
@@ -124,6 +270,8 @@
         </else>
     </filter>
 
+    <!-- 6. Execute Safe API Call with Generic Pagination Enabled -->
+    <property name="paginationEnabled" value="true" scope="default" type="STRING"/>
     <property name="targetEndpointKey" value="ExtServiceDynamicEndpoint" scope="default" type="STRING"/>
     <sequence key="SafeApiCallWithRetrySeq"/>
 </sequence>

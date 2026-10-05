@@ -18,7 +18,7 @@ SR_TARGET_ATLAS_BASE_URL=https://atlas-api.assa.id/dev
 # ------------------------------------------------------------------------------
 ASSA_EXT_VEHICLE_APIKEY=XxfOtMSMhjoMQEPUHju4u7jkCEpZ09
 ASSA_EXT_SR_APIKEY=DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs
-SR_TARGET_ATLAS_APIKEY=ATLAS_PLACEHOLDER_KEY
+SR_TARGET_ATLAS_APIKEY=umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
 
 # ------------------------------------------------------------------------------
 # 3. Application Registry Authentication Tokens (Bearer Tokens)

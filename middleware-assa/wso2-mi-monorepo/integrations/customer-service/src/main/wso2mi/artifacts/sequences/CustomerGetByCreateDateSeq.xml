@@ -31,7 +31,7 @@
             </filter>
             <filter xpath="string-length($ctx:dateStart) = 0">
                 <then>
-                    <property name="dateStart" value="2020-01-01" scope="default" type="STRING"/>
+                    <property name="dateStart" value="2025-01-01" scope="default" type="STRING"/>
                 </then>
             </filter>
         </then>
@@ -48,9 +48,41 @@
             </filter>
             <filter xpath="string-length($ctx:dateEnd) = 0">
                 <then>
-                    <property name="dateEnd" value="2026-09-11" scope="default" type="STRING"/>
+                    <property name="dateEnd" value="2026-12-31" scope="default" type="STRING"/>
                 </then>
             </filter>
+        </then>
+    </filter>
+
+    <property name="customerCode" expression="$url:CustomerCode" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:customerCode) = 0">
+        <then>
+            <property name="customerCode" expression="$url:customerCode" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="customerName" expression="$url:CustomerName" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:customerName) = 0">
+        <then>
+            <property name="customerName" expression="$url:customerName" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Support single-field search filterBy (and aliases: filterdby, filteredBy, filter_by) -->
+    <property name="filterBy" expression="$url:filterBy" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filterdby" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filteredBy" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filter_by" scope="default" type="STRING"/>
         </then>
     </filter>
 
@@ -92,7 +124,7 @@
     <!-- 2. Observability Logging & Idempotency Guard                      -->
     <!-- ================================================================= -->
     <property name="api.endpoint" value="/api/customers/getByCreateDate" scope="default" type="STRING"/>
-    <property name="api.params" expression="fn:concat('companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage)" scope="default" type="STRING"/>
+    <property name="api.params" expression="fn:concat('companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage, '&amp;CustomerCode=', $ctx:customerCode, '&amp;CustomerName=', $ctx:customerName, '&amp;filterBy=', $ctx:filterBy)" scope="default" type="STRING"/>
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>
 
@@ -113,7 +145,21 @@
         </then>
     </filter>
 
-    <property name="uri.var.sapBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:sapApiPath, '?companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage)" scope="default" type="STRING"/>
+    <property name="customerCodeQuery" value="" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:customerCode) &gt; 0">
+        <then>
+            <property name="customerCodeQuery" expression="fn:concat('&amp;CustomerCode=', $ctx:customerCode)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="customerNameQuery" value="" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:customerName) &gt; 0">
+        <then>
+            <property name="customerNameQuery" expression="fn:concat('&amp;CustomerName=', $ctx:customerName)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="uri.var.sapBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:sapApiPath, '?companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage, $ctx:customerCodeQuery, $ctx:customerNameQuery)" scope="default" type="STRING"/>
 
     <!-- ================================================================= -->
     <!-- 5. Invoke SapCoreDynamicEndpoint with 3x Retry & DB Logging       -->

@@ -29,27 +29,28 @@ Setiap request yang masuk ke API Middleware divalidasi oleh sequence terpusat [`
 
 | Client / Aplikasi | Variabel Environment | Scope Izin | Format Header | Nilai Token |
 |---|---|---|---|---|
-| **Barantum CRM** | `AUTH_APP_BARANTUM_TOKEN` | `service_requests` | `X-API-Key` atau `Bearer` | `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` |
+| **Barantum CRM / Vendor Public** | `AUTH_APP_BARANTUM_TOKEN` | `service_requests` | `X-API-Key` atau `Bearer` | `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680`<br>*(Legacy: `umk_2d35d5538f25...`)* |
 | **Omnichannel** | `AUTH_APP_OMNICHANNEL_TOKEN` | `service_requests` | `Bearer` | `14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12` |
-| **App QA** | `AUTH_APP_QA_TOKEN` | `branches, customers, vehicles, vendors, service_requests, spk` | `Bearer` | `e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be` |
-| **App A** | `AUTH_APP_A_TOKEN` | `branches, customers, vehicles, vendors, service_requests, spk` | `Bearer` | `c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd` |
+| **App QA** | `AUTH_APP_QA_TOKEN` | `branches, customers, vehicles, vendors, service_requests, spk, payments` | `Bearer` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d`<br>*(Fallback: `e20b33b006bc...`)* |
+| **App A** | `AUTH_APP_A_TOKEN` | `branches, customers, vehicles, vendors, service_requests, spk, payments` | `Bearer` | `3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013`<br>*(Fallback: `c220fbfb...`)* |
 | **App B** | `AUTH_APP_B_TOKEN` | `vehicles` | `Bearer` | `988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` |
-| **App ATLAS** | `AUTH_APP_ATLAS_TOKEN` | `vendors` | `Bearer` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
+| **App ATLAS** | `AUTH_APP_ATLAS_TOKEN` | `vendors, service_requests` | `Bearer` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
 
 ---
 
 ## 3. Rincian Token Siap Copas
 
-### 1. Barantum CRM (Public Gateway Service Request)
-- **Kegunaan**: Submit Service Request (SR) tiket baru & tracking status SR untuk vendor publik Barantum CRM.
+### 1. Barantum CRM / Vendor Public (Public Gateway Service Request)
+- **Kegunaan**: Submit Service Request (SR) tiket baru & tracking status SR untuk vendor publik Barantum CRM / Vendor Public Gateway.
 - **Scope**: `service_requests`
 - **Nilai Token**:
   ```text
-  umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd
+  umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
   ```
+  *(Catatan: Token legacy `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` tetap didukung sebagai fallback).*
 - **Contoh Header**:
   ```http
-  X-API-Key: umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd
+  X-API-Key: umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
   ```
 - **Endpoint**:
   - `POST /api/service-requests`
@@ -75,31 +76,33 @@ Setiap request yang masuk ke API Middleware divalidasi oleh sequence terpusat [`
 
 ---
 
-### 3. App QA (Testing All Services)
-- **Kegunaan**: Testing otomatis Postman Test Suite & manual testing seluruh modul integrasi.
-- **Scope**: `branches, customers, vehicles, vendors, service_requests, spk` (Full Scopes)
-- **Nilai Token**:
+### 3. App QA (Testing All Services & Payments)
+- **Kegunaan**: Testing otomatis Postman Test Suite & manual testing seluruh modul integrasi (termasuk Payments).
+- **Scope**: `branches, customers, vehicles, vendors, service_requests, spk, payments` (Full Scopes)
+- **Nilai Token (Server Dev Aktif)**:
   ```text
-  e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be
+  ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d
   ```
+  *(Alternatif fallback token: `e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be`)*
 - **Contoh Header**:
   ```http
-  Authorization: Bearer e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be
+  Authorization: Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d
   ```
-- **Endpoint**: Seluruh endpoint API Middleware.
+- **Endpoint**: Seluruh endpoint API Middleware (termasuk `POST /api/payments`).
 
 ---
 
 ### 4. App A (Super Client Internal)
 - **Kegunaan**: Aplikasi internal ASSA tingkat tinggi dengan hak akses menyeluruh ke semua modul.
-- **Scope**: `branches, customers, vehicles, vendors, service_requests, spk` (Full Scopes)
-- **Nilai Token**:
+- **Scope**: `branches, customers, vehicles, vendors, service_requests, spk, payments` (Full Scopes)
+- **Nilai Token (Server Dev Aktif)**:
   ```text
-  c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd
+  3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013
   ```
+  *(Alternatif fallback token: `c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd`)*
 - **Contoh Header**:
   ```http
-  Authorization: Bearer c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd
+  Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013
   ```
 - **Endpoint**: Seluruh endpoint API Middleware.
 
@@ -142,7 +145,7 @@ Saat Middleware meneruskan request ke backend hilir (misalnya pada Service Reque
 | Variabel Environment | Default Value | Target Backend |
 |---|---|---|
 | `SR_EXT_API_KEY` | `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` | AWS Lambda ASSA Ext Service (`assa-ext-services.assa.id`) |
-| `SR_TARGET_ATLAS_API_KEY` | `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` | API ATLAS (`atlas-api.assa.id`) — *Jika diaktifkan* |
+| `SR_TARGET_ATLAS_API_KEY` / `SR_TARGET_ATLAS_APIKEY` | `umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680` | API ATLAS (`atlas-api.assa.id` / `fe.atlas-dev.assa.id`) — *Jika diaktifkan* |
 
 ---
 
@@ -156,7 +159,7 @@ Salin blok berikut langsung ke file `.env` di server dev (`/var/www/devmiddlewar
 # ==============================================================================
 
 # 1. Ingress Tokens (Kredensial Client Pemanggil API Middleware)
-AUTH_APP_BARANTUM_TOKEN=umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd
+AUTH_APP_BARANTUM_TOKEN=umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
 AUTH_APP_OMNICHANNEL_TOKEN=14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12
 AUTH_APP_QA_TOKEN=e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be
 AUTH_APP_A_TOKEN=c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd
@@ -165,7 +168,8 @@ AUTH_APP_ATLAS_TOKEN=ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d
 
 # 2. Outbound Egress API Keys (Middleware memanggil downstream)
 SR_EXT_API_KEY=umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd
-SR_TARGET_ATLAS_API_KEY=umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd
+SR_TARGET_ATLAS_APIKEY=umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
+SR_TARGET_ATLAS_API_KEY=umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680
 ```
 
 ---

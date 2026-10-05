@@ -19,18 +19,118 @@
                 }
 
                 if (records !== null) {
+                    var filterCustomerCode = mc.getProperty("customerCode");
+                    var filterCustomerName = mc.getProperty("customerName");
+                    var filterApplied = false;
+
+                    if (filterCustomerCode && String(filterCustomerCode).trim().length > 0) {
+                        filterApplied = true;
+                        var codeNeedle = String(filterCustomerCode).trim().toLowerCase();
+                        var filteredByCode = [];
+                        for (var i = 0; i < records.length; i++) {
+                            var item = records[i];
+                            if (item) {
+                                var codeVal = item.CustomerCode || item.customerCode || item.customercode || "";
+                                if (String(codeVal).toLowerCase().indexOf(codeNeedle) !== -1) {
+                                    filteredByCode.push(item);
+                                }
+                            }
+                        }
+                        records = filteredByCode;
+                    }
+
+                    if (filterCustomerName && String(filterCustomerName).trim().length > 0) {
+                        filterApplied = true;
+                        var nameNeedle = String(filterCustomerName).trim().toLowerCase();
+                        var filteredByName = [];
+                        for (var j = 0; j < records.length; j++) {
+                            var itm = records[j];
+                            if (itm) {
+                                var nameVal = itm.CustomerName || itm.customerName || itm.customername || "";
+                                if (String(nameVal).toLowerCase().indexOf(nameNeedle) !== -1) {
+                                    filteredByName.push(itm);
+                                }
+                            }
+                        }
+                        records = filteredByName;
+                    }
+
+                    var rawFilterBy = mc.getProperty("filterBy");
+                    if (rawFilterBy && String(rawFilterBy).trim().length > 0) {
+                        filterApplied = true;
+                        var needle = String(rawFilterBy).trim().toLowerCase();
+                        var needleClean = needle.replace(/[-\s]/g, "");
+                        var filteredByParam = [];
+                        for (var k = 0; k < records.length; k++) {
+                            var item = records[k];
+                            if (!item) continue;
+                            var matched = false;
+
+                            // 1. Customer entity fields
+                            var custCode = item.CustomerCode || item.customerCode || item.customercode || "";
+                            var custName = item.CustomerName || item.customerName || item.customername || "";
+                            if (String(custCode).toLowerCase().indexOf(needle) !== -1 ||
+                                String(custName).toLowerCase().indexOf(needle) !== -1) {
+                                matched = true;
+                            }
+
+                            // 2. Vehicle entity fields
+                            var vPlat = item.plate_no || item.plat_no || item.licensePlate || item.plateNo || "";
+                            var vPlatClean = String(vPlat).toLowerCase().replace(/[-\s]/g, "");
+                            var vEquip = item.equipment_no || item.equipmentNo || "";
+                            var vBrCode = item.branch_code || item.branchCode || "";
+                            var vBrName = item.branch_name || item.branchName || "";
+                            var vTipe = item.tipe_kendaraan || item.tipeKendaraan || item.type || "";
+                            var vColor = item.color || "";
+
+                            if (String(vPlat).toLowerCase().indexOf(needle) !== -1 ||
+                                (needleClean.length > 0 && vPlatClean.indexOf(needleClean) !== -1) ||
+                                String(vEquip).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vBrCode).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vBrName).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vTipe).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vColor).toLowerCase().indexOf(needle) !== -1) {
+                                matched = true;
+                            }
+
+                            // 3. Branch entity fields
+                            var branchCode = item.BranchCode || item.branchCode || item.branch_code || "";
+                            var branchName = item.BranchName || item.branchName || item.branch_name || "";
+                            if (String(branchCode).toLowerCase().indexOf(needle) !== -1 ||
+                                String(branchName).toLowerCase().indexOf(needle) !== -1) {
+                                matched = true;
+                            }
+
+                            if (matched) {
+                                filteredByParam.push(item);
+                            }
+                        }
+                        records = filteredByParam;
+                    }
+
                     var page = parseInt(mc.getProperty("page"), 10);
                     var perPage = parseInt(mc.getProperty("perPage"), 10);
                     if (!(page > 0)) page = 1;
                     if (!(perPage > 0)) perPage = 10;
-                    if (total === null || isNaN(total) || total < 0) total = records.length;
+                    if (filterApplied || total === null || isNaN(total) || total < 0) {
+                        total = records.length;
+                    }
+
+                    var alreadyPaginated = false;
+                    if (!filterApplied && payload && (payload.offset !== undefined || payload.limit !== undefined)) {
+                        alreadyPaginated = true;
+                    } else if (!filterApplied && total !== null && total > records.length && records.length <= perPage) {
+                        alreadyPaginated = true;
+                    }
+
+                    var pagedData = alreadyPaginated ? records : records.slice((page - 1) * perPage, page * perPage);
 
                     mc.setPayloadJSON({
                         success: true,
                         total: total,
                         page: page,
                         perPage: perPage,
-                        data: records.slice((page - 1) * perPage, page * perPage)
+                        data: pagedData
                     });
                 }
             ]]></script>

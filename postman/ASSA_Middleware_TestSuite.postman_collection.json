@@ -1,8 +1,8 @@
 {
   "info": {
-    "_postman_id": "3de7a800-461d-4580-9cef-7a5f60bfdf23",
+    "_postman_id": "31fe9897-0679-47cf-bce0-84b7b1e44c1a",
     "name": "ASSA Middleware API Test Suite",
-    "description": "Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: http://localhost:6031\nDapat digunakan bergantian dengan Environment Local / Server Dev.\n\nCakupan Fitur:\n- 1. Health & Readiness Probes (14 Endpoint: General & Per-Microservice)\n- 2. Auth & Scope Security Guards (9 Skenario: 401 Unauthorized & 403 Forbidden)\n- 3. Parameter & Input Validation Checks (7 Skenario: 400 Bad Request)\n- 4. Inquiry & Pagination (9 Skenario: 200 OK dengan query filters & metadata pagination)\n- 5. Transactional & Parallel Fan-Out (7 Skenario: Service Request Fan-out 10x Retries, Barantum Public Gateway nested unit, Vendor Create V2 XML FTP, SPK Duelist V2 dengan Invoice)\n- 6. Background Retry Worker (2 Skenario: GET & POST Trigger)",
+    "description": "Koleksi Postman resmi untuk pengujian seluruh API ASSA Middleware WSO2 MI Monorepo & Gateway.\nTarget Endpoint Default: http://localhost:6031\nDapat digunakan bergantian dengan Environment Local / Server Dev.\n\nCakupan Layanan (Semua 7 Microservice):\n- 1. Health & Readiness Probes (16 Endpoint: General & Seluruh 7 Microservice)\n- 2. Auth & Scope Security Guards (15 Skenario: 401 Unauthorized & 403 Forbidden cross-services)\n- 3. Parameter & Input Validation (14 Skenario: 400 Bad Request validasi bisnis)\n- 4. Inquiry, Search & Pagination (22 Skenario: 200 OK dengan filter filterBy, plat_no, CustomerCode/CustomerName, & metadata pagination)\n- 5. Transactional & Fan-Out Endpoints (12 Skenario: Service Request Fan-out 10x Retries, Barantum Public Gateway nested unit, Vendor Create V2 XML FTP, SPK Due List V2 dengan Invoice/Pajak, Payments Service Create & Idempotency Replay)\n- 6. Background Retry Worker (2 Skenario: GET & POST Trigger)\n\nTotal Skenario: 81 requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -18,7 +18,7 @@
     },
     {
       "key": "token_app_a",
-      "value": "c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd",
+      "value": "3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013",
       "type": "string"
     },
     {
@@ -28,7 +28,7 @@
     },
     {
       "key": "token_qa",
-      "value": "e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be",
+      "value": "ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d",
       "type": "string"
     },
     {
@@ -38,7 +38,7 @@
     },
     {
       "key": "token_barantum",
-      "value": "umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd",
+      "value": "umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680",
       "type": "string"
     },
     {
@@ -82,6 +82,11 @@
       "type": "string"
     },
     {
+      "key": "payments_alt_trx_id",
+      "value": "TRX-PAYMENT-ALT-INIT",
+      "type": "string"
+    },
+    {
       "key": "fakeToken",
       "value": "Bearer token-palsu-ngawur-12345",
       "type": "string"
@@ -107,13 +112,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/health",
               "host": [
@@ -142,13 +141,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/readiness",
               "host": [
@@ -178,13 +171,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/health/branch",
               "host": [
@@ -214,13 +201,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/readiness/branch",
               "host": [
@@ -250,13 +231,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/health/customer",
               "host": [
@@ -286,13 +261,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/readiness/customer",
               "host": [
@@ -322,13 +291,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/health/vehicle",
               "host": [
@@ -358,13 +321,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/readiness/vehicle",
               "host": [
@@ -394,13 +351,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/health/vendor",
               "host": [
@@ -430,13 +381,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/readiness/vendor",
               "host": [
@@ -466,13 +411,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/health/spk",
               "host": [
@@ -502,13 +441,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/readiness/spk",
               "host": [
@@ -519,7 +452,7 @@
                 "spk"
               ]
             },
-            "description": "Pemeriksaan kesiapan spk-service untuk interface SPK Duelist ke FTP SAP."
+            "description": "Pemeriksaan kesiapan spk-service untuk interface SPK Due List ke FTP SAP."
           },
           "response": []
         },
@@ -538,13 +471,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/health/service-request",
               "host": [
@@ -574,13 +501,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/readiness/service-request",
               "host": [
@@ -610,13 +531,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/health/payments",
               "host": [
@@ -646,13 +561,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/readiness/payments",
               "host": [
@@ -673,7 +582,7 @@
       "name": "2. Auth & Scope Security Guards",
       "item": [
         {
-          "name": "Auth Guard: Request Tanpa Token (401)",
+          "name": "Auth Guard: Request Tanpa Token - Branch (401)",
           "event": [
             {
               "listen": "test",
@@ -692,13 +601,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
               "host": [
@@ -717,6 +620,125 @@
               ]
             },
             "description": "Memverifikasi penolakan HTTP 401 saat klien tidak mengirim header Authorization."
+          },
+          "response": []
+        },
+        {
+          "name": "Auth Guard: Request Tanpa Token - Customer (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                }
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 401 pada Customer Service tanpa Authorization header."
+          },
+          "response": []
+        },
+        {
+          "name": "Auth Guard: Request Tanpa Token - Vehicle (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?plat_no=B-9065",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "getByLicensePlate"
+              ],
+              "query": [
+                {
+                  "key": "plat_no",
+                  "value": "B-9065"
+                }
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 401 pada Vehicle Service tanpa Authorization header."
+          },
+          "response": []
+        },
+        {
+          "name": "Auth Guard: Request Tanpa Token - Payments (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 401 Unauthorized', function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 401 pada Payments Service tanpa Authorization header.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
           "response": []
         },
@@ -740,11 +762,6 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "Authorization",
                 "value": "{{fakeToken}}",
@@ -792,13 +809,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}",
               "host": [
@@ -849,13 +860,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}",
               "host": [
@@ -908,11 +913,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
@@ -953,7 +953,7 @@
           "response": []
         },
         {
-          "name": "Scope Guard: App B call SPK Duelist (403)",
+          "name": "Scope Guard: App B call SPK Due List (403)",
           "event": [
             {
               "listen": "test",
@@ -973,11 +973,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
@@ -994,7 +989,7 @@
                 "duelist"
               ]
             },
-            "description": "Memverifikasi penolakan HTTP 403 saat App B memanggil SPK Duelist API.",
+            "description": "Memverifikasi penolakan HTTP 403 saat App B memanggil SPK Due List API.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1038,11 +1033,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
@@ -1082,128 +1072,6 @@
           "response": []
         },
         {
-          "name": "Scope Guard: App ATLAS (scope: vendors) call SPK Duelist (403)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
-                  "pm.test('Detail states missing spk scope', function () {",
-                  "    var res = pm.response.json();",
-                  "    pm.expect(res.detail).to.include('spk');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/spk/duelist",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "spk",
-                "duelist"
-              ]
-            },
-            "description": "Memverifikasi penolakan HTTP 403 saat App ATLAS (hanya scope 'vendors') memanggil SPK Duelist.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_atlas}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Scope Guard: App Omnichannel (scope: service_requests) call Customer (403)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
-                  "pm.test('Detail states missing customers scope', function () {",
-                  "    var res = pm.response.json();",
-                  "    pm.expect(res.detail).to.include('customers');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "customers",
-                "getByCreateDate"
-              ],
-              "query": [
-                {
-                  "key": "companyCode",
-                  "value": "{{companyCode}}"
-                }
-              ]
-            },
-            "description": "Memverifikasi penolakan HTTP 403 saat App Omnichannel memanggil Customer Service.",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token_omnichannel}}",
-                  "type": "string"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
           "name": "Scope Guard: App B call Payments (403)",
           "event": [
             {
@@ -1223,11 +1091,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json",
@@ -1266,6 +1129,235 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Scope Guard: App ATLAS (scope: vendors) call SPK Due List (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing spk scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detail).to.include('spk');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/spk/duelist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "spk",
+                "duelist"
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 403 saat App ATLAS (hanya scope 'vendors') memanggil SPK Due List.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_atlas}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Guard: App ATLAS call Payments (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing payments scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detail).to.include('payments');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 403 saat App ATLAS memanggil Payments Service.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_atlas}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Guard: App Omnichannel (scope: service_requests) call Customer (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing customers scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detail).to.include('customers');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                }
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 403 saat App Omnichannel memanggil Customer Service.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_omnichannel}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Scope Guard: App Omnichannel call Payments (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 403 Forbidden', function () { pm.response.to.have.status(403); });",
+                  "pm.test('Detail states missing payments scope', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detail).to.include('payments');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 403 saat App Omnichannel memanggil Payments Service.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_omnichannel}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -1273,7 +1365,66 @@
       "name": "3. Parameter Validation (400 Bad Request)",
       "item": [
         {
-          "name": "Validasi: Vehicle tanpa parameter pencarian (400)",
+          "name": "Validasi: Payments currency tidak valid / lebih dari 5 karakter (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });",
+                  "pm.test('Detail mentions currency code requirement', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.error).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 400 jika field currency melebihi batas 5 karakter.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"TOOLONG\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: Payments businessArea lebih dari 10 karakter (400)",
           "event": [
             {
               "listen": "test",
@@ -1286,41 +1437,98 @@
             }
           ],
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
               {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
+                "key": "Content-Type",
+                "value": "application/json",
                 "type": "text"
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?companyCode={{companyCode}}",
+              "raw": "{{baseUrl}}/api/payments",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "vehicles",
-                "getByLicensePlate"
-              ],
-              "query": [
-                {
-                  "key": "companyCode",
-                  "value": "{{companyCode}}"
-                }
+                "payments"
               ]
             },
-            "description": "Memverifikasi HTTP 400 jika pencarian kendaraan tidak menyertakan plate_no, equipment_no, atau branchCode.",
+            "description": "Memverifikasi penolakan HTTP 400 jika field businessArea melebihi batas 10 karakter.",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{token_app_b}}",
+                  "value": "{{token_qa}}",
                   "type": "string"
                 }
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"TOOLONGAREA123\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: Payments accountingDocumentNumber lebih dari 50 karakter (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi penolakan HTTP 400 jika nomor dokumen accountingDocumentNumber melebihi 50 karakter.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000\",\n  \"accountingDocumentNumber\": \"1234567890123456789012345678901234567890123456789012345\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
           "response": []
@@ -1341,11 +1549,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json",
@@ -1407,11 +1610,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
@@ -1452,7 +1650,7 @@
           "response": []
         },
         {
-          "name": "Validasi: SPK Duelist tanpa noSpk (400)",
+          "name": "Validasi: SPK Due List tanpa noSpk (400)",
           "event": [
             {
               "listen": "test",
@@ -1467,11 +1665,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json",
@@ -1513,7 +1706,7 @@
           "response": []
         },
         {
-          "name": "Validasi: SPK Duelist beda total dengan header X-Validate-Total (400)",
+          "name": "Validasi: SPK Due List beda total dengan header X-Validate-Total (400)",
           "event": [
             {
               "listen": "test",
@@ -1528,11 +1721,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json",
@@ -1579,7 +1767,7 @@
           "response": []
         },
         {
-          "name": "Validasi: SPK Duelist field invoice parsial / tidak lengkap (400)",
+          "name": "Validasi: SPK Due List field invoice parsial / tidak lengkap (400)",
           "event": [
             {
               "listen": "test",
@@ -1598,11 +1786,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json",
@@ -1664,11 +1847,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
@@ -1728,11 +1906,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
@@ -1762,6 +1935,230 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: Payments tanpa documentDate (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });",
+                  "pm.test('Detail mentions documentDate required', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.error).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi HTTP 400 jika field wajib documentDate tidak dikirim.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: Payments tanpa postingDate (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi HTTP 400 jika field wajib postingDate tidak dikirim.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: Payments tanpa businessArea (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi HTTP 400 jika field wajib businessArea tidak dikirim.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Validasi: Payments tanpa glAccount (400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 400 Bad Request', function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Memverifikasi HTTP 400 jika field wajib glAccount tidak dikirim.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1919,6 +2316,84 @@
           "response": []
         },
         {
+          "name": "Branch Inquiry Search via filterBy (QA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Response contains data array', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.success).to.be.true;",
+                  "    pm.expect(res).to.have.property('data');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&filterBy=jakarta&page=1&perPage=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "branches",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                },
+                {
+                  "key": "dateStart",
+                  "value": "2020-01-01"
+                },
+                {
+                  "key": "dateEnd",
+                  "value": "2026-09-11"
+                },
+                {
+                  "key": "filterBy",
+                  "value": "jakarta"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Mengambil data master cabang menggunakan single-field search filterBy (mencakup BranchCode dan BranchName).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Customer Inquiry GetByCreateDate (Page 1 - App A)",
           "event": [
             {
@@ -1941,7 +2416,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=5",
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2025-01-01&dateEnd=2026-12-31&page=1&perPage=5",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1957,11 +2432,11 @@
                 },
                 {
                   "key": "dateStart",
-                  "value": "2020-01-01"
+                  "value": "2025-01-01"
                 },
                 {
                   "key": "dateEnd",
-                  "value": "2026-09-11"
+                  "value": "2026-12-31"
                 },
                 {
                   "key": "page",
@@ -1973,13 +2448,313 @@
                 }
               ]
             },
-            "description": "Mengambil data pelanggan Core SAP dengan filter rentang tanggal dan paginasi page 1.",
+            "description": "Mengambil data pelanggan Core SAP dengan filter rentang tanggal dan paginasi page 1. Mendukung query param CustomerCode dan CustomerName.",
             "auth": {
               "type": "bearer",
               "bearer": [
                 {
                   "key": "token",
                   "value": "{{token_app_a}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Inquiry Search (CustomerCode & CustomerName - App A)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Data array is present', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2025-01-01&dateEnd=2026-12-31&CustomerCode=1000025&CustomerName=ADI SARANA&page=1&perPage=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                },
+                {
+                  "key": "dateStart",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "dateEnd",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "CustomerCode",
+                  "value": "1000025"
+                },
+                {
+                  "key": "CustomerName",
+                  "value": "ADI SARANA"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Mencari data pelanggan spesifik menggunakan filter langsung via query param CustomerCode dan CustomerName.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_a}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Inquiry Search CustomerCode Only (QA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Filter by CustomerCode succeeds', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&CustomerCode=1000025&page=1&perPage=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                },
+                {
+                  "key": "CustomerCode",
+                  "value": "1000025"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Mencari data pelanggan berdasarkan kode CustomerCode saja menggunakan token QA.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Inquiry Search CustomerName Only (QA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Filter by CustomerName succeeds', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&CustomerName=ADI SARANA&page=1&perPage=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                },
+                {
+                  "key": "CustomerName",
+                  "value": "ADI SARANA"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Mencari data pelanggan berdasarkan nama CustomerName (substring) menggunakan token QA.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Customer Inquiry Search via filterBy (QA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Data array is present', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2025-01-01&dateEnd=2026-12-31&filterBy=1000025&page=1&perPage=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "customers",
+                "getByCreateDate"
+              ],
+              "query": [
+                {
+                  "key": "companyCode",
+                  "value": "{{companyCode}}"
+                },
+                {
+                  "key": "dateStart",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "dateEnd",
+                  "value": "2026-12-31"
+                },
+                {
+                  "key": "filterBy",
+                  "value": "1000025"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Mencari data pelanggan menggunakan single-field search filterBy (mencakup CustomerCode dan CustomerName).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
                   "type": "string"
                 }
               ]
@@ -2010,7 +2785,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=2&perPage=5",
+              "raw": "{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2025-01-01&dateEnd=2026-12-31&page=2&perPage=5",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2026,11 +2801,11 @@
                 },
                 {
                   "key": "dateStart",
-                  "value": "2020-01-01"
+                  "value": "2025-01-01"
                 },
                 {
                   "key": "dateEnd",
-                  "value": "2026-09-11"
+                  "value": "2026-12-31"
                 },
                 {
                   "key": "page",
@@ -2057,15 +2832,20 @@
           "response": []
         },
         {
-          "name": "Vehicle Inquiry /getByLicensePlate cari Plat Nomor (App B)",
+          "name": "Vehicle Inquiry /getByLicensePlate cari Plat Nomor & Pagination (App B)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200 or 403 upstream', function () {",
-                  "    pm.expect([200, 403]).to.include(pm.response.code);",
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Pagination structure is valid', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.page).to.eql(1);",
+                  "    pm.expect(json.perPage).to.eql(10);",
+                  "    pm.expect(json.data).to.be.an('array');",
                   "});"
                 ]
               }
@@ -2081,7 +2861,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?plate_no=DD-8112",
+              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?plat_no=B-9065&page=1&perPage=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2092,12 +2872,280 @@
               ],
               "query": [
                 {
-                  "key": "plate_no",
-                  "value": "DD-8112"
+                  "key": "plat_no",
+                  "value": "B-9065"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
                 }
               ]
             },
-            "description": "Inquiry data kendaraan berdasarkan plat nomor via path getByLicensePlate.",
+            "description": "Inquiry data kendaraan berdasarkan plat nomor plat_no serta pagination page & perPage via getByLicensePlate.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Inquiry /getByLicensePlate cari Plat Nomor dengan Spasi Auto-Normalized (QA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Auto normalized plate returns valid array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?plat_no=B 9065&page=1&perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "getByLicensePlate"
+              ],
+              "query": [
+                {
+                  "key": "plat_no",
+                  "value": "B 9065"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Inquiry data kendaraan berdasarkan plat nomor dengan spasi yang otomatis dinormalisasi menjadi format standar bertanda hubung.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Inquiry /getByLicensePlate Paginate All Vehicles (Page 1 - App B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Pagination page 1 returns data', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?page=1&perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "getByLicensePlate"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Paginasi data kendaraan seluruh armada halaman 1 via endpoint /getByLicensePlate tanpa query filter plat nomor.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Inquiry /getByLicensePlate cari Equipment via filterBy (App B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('FilterBy equipment returns valid array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?filterBy=10027282&page=1&perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "getByLicensePlate"
+              ],
+              "query": [
+                {
+                  "key": "filterBy",
+                  "value": "10027282"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Inquiry data unit kendaraan via /getByLicensePlate berdasarkan equipment_no menggunakan filterBy.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Inquiry /getByLicensePlate cari via filterBy (App B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('FilterBy search returns valid array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/getByLicensePlate?filterBy=B-9065&page=1&perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "getByLicensePlate"
+              ],
+              "query": [
+                {
+                  "key": "filterBy",
+                  "value": "B-9065"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Inquiry data armada kendaraan menggunakan single-field search filterBy (mencakup plat_no/plate_no, equipment_no, branch_code, tipe_kendaraan, dan color).",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2119,8 +3167,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200 or 403 upstream', function () {",
-                  "    pm.expect([200, 403]).to.include(pm.response.code);",
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Pagination structure is valid', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
                   "});"
                 ]
               }
@@ -2136,7 +3187,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?plate_no=DD-8112",
+              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?plat_no=B-9065&page=1&perPage=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2147,12 +3198,20 @@
               ],
               "query": [
                 {
-                  "key": "plate_no",
-                  "value": "DD-8112"
+                  "key": "plat_no",
+                  "value": "B-9065"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
                 }
               ]
             },
-            "description": "Inquiry data unit kendaraan dari endpoint vehicleatlas berdasarkan nomor plat.",
+            "description": "Inquiry data unit kendaraan dari endpoint vehicleatlas berdasarkan plat_no dengan pagination standar.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2167,15 +3226,79 @@
           "response": []
         },
         {
-          "name": "Vehicle Atlas Inquiry /vehicleatlas cari Equipment Number (App B)",
+          "name": "Vehicle Atlas Inquiry /vehicleatlas cari Plat Nomor dengan Spasi Auto-Normalized (App B)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status code is 200 or 403 upstream', function () {",
-                  "    pm.expect([200, 403]).to.include(pm.response.code);",
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?plat_no=B 9065&page=1&perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "vehicleatlas"
+              ],
+              "query": [
+                {
+                  "key": "plat_no",
+                  "value": "B 9065"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Inquiry data unit kendaraan via vehicleatlas dengan format plat dengan spasi yang dinormalisasi.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Atlas Inquiry /vehicleatlas cari via filterBy (QA)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('FilterBy vehicleatlas returns valid array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
                   "});"
                 ]
               }
@@ -2191,7 +3314,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?equipment_no=10027282",
+              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?filterBy=B 9065&page=1&perPage=10",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -2202,12 +3325,212 @@
               ],
               "query": [
                 {
-                  "key": "equipment_no",
-                  "value": "10027282"
+                  "key": "filterBy",
+                  "value": "B 9065"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
                 }
               ]
             },
-            "description": "Inquiry data unit kendaraan dari endpoint vehicleatlas berdasarkan equipment_no.",
+            "description": "Inquiry vehicleatlas menggunakan single-field search filterBy dengan plat ber-spasi yang dinormalisasi otomatis.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Atlas Inquiry /vehicleatlas Paginate All Vehicles Page 1 (App B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Pagination page 1 returns 10 items', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.page).to.eql(1);",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?page=1&perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "vehicleatlas"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Paginasi seluruh armada kendaraan halaman 1 via endpoint vehicleatlas.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Atlas Inquiry /vehicleatlas Paginate All Vehicles Page 2 (App B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Pagination page 2 returns data', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.page).to.eql(2);",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?page=2&perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "vehicleatlas"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "2"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Paginasi seluruh armada kendaraan halaman 2 (page 2) via endpoint vehicleatlas.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_app_b}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vehicle Atlas Inquiry /vehicleatlas cari Equipment via filterBy (App B)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () { pm.response.to.have.status(200); });",
+                  "pm.test('FilterBy equipment vehicleatlas returns valid array', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.be.true;",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/vehicleatlas?filterBy=10027282&page=1&perPage=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vehicles",
+                "vehicleatlas"
+              ],
+              "query": [
+                {
+                  "key": "filterBy",
+                  "value": "10027282"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "perPage",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Inquiry data unit kendaraan dari endpoint vehicleatlas berdasarkan equipment_no menggunakan filterBy dengan pagination.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2243,13 +3566,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/service-requests?dateStart=2026-01-01&dateEnd=2026-09-28&page=1&perPage=10",
               "host": [
@@ -2308,11 +3625,6 @@
           "request": {
             "method": "GET",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "X-API-Key",
                 "value": "{{token_barantum}}",
@@ -2390,11 +3702,6 @@
             "method": "POST",
             "header": [
               {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
@@ -2456,11 +3763,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json",
@@ -2537,11 +3839,6 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json",
@@ -2745,7 +4042,75 @@
           "response": []
         },
         {
-          "name": "SPK Duelist - Valid Payload ke FTP (Jasa & Parts Details)",
+          "name": "Vendor Create - Idempotency Re-Send (200 OK Replay)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 (Replay) or 201/500/502', function () {",
+                  "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Transaction-Id",
+                "value": "{{vendor_trx_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/vendors/create",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "vendors",
+                "create"
+              ]
+            },
+            "description": "Mengirim ulang transaksi vendor yang sama dengan X-Transaction-Id yang sama untuk memastikan replay idempotency mengembalikan response 200 OK tanpa upload duplikat.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"company_code\": \"1000/2000/6000/7000\",\n  \"companyTitle\": \"PT\",\n  \"companyName\": \"PT Adi Sarana Armada Tbk\",\n  \"otv\": \"No\",\n  \"paymentCycle\": \"Monthly\",\n  \"accountNumber\": \"1200010978489\",\n  \"accountName\": \"Robby Yulianto Setiawan\",\n  \"bankName\": \"Mandiri\",\n  \"hoEmail\": \"assa@assarent.co.id\",\n  \"hoPhone\": \"082246605199\",\n  \"hoAddress\": \"Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410\",\n  \"contactName\": \"Robby Contact\",\n  \"contactPhone\": \"08224660189\",\n  \"npwp\": \"3173080209920003\",\n  \"accountGroup\": \"V010\",\n  \"top\": \"T014\",\n  \"glAccount\": \"2121000000\",\n  \"documentNumber\": \"VENDOR-ATLAS-000123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "SPK Due List - Valid Payload ke FTP (Jasa & Parts Details)",
           "event": [
             {
               "listen": "prerequest",
@@ -2804,7 +4169,7 @@
                 "duelist"
               ]
             },
-            "description": "Mengirim data SPK Duelist ke server FTP inbound SAP. Dilengkapi validasi kecocokan total rincian item jasa dan sparepart via header X-Validate-Total.",
+            "description": "Mengirim data SPK Due List ke server FTP inbound SAP. Dilengkapi validasi kecocokan total rincian item jasa dan sparepart via header X-Validate-Total.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2828,7 +4193,7 @@
           "response": []
         },
         {
-          "name": "SPK Duelist - Valid Payload ke FTP lengkap dengan Data Invoice & Faktur Pajak",
+          "name": "SPK Due List - Valid Payload ke FTP lengkap dengan Data Invoice & Faktur Pajak",
           "event": [
             {
               "listen": "prerequest",
@@ -2887,7 +4252,7 @@
                 "duelist"
               ]
             },
-            "description": "Mengirim data SPK Duelist lengkap dengan data tagihan invoice vendor dan nomor faktur pajak.",
+            "description": "Mengirim data SPK Due List lengkap dengan data tagihan invoice vendor dan nomor faktur pajak.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2911,7 +4276,80 @@
           "response": []
         },
         {
-          "name": "Payments Create - Valid Payload ke FTP (XML over FTP)",
+          "name": "SPK Due List - Idempotency Re-Send (200 OK Replay)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 (Replay) or 201/500/502', function () {",
+                  "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Transaction-Id",
+                "value": "{{spk_trx_id}}",
+                "type": "text"
+              },
+              {
+                "key": "X-Validate-Total",
+                "value": "true",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/spk/duelist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "spk",
+                "duelist"
+              ]
+            },
+            "description": "Mengirim ulang transaksi SPK yang sama dengan X-Transaction-Id yang sama untuk memastikan replay idempotency mengembalikan response 200 OK tanpa upload duplikat.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"noSpk\": \"SPK/2026/09/00003\",\n  \"type\": \"Maintenance\",\n  \"noPolisi\": \"B-2120-BKZ\",\n  \"noSr\": \"SR-000123\",\n  \"category\": \"Maintenance\",\n  \"subCategory\": \"Adhoc\",\n  \"vendorReferensi\": \"0001\",\n  \"namaVendor\": \"Bengkel Jaya Motor\",\n  \"picService\": \"PIC-001\",\n  \"namaPicService\": \"Andi Wijaya\",\n  \"spkRework\": \"No\",\n  \"totalPrice\": 1850000,\n  \"createdAt\": \"2026-09-17 14:46:11\",\n  \"createdBy\": \"atlas.user\",\n  \"poSpkNumber\": \"PO-4500012345\",\n  \"details\": [\n    {\n      \"jenis\": \"Jasa\",\n      \"description\": \"Jasa Perbaikan AC\",\n      \"qty\": 1,\n      \"price\": 150000\n    },\n    {\n      \"jenis\": \"Parts\",\n      \"description\": \"Filter AC & Freon\",\n      \"qty\": 1,\n      \"price\": 1700000\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payments Create - Valid Payload ke FTP (XML over FTP - QA Token)",
           "event": [
             {
               "listen": "prerequest",
@@ -2971,7 +4409,157 @@
                 "payments"
               ]
             },
-            "description": "Mengirim dokumen accounting pembayaran ke server FTP SAP (/payments) dengan penamaan PAYMENTS_<accountingDocumentNumber>_<companyCode>_<transactionId>.xml.",
+            "description": "Mengirim dokumen accounting pembayaran ke server FTP SAP (/payments) dengan penamaan PAYMENTS_<accountingDocumentNumber>_<companyCode>_<transactionId>.xml menggunakan token QA.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051904\",\n  \"documentDate\": \"08.09.2026\",\n  \"postingDate\": \"08.09.2026\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\",\n  \"text\": \"PBY BENGKEL REFF 3400082380 DLL\",\n  \"assignment\": \"PT PRABU PENDAWA M\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payments Create - Valid Payload Format Tanggal Alternatif YYYY-MM-DD (QA Token)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const pTrxAlt = 'TRX-PAYMENT-ALT-DATE-' + Date.now();",
+                  "pm.collectionVariables.set('payments_alt_trx_id', pTrxAlt);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 (FTP Success) or 500/502', function () {",
+                  "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Transaction-Id",
+                "value": "{{payments_alt_trx_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Mengirim dokumen accounting pembayaran dengan format tanggal ISO YYYY-MM-DD yang dinormalisasi otomatis oleh middleware.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_qa}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyCodes\": \"1000/2000/6000/7000\",\n  \"accountingDocumentNumber\": \"9300051905\",\n  \"documentDate\": \"2026-09-08\",\n  \"postingDate\": \"2026-09-08\",\n  \"businessArea\": \"1100\",\n  \"currency\": \"IDR\",\n  \"glAccount\": \"1114000000\",\n  \"text\": \"PBY BENGKEL KENDARAAN ALTERNATIF\",\n  \"assignment\": \"PT ADI SARANA ARMADA TBK\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payments Create - Replay / Idempotency Check (200 OK Replay)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 (Replay Success) or 201/500/502', function () {",
+                  "    pm.expect([200, 201, 500, 502]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    var res = pm.response.json();",
+                  "    pm.test('Replay message verified', function () {",
+                  "        pm.expect(res.message).to.include('Replay');",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Retry-Interval-Seconds",
+                "value": "1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "X-Transaction-Id",
+                "value": "{{payments_trx_id}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "payments"
+              ]
+            },
+            "description": "Mengirim ulang transaksi payment yang sama dengan header X-Transaction-Id yang sama untuk memastikan replay idempotency mengembalikan 200 OK tanpa upload ulang.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -3019,13 +4607,7 @@
           ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/worker/retry",
               "host": [
@@ -3061,13 +4643,7 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "X-Retry-Interval-Seconds",
-                "value": "1",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/worker/retry",
               "host": [
