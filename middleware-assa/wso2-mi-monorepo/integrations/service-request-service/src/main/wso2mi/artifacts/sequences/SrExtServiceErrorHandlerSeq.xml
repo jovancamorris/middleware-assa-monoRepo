@@ -36,7 +36,7 @@
                 <property name="RETRY" expression="fn:concat('Retrying extService on error, attempt ', $ctx:currentAttempt, ' of 10...')"/>
             </log>
             <dbreport>
-                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <connection><pool><driver key="conf:/repository/assa/db/driver"/><url key="conf:/repository/assa/db/url"/><user key="conf:/repository/assa/db/username"/><password key="conf:/repository/assa/db/password"/></pool></connection>
                 <statement><sql>DO SLEEP(1)</sql></statement>
             </dbreport>
             <sequence key="SrToExtServiceSeq"/>

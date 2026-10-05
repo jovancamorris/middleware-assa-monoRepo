@@ -50,11 +50,6 @@
                     <property name="srApiKey" expression="get-property('file', 'assa.ext.sr.apikey')" scope="default" type="STRING"/>
                 </then>
             </filter>
-            <filter xpath="string-length($ctx:srApiKey) = 0">
-                <then>
-                    <property name="srApiKey" value="DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs" scope="default" type="STRING"/>
-                </then>
-            </filter>
 
             <property name="uri.var.extBackendUrl" expression="fn:concat($ctx:srResolvedBaseUrl, $ctx:srPath)" scope="default" type="STRING"/>
             <property name="api.endpoint" expression="$ctx:uri.var.extBackendUrl" scope="default" type="STRING"/>
@@ -192,7 +187,7 @@
                                 <property name="RETRY" expression="fn:concat('Retrying extService attempt ', $ctx:currentAttempt, ' of 10...')"/>
                             </log>
                             <dbreport>
-                                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                                <connection><pool><driver key="conf:/repository/assa/db/driver"/><url key="conf:/repository/assa/db/url"/><user key="conf:/repository/assa/db/username"/><password key="conf:/repository/assa/db/password"/></pool></connection>
                                 <statement><sql>DO SLEEP(1)</sql></statement>
                             </dbreport>
                             <sequence key="SrToExtServiceSeq"/>

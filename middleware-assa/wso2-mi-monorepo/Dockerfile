@@ -23,6 +23,7 @@ COPY --chown=wso2carbon:wso2 --from=build /app/integrations/branch-service/deplo
 # Salin SSL certificates, entrypoint forwarder & skema SQL
 COPY --chown=wso2carbon:wso2 --from=build /app/platform/docker/resources/*.jks ${WSO2_SERVER_HOME}/repository/resources/security/
 COPY --chown=wso2carbon:wso2 --chmod=755 platform/docker/entrypoint.sh /home/wso2carbon/entrypoint.sh
+COPY --chown=wso2carbon:wso2 --chmod=755 platform/docker/render-registry-secrets.sh /home/wso2carbon/render-registry-secrets.sh
 COPY --chown=wso2carbon:wso2 --from=build /app/scripts/db/init_mariadb_schema.sql /docker-entrypoint-initdb.d/01_init.sql
 COPY --chown=wso2carbon:wso2 --from=build /app/docs /app/docs
 

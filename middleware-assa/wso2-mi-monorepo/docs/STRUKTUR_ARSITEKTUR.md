@@ -345,7 +345,7 @@ Mari ikuti apa yang terjadi saat sebuah aplikasi Android ASSA memanggil API:
 `GET http://localhost:8290/api/branches/getByCreateDate?companyCode=1000`
 
 1. **Client mengirim HTTP Request** dengan header:
-   `Authorization: Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013`.
+   `Authorization: Bearer <TOKEN_DARI_ENVIRONMENT>`.
 2. **`BranchAPI.xml`** menyambut request tersebut di pintu gerbang `/api/branches/getByCreateDate`.
 3. Pintu gerbang mengarahkan pertama kali ke **`AuthGuardSeq.xml`**:
    - Token dicocokkan ke `config.properties`.

@@ -76,11 +76,6 @@
                     <property name="atlasApiKey" expression="get-property('file', 'sr.target.atlas.apikey')" scope="default" type="STRING"/>
                 </then>
             </filter>
-            <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = 'ATLAS_PLACEHOLDER_KEY' or starts-with($ctx:atlasApiKey, 'ATLAS_')">
-                <then>
-                    <property name="atlasApiKey" value="umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" scope="default" type="STRING"/>
-                </then>
-            </filter>
 
             <property name="uri.var.atlasBackendUrl" expression="fn:concat($ctx:atlasBaseUrl, $ctx:atlasPath)" scope="default" type="STRING"/>
             <property name="api.endpoint" expression="$ctx:uri.var.atlasBackendUrl" scope="default" type="STRING"/>
@@ -173,7 +168,7 @@
                                 <property name="RETRY" expression="fn:concat('Retrying atlas attempt ', $ctx:currentAttempt, ' of 10...')"/>
                             </log>
                             <dbreport>
-                                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                                <connection><pool><driver key="conf:/repository/assa/db/driver"/><url key="conf:/repository/assa/db/url"/><user key="conf:/repository/assa/db/username"/><password key="conf:/repository/assa/db/password"/></pool></connection>
                                 <statement><sql>DO SLEEP(1)</sql></statement>
                             </dbreport>
                             <sequence key="SrToAtlasSeq"/>

@@ -62,40 +62,46 @@
     <property name="tokenAppA" expression="get-property('env', 'AUTH_APP_A_TOKEN')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAppA) = 0"><then><property name="tokenAppA" expression="get-property('system', 'auth.app.app_a.token')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAppA) = 0"><then><property name="tokenAppA" expression="get-property('file', 'auth.app.app_a.token')" scope="default" type="STRING"/></then></filter>
-    <filter xpath="string-length($ctx:tokenAppA) = 0"><then><property name="tokenAppA" value="3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013" scope="default" type="STRING"/></then></filter>
 
     <property name="tokenAppB" expression="get-property('env', 'AUTH_APP_B_TOKEN')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAppB) = 0"><then><property name="tokenAppB" expression="get-property('system', 'auth.app.app_b.token')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAppB) = 0"><then><property name="tokenAppB" expression="get-property('file', 'auth.app.app_b.token')" scope="default" type="STRING"/></then></filter>
-    <filter xpath="string-length($ctx:tokenAppB) = 0"><then><property name="tokenAppB" value="988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881" scope="default" type="STRING"/></then></filter>
 
     <property name="tokenAppQA" expression="get-property('env', 'AUTH_APP_QA_TOKEN')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAppQA) = 0"><then><property name="tokenAppQA" expression="get-property('system', 'auth.app.app_qa.token')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAppQA) = 0"><then><property name="tokenAppQA" expression="get-property('file', 'auth.app.app_qa.token')" scope="default" type="STRING"/></then></filter>
-    <filter xpath="string-length($ctx:tokenAppQA) = 0"><then><property name="tokenAppQA" value="ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" scope="default" type="STRING"/></then></filter>
 
     <property name="tokenAppAtlas" expression="get-property('env', 'AUTH_APP_ATLAS_TOKEN')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAppAtlas) = 0"><then><property name="tokenAppAtlas" expression="get-property('system', 'auth.app.app_atlas.token')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAppAtlas) = 0"><then><property name="tokenAppAtlas" expression="get-property('file', 'auth.app.app_atlas.token')" scope="default" type="STRING"/></then></filter>
-    <filter xpath="string-length($ctx:tokenAppAtlas) = 0"><then><property name="tokenAppAtlas" value="ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d" scope="default" type="STRING"/></then></filter>
 
     <property name="tokenAppBarantum" expression="get-property('env', 'AUTH_APP_BARANTUM_TOKEN')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAppBarantum) = 0"><then><property name="tokenAppBarantum" expression="get-property('system', 'auth.app.app_barantum.token')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAppBarantum) = 0"><then><property name="tokenAppBarantum" expression="get-property('file', 'auth.app.app_barantum.token')" scope="default" type="STRING"/></then></filter>
-    <filter xpath="string-length($ctx:tokenAppBarantum) = 0"><then><property name="tokenAppBarantum" value="umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" scope="default" type="STRING"/></then></filter>
 
     <property name="tokenAtlasApiKey" expression="get-property('env', 'SR_TARGET_ATLAS_APIKEY')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAtlasApiKey) = 0"><then><property name="tokenAtlasApiKey" expression="get-property('env', 'SR_TARGET_ATLAS_API_KEY')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAtlasApiKey) = 0"><then><property name="tokenAtlasApiKey" expression="get-property('system', 'sr.target.atlas.apikey')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAtlasApiKey) = 0"><then><property name="tokenAtlasApiKey" expression="get-property('file', 'sr.target.atlas.apikey')" scope="default" type="STRING"/></then></filter>
-    <filter xpath="string-length($ctx:tokenAtlasApiKey) = 0"><then><property name="tokenAtlasApiKey" value="umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680" scope="default" type="STRING"/></then></filter>
 
     <property name="tokenAppOmnichannel" expression="get-property('env', 'AUTH_APP_OMNICHANNEL_TOKEN')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:tokenAppOmnichannel) = 0"><then><property name="tokenAppOmnichannel" expression="get-property('system', 'auth.app.app_omnichannel.token')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:tokenAppOmnichannel) = 0"><then><property name="tokenAppOmnichannel" expression="get-property('file', 'auth.app.app_omnichannel.token')" scope="default" type="STRING"/></then></filter>
-    <filter xpath="string-length($ctx:tokenAppOmnichannel) = 0"><then><property name="tokenAppOmnichannel" value="14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12" scope="default" type="STRING"/></then></filter>
 
-    <filter xpath="(string-length($ctx:tokenAppBarantum) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppBarantum) or (string-length($ctx:tokenAtlasApiKey) &gt; 0 and $ctx:bearerToken = $ctx:tokenAtlasApiKey) or $ctx:bearerToken = 'umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680' or $ctx:bearerToken = 'umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd'">
+    <!-- Fail closed: if no application token could be resolved from env, system, or file
+         configuration, the integration is misconfigured. Reject explicitly instead of
+         silently accepting the request. -->
+    <filter xpath="string-length($ctx:tokenAppA) = 0 and string-length($ctx:tokenAppB) = 0 and string-length($ctx:tokenAppQA) = 0 and string-length($ctx:tokenAppAtlas) = 0 and string-length($ctx:tokenAppBarantum) = 0 and string-length($ctx:tokenAppOmnichannel) = 0 and string-length($ctx:tokenAtlasApiKey) = 0">
+        <then>
+            <property name="ERROR_CODE" value="500" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Internal Server Error" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Authentication is not configured. No application token was resolved from env, system, or file configuration." scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <filter xpath="(string-length($ctx:tokenAppBarantum) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppBarantum) or (string-length($ctx:tokenAtlasApiKey) &gt; 0 and $ctx:bearerToken = $ctx:tokenAtlasApiKey)">
         <then>
             <property name="appId" value="app_barantum" scope="default" type="STRING"/>
             <property name="appScopes" expression="get-property('file', 'auth.app.app_barantum.scopes')" scope="default" type="STRING"/>
@@ -103,7 +109,7 @@
             <filter xpath="string-length($ctx:appScopes) = 0"><then><property name="appScopes" value="service_requests,vendors" scope="default" type="STRING"/></then></filter>
         </then>
         <else>
-            <filter xpath="(string-length($ctx:tokenAppA) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppA) or $ctx:bearerToken = '3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013' or $ctx:bearerToken = 'c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd'">
+            <filter xpath="string-length($ctx:tokenAppA) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppA">
                 <then>
                     <property name="appId" value="app_a" scope="default" type="STRING"/>
                     <property name="appScopes" expression="get-property('file', 'auth.app.app_a.scopes')" scope="default" type="STRING"/>
@@ -119,7 +125,7 @@
                             <filter xpath="string-length($ctx:appScopes) = 0"><then><property name="appScopes" value="vehicles" scope="default" type="STRING"/></then></filter>
                         </then>
                         <else>
-                            <filter xpath="(string-length($ctx:tokenAppQA) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppQA) or $ctx:bearerToken = 'ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d' or $ctx:bearerToken = 'e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be'">
+                            <filter xpath="string-length($ctx:tokenAppQA) &gt; 0 and $ctx:bearerToken = $ctx:tokenAppQA">
                                 <then>
                                     <property name="appId" value="app_qa" scope="default" type="STRING"/>
                                     <property name="appScopes" expression="get-property('file', 'auth.app.app_qa.scopes')" scope="default" type="STRING"/>

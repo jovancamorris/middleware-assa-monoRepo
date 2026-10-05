@@ -575,11 +575,6 @@
             <property name="ftpUsername" expression="get-property('file', 'ftp.vendor.username')" scope="default" type="STRING"/>
         </then>
     </filter>
-    <filter xpath="string-length($ctx:ftpUsername) = 0">
-        <then>
-            <property name="ftpUsername" value="middlewaredev" scope="default" type="STRING"/>
-        </then>
-    </filter>
 
     <property name="ftpPassword" expression="get-property('env', 'FTP_SAP_PASSWORD')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:ftpPassword) = 0">
@@ -618,6 +613,18 @@
     <filter xpath="string-length($ctx:ftpTargetDir) = 0">
         <then>
             <property name="ftpTargetDir" value="/vmd" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Fail closed: reject when the FTP connection cannot be fully resolved from
+         configuration, instead of building a malformed VFS URI. -->
+    <filter xpath="string-length($ctx:ftpHost) = 0 or string-length($ctx:ftpPort) = 0 or string-length($ctx:ftpUsername) = 0 or string-length($ctx:ftpPassword) = 0 or string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ERROR_CODE" value="500" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="FTP Configuration Error" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Vendor FTP upload configuration is incomplete" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
         </then>
     </filter>
 

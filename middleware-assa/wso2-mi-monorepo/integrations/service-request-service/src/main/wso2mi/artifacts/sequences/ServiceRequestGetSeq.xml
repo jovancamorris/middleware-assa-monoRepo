@@ -33,7 +33,7 @@
         <then>
             <!-- Single item inquiry by reference / transaction ID -->
             <dblookup>
-                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <connection><pool><driver key="conf:/repository/assa/db/driver"/><url key="conf:/repository/assa/db/url"/><user key="conf:/repository/assa/db/username"/><password key="conf:/repository/assa/db/password"/></pool></connection>
                 <statement>
                     <sql>SELECT transaction_id, status, response_payload, created_at FROM api_transaction WHERE transaction_id = ? OR idempotency_key = ? LIMIT 1</sql>
                     <parameter expression="$ctx:queryRef" type="VARCHAR"/>
@@ -94,7 +94,7 @@
             <!-- General list inquiry with count -->
             <property name="totalCount" value="0" scope="default" type="STRING"/>
             <dblookup>
-                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <connection><pool><driver key="conf:/repository/assa/db/driver"/><url key="conf:/repository/assa/db/url"/><user key="conf:/repository/assa/db/username"/><password key="conf:/repository/assa/db/password"/></pool></connection>
                 <statement>
                     <sql>SELECT COUNT(*) AS total_sr, MAX(transaction_id) as latest_id, MAX(status) as latest_status, MAX(created_at) as latest_date FROM api_transaction WHERE endpoint LIKE '%service-requests%'</sql>
                     <result name="totalCount" column="total_sr"/>

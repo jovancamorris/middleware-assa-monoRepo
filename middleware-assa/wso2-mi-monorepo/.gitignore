@@ -46,3 +46,17 @@ mvnw.cmd
 ## Miscellaneous
 ##############################
 *.log
+
+##############################
+## Build artifacts
+## Composite Applications are compiled output and can embed credentials
+## resolved at package time. Never track them.
+##############################
+*.car
+
+##############################
+## Generated registry secrets
+## Written at container start by render-registry-secrets.sh. Contains the
+## database username and password. Never track.
+##############################
+platform/docker/registry/

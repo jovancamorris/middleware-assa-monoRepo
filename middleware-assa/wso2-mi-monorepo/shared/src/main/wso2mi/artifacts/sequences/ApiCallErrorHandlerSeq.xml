@@ -31,7 +31,7 @@
             <property name="rawNextAttempt" expression="number($ctx:cleanCurrentAttempt) + 1" scope="default" type="STRING"/>
             <property name="currentAttempt" expression="fn:substring-before(fn:concat($ctx:rawNextAttempt, '.'), '.')" scope="default" type="STRING"/>
             <dbreport>
-                <connection><pool><driver>org.mariadb.jdbc.Driver</driver><url>jdbc:mariadb://localhost:3307/assa_middleware_db?useSSL=false&amp;allowPublicKeyRetrieval=true</url><user>root</user><password/></pool></connection>
+                <connection><pool><driver key="conf:/repository/assa/db/driver"/><url key="conf:/repository/assa/db/url"/><user key="conf:/repository/assa/db/username"/><password key="conf:/repository/assa/db/password"/></pool></connection>
                 <statement><sql>DO SLEEP(?)</sql><parameter expression="$ctx:cleanRetryIntervalSec" type="INTEGER"/></statement>
             </dbreport>
             <sequence key="SafeApiCallWithRetrySeq"/>

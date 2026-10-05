@@ -117,11 +117,26 @@ else
     BASE_URL_SR="${BASE_URL_SR:-http://localhost:8295}"
 fi
 
-TOKEN_APP_A="${AUTH_APP_A_TOKEN:-c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd}"
-TOKEN_APP_B="${AUTH_APP_B_TOKEN:-988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881}"
-TOKEN_APP_QA="${AUTH_APP_QA_TOKEN:-e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be}"
-TOKEN_OMNICHANNEL="${AUTH_APP_OMNICHANNEL_TOKEN:-14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12}"
-TOKEN_BARANTUM="${AUTH_APP_BARANTUM_TOKEN:-umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd}"
+# Tokens are read from the environment only. No defaults are kept in this
+# script so that no live credential is committed to the repository.
+TOKEN_APP_A="${AUTH_APP_A_TOKEN:-}"
+TOKEN_APP_B="${AUTH_APP_B_TOKEN:-}"
+TOKEN_APP_QA="${AUTH_APP_QA_TOKEN:-}"
+TOKEN_OMNICHANNEL="${AUTH_APP_OMNICHANNEL_TOKEN:-}"
+TOKEN_BARANTUM="${AUTH_APP_BARANTUM_TOKEN:-}"
+
+missing_tokens=()
+[ -z "$TOKEN_APP_A" ] && missing_tokens+=("AUTH_APP_A_TOKEN")
+[ -z "$TOKEN_APP_B" ] && missing_tokens+=("AUTH_APP_B_TOKEN")
+[ -z "$TOKEN_APP_QA" ] && missing_tokens+=("AUTH_APP_QA_TOKEN")
+[ -z "$TOKEN_OMNICHANNEL" ] && missing_tokens+=("AUTH_APP_OMNICHANNEL_TOKEN")
+[ -z "$TOKEN_BARANTUM" ] && missing_tokens+=("AUTH_APP_BARANTUM_TOKEN")
+
+if [ ${#missing_tokens[@]} -gt 0 ]; then
+    echo -e "${RED}Missing required token(s): ${missing_tokens[*]}${RESET}"
+    echo -e "${GRAY}Export them before running this suite, or copy .env.example to .env${RESET}"
+    exit 1
+fi
 
 DB_CONTAINER="${DB_CONTAINER:-mi-mariadb}"
 DB_NAME="${DB_NAME:-assa_middleware_db}"

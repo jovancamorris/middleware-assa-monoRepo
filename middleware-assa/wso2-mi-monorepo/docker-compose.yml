@@ -37,15 +37,22 @@ services:
     environment: &common-env
       DB_HOST: mariadb
       DB_PORT: "3306"
+      # Consumed by render-registry-secrets.sh at container start. The dblookup
+      # and dbreport mediators read these from registry resources, never from
+      # the CAR, so no database credential is committed to the repository.
+      DB_USERNAME: "${DB_USERNAME:?set DB_USERNAME in .env}"
+      DB_PASSWORD: "${DB_PASSWORD:?set DB_PASSWORD in .env}"
       SAP_CORE_BASE_URL: ${SAP_CORE_BASE_URL:-https://devsapcoreapi.assa.id}
       SAP_CORE_CUSTOMER_BASE_URL: ${SAP_CORE_CUSTOMER_BASE_URL:-https://sapcoreapi.assa.id}
       ASSA_EXT_BASE_URL: ${ASSA_EXT_BASE_URL:-https://devfmsapi.assa.id}
-      AUTH_APP_A_TOKEN: ${AUTH_APP_A_TOKEN:-c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd}
-      AUTH_APP_B_TOKEN: ${AUTH_APP_B_TOKEN:-988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881}
-      AUTH_APP_QA_TOKEN: ${AUTH_APP_QA_TOKEN:-e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be}
-      AUTH_APP_ATLAS_TOKEN: ${AUTH_APP_ATLAS_TOKEN:-ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d}
-      AUTH_APP_OMNICHANNEL_TOKEN: ${AUTH_APP_OMNICHANNEL_TOKEN:-14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12}
-      AUTH_APP_BARANTUM_TOKEN: ${AUTH_APP_BARANTUM_TOKEN:-umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680}
+      # Application registry tokens. No defaults on purpose: the gateway must fail
+      # closed rather than authenticate with a token baked into this file.
+      AUTH_APP_A_TOKEN: "${AUTH_APP_A_TOKEN:?set AUTH_APP_A_TOKEN in .env}"
+      AUTH_APP_B_TOKEN: "${AUTH_APP_B_TOKEN:?set AUTH_APP_B_TOKEN in .env}"
+      AUTH_APP_QA_TOKEN: "${AUTH_APP_QA_TOKEN:?set AUTH_APP_QA_TOKEN in .env}"
+      AUTH_APP_ATLAS_TOKEN: "${AUTH_APP_ATLAS_TOKEN:?set AUTH_APP_ATLAS_TOKEN in .env}"
+      AUTH_APP_OMNICHANNEL_TOKEN: "${AUTH_APP_OMNICHANNEL_TOKEN:?set AUTH_APP_OMNICHANNEL_TOKEN in .env}"
+      AUTH_APP_BARANTUM_TOKEN: "${AUTH_APP_BARANTUM_TOKEN:?set AUTH_APP_BARANTUM_TOKEN in .env}"
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 8290 || exit 1"]
       interval: 10s
@@ -148,10 +155,10 @@ services:
     environment:
       <<: *common-env
       ASSA_EXT_SR_BASE_URL: ${ASSA_EXT_SR_BASE_URL:-https://assa-ext-services.assa.id/dev}
-      ASSA_EXT_SR_APIKEY: ${ASSA_EXT_SR_APIKEY:-DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs}
+      ASSA_EXT_SR_APIKEY: "${ASSA_EXT_SR_APIKEY:?set ASSA_EXT_SR_APIKEY in .env}"
       SR_TARGET_ATLAS_ENABLED: ${SR_TARGET_ATLAS_ENABLED:-false}
       SR_TARGET_ATLAS_BASE_URL: ${SR_TARGET_ATLAS_BASE_URL:-https://fe.atlas-dev.assa.id}
-      SR_TARGET_ATLAS_APIKEY: ${SR_TARGET_ATLAS_APIKEY:-umk_da295902028f5804c4f0e9d9fd81fa07a2a0e1152d6171e30f387416fbfe5680}
+      SR_TARGET_ATLAS_APIKEY: "${SR_TARGET_ATLAS_APIKEY:-}"
       SR_TARGET_EXTSERVICE_ENABLED: ${SR_TARGET_EXTSERVICE_ENABLED:-true}
 
   payments-service:
@@ -174,7 +181,7 @@ services:
       FTP_PAYMENTS_PORT: ${FTP_PAYMENTS_PORT:-21}
       FTP_PAYMENTS_TARGET: ${FTP_PAYMENTS_TARGET:-/payments}
       FTP_PAYMENTS_USERNAME: ${FTP_PAYMENTS_USERNAME:-middlewaredev}
-      FTP_PAYMENTS_PASSWORD: ${FTP_PAYMENTS_PASSWORD:-Gu34S5a#*232}
+      FTP_PAYMENTS_PASSWORD: "${FTP_PAYMENTS_PASSWORD:?set FTP_PAYMENTS_PASSWORD in .env}"
 
   nginx:
     image: nginx:alpine

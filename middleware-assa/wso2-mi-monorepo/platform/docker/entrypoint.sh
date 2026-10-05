@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Render database connection values into MI registry resources. Must run before
+# MI starts so the `key` lookups in dblookup/dbreport resolve.
+sh /home/wso2carbon/render-registry-secrets.sh
+
 TARGET_HOST="${DB_HOST:-host.docker.internal}"
 TARGET_PORT="${DB_PORT:-3307}"
 

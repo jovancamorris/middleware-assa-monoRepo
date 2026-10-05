@@ -204,11 +204,6 @@
             <property name="vehicleApiKey" expression="get-property('file', 'assa.ext.vehicle.apikey')" scope="default" type="STRING"/>
         </then>
     </filter>
-    <filter xpath="string-length($ctx:vehicleApiKey) = 0">
-        <then>
-            <property name="vehicleApiKey" value="XxfOtMSMhjoMQEPUHju4u7jkCEpZ09" scope="default" type="STRING"/>
-        </then>
-    </filter>
 
     <header name="Authorization" action="remove" scope="transport"/>
     <header name="Key" expression="$ctx:vehicleApiKey" scope="transport"/>
