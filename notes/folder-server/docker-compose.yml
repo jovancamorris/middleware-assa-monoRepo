@@ -58,6 +58,8 @@ services:
     environment:
       DB_HOST: ${DB_HOST:-mariadb}
       DB_PORT: ${DB_PORT:-3306}
+    volumes:
+      - ./render-registry-secrets.sh:/home/wso2carbon/render-registry-secrets.sh:ro
     depends_on:
       mariadb:
         condition: service_healthy
@@ -68,13 +70,58 @@ services:
       retries: 5
       start_period: 30s
 
+  # ---- 3b. WSO2 API Manager 4.3.0 (Low-Code API GUI, Publisher & DevPortal) ----
+  api-manager:
+    image: ${APIM_IMAGE:-wso2/wso2am:4.3.0}
+    container_name: middleware-wso2-apim
+    restart: unless-stopped
+    ports:
+      - "${APIM_PORT_HTTPS:-9443}:9443"
+      - "${APIM_GATEWAY_PORT:-8243}:8243"
+    environment:
+      - DATABASE_HOST=mariadb
+      - DATABASE_PORT=3306
+      - APIM_HOSTNAME=${APIM_HOSTNAME:-devmiddleware.assa.id}
+      - APIM_PROXY_PORT=${APIM_PROXY_PORT:-443}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        CONF=/home/wso2carbon/wso2am-4.3.0/repository/conf/deployment.toml
+        TARGET_HOST="$${APIM_HOSTNAME:-devmiddleware.assa.id}"
+        TARGET_PORT="$${APIM_PROXY_PORT:-443}"
+        if [ -f "$$CONF" ]; then
+          if [ "$$TARGET_HOST" != "localhost" ]; then
+            sed -i "s/hostname = \"localhost\"/hostname = \"$$TARGET_HOST\"/g" "$$CONF"
+            if ! grep -q "$$TARGET_HOST" "$$CONF"; then
+              printf '\n[server]\nhostname = "%s"\n' "$$TARGET_HOST" >> "$$CONF"
+            fi
+          fi
+          if [ -n "$$TARGET_PORT" ] && [ "$$TARGET_PORT" != "9443" ]; then
+            if ! grep -q "proxyPort = $$TARGET_PORT" "$$CONF"; then
+              printf '\n[transport.https.properties]\nproxyPort = %s\n' "$$TARGET_PORT" >> "$$CONF"
+            fi
+          fi
+        fi
+        exec /home/wso2carbon/docker-entrypoint.sh
+    volumes:
+      - apim_repository_data:/home/wso2carbon/wso2am-4.3.0/repository/data
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9443 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
   # ---- 4. Nginx Reverse Proxy (Satu Pintu Akses HTTP & Docs) ----
   nginx:
     image: nginx:alpine
     container_name: middleware-wso2-nginx
     restart: unless-stopped
     ports:
-      - "${NGINX_HTTP_PORT:-6031}:80"
+      - "${NGINX_HTTP_PORT:-6030}:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - doc_data:/usr/share/nginx/html/docs:ro
@@ -83,8 +130,11 @@ services:
         condition: service_completed_successfully
       middleware-wso2-api:
         condition: service_started
+      api-manager:
+        condition: service_started
 
 volumes:
   mariadb_data:
   mariadb_init_script:
   doc_data:
+  apim_repository_data:

@@ -214,7 +214,7 @@ Referensi detail: [GUIDE_VENDOR_CREATE_XML_FTP_V2.md](./GUIDE_VENDOR_CREATE_XML_
   "success": true,
   "message": "Vendor (VMD) accepted and delivered to FTP",
   "transactionId": "TRX-VENDOR-001",
-  "fileName": "VMD_20260917110339_TRX-VENDOR-001.xml",
+  "fileName": "VMD_20260925042649.xml",
   "documentNumber": "VENDOR-ATLAS-000123"
 }
 ```

@@ -444,7 +444,7 @@
     <!-- Generate TransGuID: yyyy-MM-dd HH:mm:ss-VMD -->
     <property name="transGuId" expression="fn:concat(get-property('SYSTEM_DATE', 'yyyy-MM-dd HH:mm:ss'), '-VMD')" scope="default" type="STRING"/>
 
-    <!-- File Name Resolution: Allow X-File-Name header override or default VMD_{yyyyMMddHHmmss}_{transactionId}.xml -->
+    <!-- File Name Resolution: Allow X-File-Name header override or default VMD_{yyyyMMddHHmmss}.xml -->
     <property name="customFileName" expression="$trp:X-File-Name" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:customFileName) &gt; 0">
         <then>
@@ -452,7 +452,7 @@
         </then>
         <else>
             <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
-            <property name="fileName" expression="fn:concat('VMD_', $ctx:fileTimestamp, '_', $ctx:transactionId, '.xml')" scope="default" type="STRING"/>
+            <property name="fileName" expression="fn:concat('VMD_', $ctx:fileTimestamp, '.xml')" scope="default" type="STRING"/>
         </else>
     </filter>
 

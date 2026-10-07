@@ -105,7 +105,7 @@
             </filter>
             <property name="atlasOrigin" expression="get-property('env', 'SR_TARGET_ATLAS_ORIGIN')" scope="default" type="STRING"/>
             <filter xpath="string-length($ctx:atlasOrigin) = 0">
-                <then><property name="atlasOrigin" value="https://devmiddleware1.assa.id" scope="default" type="STRING"/></then>
+                <then><property name="atlasOrigin" value="https://devmiddleware.assa.id" scope="default" type="STRING"/></then>
             </filter>
             <header name="Origin" expression="$ctx:atlasOrigin" scope="transport"/>
             <header name="Content-Type" value="application/json" scope="transport"/>

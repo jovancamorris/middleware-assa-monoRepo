@@ -7,7 +7,7 @@
 > 1. **Target 1 (ATLAS)**: `POST https://fe.atlas-dev.assa.id/api/vendor/public/service-requests` (JSON, Toggle `SR_TARGET_ATLAS_ENABLED`, default OFF)  
 > 2. **Target 2 (External Services ke SAP)**: `POST https://assa-ext-services.assa.id/dev/service/input_service_request` (30 Form Parameters)  
 >
-> **Swagger UI URL**: 👉 `https://devmiddleware1.assa.id/docs` (Tab: *Service Request & Worker*)
+> **Swagger UI URL**: 👉 `https://devmiddleware.assa.id/docs` (Tab: *Service Request & Worker*)
 
 ---
 
@@ -127,7 +127,7 @@ Middleware menyediakan endpoint GET untuk memeriksa riwayat transaksi dari Maria
 
 Dokumentasi OpenAPI 3.0 untuk fitur Service Request ini **terintegrasi penuh** di dashboard Swagger ASSA Middleware:
 
-* **URL Dashboard**: 👉 **`https://devmiddleware1.assa.id/docs`**
+* **URL Dashboard**: 👉 **`https://devmiddleware.assa.id/docs`**
 * **Tab / Service**: **`Service Request & Worker`**
 * **File Spesifikasi**: [`docs/openapi/service-request-service.yaml`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/wso2-mi-monorepo/docs/openapi/service-request-service.yaml)
 * **Daftar Endpoint di Swagger**:

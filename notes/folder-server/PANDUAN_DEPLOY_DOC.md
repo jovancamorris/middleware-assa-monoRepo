@@ -1,41 +1,42 @@
-# Panduan Deployment Endpoint Dokumentasi (/docs)
-## ASSA Middleware — Server Dev (`https://devmiddleware1.assa.id/docs`)
+# Panduan Deployment Endpoint Dokumentasi & WSO2 Middleware
+## ASSA Middleware — Server Dev (`https://devmiddleware.assa.id`)
 
-Panduan ini menjelaskan konfigurasi dan alur deployment untuk endpoint dokumentasi API yang diakses melalui URL:
-👉 **`https://devmiddleware1.assa.id/docs`** (atau `http://devmiddleware1.assa.id:6031/docs`)
-
----
-
-## 1. Mengapa Sebelumnya Terjadi "Page Can't Be Found" (404)?
-
-1. **WSO2 MI Backend Bukan Web Server File Statis**:
-   Di [`Dockerfile`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/wso2-mi-monorepo/Dockerfile#L28), berkas dokumentasi disalin ke dalam image di path `/app/docs`. Namun, port 8290 di WSO2 MI hanya melayani endpoint integrasi Synapse/Carbon (seperti `/api/branches/`, `/health`, dll.), bukan server HTTP untuk file statis `.html` dan `.yaml`.
-2. **Missing Location Block di Nginx**:
-   Di `folder-server/nginx.conf`, belum ada blok konfigurasi `location /docs`. Akibatnya, request ke `/docs` dialihkan ke fallback root (`proxy_pass http://middleware_backend/`) menuju WSO2 MI port 8290, sehingga server mengembalikan respons *"Page can't be found"*.
-3. **Missing Mount / Volume di Docker Compose**:
-   Pada `folder-server/docker-compose.yml`, berkas atau volume dokumentasi belum dimount ke Nginx, dan belum ada init container `doc-init` yang mengekstrak `/app/docs` dari image kontainer WSO2.
+Panduan ini menjelaskan konfigurasi dan alur deployment untuk endpoint dokumentasi API dan layanan WSO2:
+- 👉 **Dokumentasi Swagger UI**: `https://devmiddleware.assa.id/docs` (atau `http://devmiddleware.assa.id:6030/docs`)
+- 👉 **Layanan Backend WSO2 MI**: `https://devmiddleware.assa.id/api/*`
+- ℹ️ **WSO2 API Manager (APIM 4.3.0 GUI)**: *Untuk sementara dikomentari / di-hashtag (`#`) agar resource server ringan, namun sudah siap diaktifkan kapan saja.*
 
 ---
 
-## 2. Solusi & Perubahan yang Dilakukan di `folder-server/`
+## 1. Arsitektur Layanan di Server
 
-Semua berkas konfigurasi di folder [`folder-server/`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/folder-server) sudah disiapkan agar Anda **cukup drag & drop file konfigurasinya saja**:
+Dalam stack Docker Compose, terdapat komponen utama:
+1. **WSO2 MI (Micro Integrator) (`middleware-wso2-api`)**:
+   Backend runtime integrasi berkecepatan tinggi yang mengeksekusi sequence Synapse, transformasi payload, dan koneksi ke database / SAP / Atlas.
+2. **MariaDB (`mariadb`)**:
+   Database internal untuk idempotency tracking, dead letter queue, dan metadata storage.
+3. **Nginx Reverse Proxy (`nginx`)**:
+   Single entrypoint port 80/443 yang merutekan request ke WSO2 MI (`/api/*`, `/health`) dan Swagger docs (`/docs/*`).
+4. **WSO2 API Manager 4.3.0 (`api-manager`) [SEMENTARA DI-HASHTAG / COMMENT OUT]**:
+   GUI Web Portal (Publisher & DevPortal). Konfigurasinya sudah tersedia lengkap di `docker-compose.yml` dan `nginx.conf` dalam status dikomentari (`#`) dan dapat diaktifkan kembali sewaktu-waktu.
 
-| Berkas | Perubahan yang Dilakukan |
+---
+
+## 2. Berkas Konfigurasi di `notes/folder-server/`
+
+Semua berkas konfigurasi di folder `notes/folder-server/` sudah disiapkan agar Anda **cukup drag & drop file konfigurasinya saja ke server**:
+
+| Berkas | Deskripsi & Perubahan |
 |---|---|
-| [`nginx.conf`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/folder-server/nginx.conf) | Menambahkan `absolute_redirect off;` dan blok routing `location ^~ /docs/` (alias ke `/usr/share/nginx/html/docs/`), redirect `location = /docs`, redirect `location ^~ /doc`, serta header CORS (`Access-Control-Allow-*`). |
-| [`docker-compose.yml`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/folder-server/docker-compose.yml) | 1. Menambahkan init container `doc-init` yang otomatis mengekstrak berkas `/app/docs/*` dari image kontainer WSO2 ke volume `doc_data`.<br>2. Menambahkan volume mount `doc_data:/usr/share/nginx/html/docs:ro` pada service `nginx`.<br>3. Mendaftarkan volume `doc_data`. |
-| [`.env.example`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/folder-server/.env.example) | Template environment variable lengkap untuk server dev. |
-
-> [!NOTE]
-> **Tidak perlu copy folder `docs/` ke server!**
-> Karena saat Anda mem-build image di `wso2-mi-monorepo`, folder `docs/` sudah ada di dalam image kontainer WSO2. Saat `docker compose up -d` dijalankan di server, container `doc-init` akan secara otomatis mengekstrak dokumen tersebut langsung dari image ke volume Nginx.
+| [`nginx.conf`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/notes/folder-server/nginx.conf) | 1. `server_name devmiddleware.assa.id localhost _;`<br>2. Endpoint `/docs/` dengan CORS dan auto-redirect.<br>3. Blok APIM (`/publisher`, `/devportal`, dll.) sementara di-hashtag (`#`). |
+| [`docker-compose.yml`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/notes/folder-server/docker-compose.yml) | 1. Init container `doc-init` yang otomatis mengekstrak file Swagger dari image WSO2 ke volume Nginx.<br>2. Service `api-manager` sementara di-hashtag (`#`) agar stack lebih ringan. |
+| [`.env`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/notes/folder-server/.env) & [`.env.example`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/notes/folder-server/.env.example) | Konfigurasi runtime server dev, kredensial MariaDB, API keys, dan variabel APIM (di-hashtag). |
 
 ---
 
 ## 3. Cara Penggunaan / Deployment ke Server
 
-Anda cukup drag and drop file konfigurasi di folder `folder-server/` ke server (misal: `/var/www/devmiddleware/`):
+Anda cukup drag and drop file konfigurasi di folder `folder-server/` ke folder kerja server (misal: `/var/www/devmiddleware/`):
 
 ### File yang Di-upload ke Server:
 - `docker-compose.yml`
@@ -49,29 +50,44 @@ cd /var/www/devmiddleware
 # Login registry jika image bersifat private
 docker login registry.assa.id
 
-# Pull image terbaru yang baru Anda build & push dari wso2-mi-monorepo
+# Pull image terbaru
 docker compose pull
 
 # Jalankan semua service
 docker compose up -d
 ```
 
-### Verifikasi:
-Buka di browser:
-👉 **`https://devmiddleware1.assa.id/docs`**
+### Verifikasi Health & Status:
+```bash
+docker compose ps
+docker compose logs -f nginx
+```
 
 ---
 
 ## 4. Struktur Endpoint yang Tersedia
 
+### A. Swagger UI & OpenAPI Specification (Aktif)
 - **Swagger UI Interactive Dashboard**:
-  `https://devmiddleware1.assa.id/docs`
+  `https://devmiddleware.assa.id/docs`
 - **Metadata Manifest Service (JSON)**:
-  `https://devmiddleware1.assa.id/docs/openapi/services.json`
+  `https://devmiddleware.assa.id/docs/openapi/services.json`
 - **Spesifikasi OpenAPI 3.0 YAML per Service**:
-  - `https://devmiddleware1.assa.id/docs/openapi/branch-service.yaml`
-  - `https://devmiddleware1.assa.id/docs/openapi/customer-service.yaml`
-  - `https://devmiddleware1.assa.id/docs/openapi/vehicle-service.yaml`
-  - `https://devmiddleware1.assa.id/docs/openapi/vendor-service.yaml`
-  - `https://devmiddleware1.assa.id/docs/openapi/spk-service.yaml`
-  - `https://devmiddleware1.assa.id/docs/openapi/service-request-service.yaml`
+  - `https://devmiddleware.assa.id/docs/openapi/branch-service.yaml`
+  - `https://devmiddleware.assa.id/docs/openapi/customer-service.yaml`
+  - `https://devmiddleware.assa.id/docs/openapi/vehicle-service.yaml`
+  - `https://devmiddleware.assa.id/docs/openapi/vendor-service.yaml`
+  - `https://devmiddleware.assa.id/docs/openapi/spk-service.yaml`
+  - `https://devmiddleware.assa.id/docs/openapi/service-request-service.yaml`
+
+### B. Portal GUI WSO2 API Manager (Opsional — Saat Ini Di-hashtag / Nonaktif)
+> *Status saat ini:* Dikomentari (`#`) di `docker-compose.yml` dan `nginx.conf` agar server ringan. Jika ingin mengaktifkan kembali, cukup hapus tanda `#` pada service `api-manager` di `docker-compose.yml` dan blok upstream & location APIM di `nginx.conf`, lalu jalankan `docker compose up -d`.
+
+- **Publisher Portal** (Desain API GUI & Publish):
+  👉 `https://devmiddleware.assa.id/publisher` *(Login default: `admin` / `admin`)*
+- **Developer Portal** (Katalog API untuk Client / Pengembang):
+  👉 `https://devmiddleware.assa.id/devportal`
+- **Admin Portal** (Konfigurasi Throttling Tier & Key Manager):
+  👉 `https://devmiddleware.assa.id/admin`
+
+*(Untuk panduan lengkap langkah demi langkah pembuatan API via GUI, lihat dokumen: [PANDUAN_LOWCODE_APIM_GUI.md](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/notes/PANDUAN_LOWCODE_APIM_GUI.md))*

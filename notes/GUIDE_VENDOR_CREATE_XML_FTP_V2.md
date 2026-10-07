@@ -228,11 +228,11 @@ XML **wajib** mengikuti format resmi ATLAS berikut (referensi `ref/VMD_000001.xm
 ## 7. Aturan Penamaan File & Tujuan FTP
 
 ### Nama file
-Ikuti konvensi ATLAS pada referensi (`VMD_000001.xml`):
+Format resmi file export VMD:
 
-Format: `VMD_{sequence6digit}.xml` — contoh: `VMD_000001.xml`
+Format: `VMD_{yyyyMMddHHmmss}.xml` — contoh: `VMD_20260925042649.xml`
 
-Alternatif dengan transaction id (bila diperlukan keunikan lintas node): `VMD_{yyyyMMddHHmmss}_{transactionId}.xml`. **Konfirmasikan konvensi final dengan tim SAP** karena penamaan file sering menjadi kontrak interface.
+Header `X-File-Name` (opsional) tetap didukung bila klien ingin meng-override nama file target FTP.
 
 ### Tujuan FTP
 Gunakan **VFS transport** WSO2 MI. Detail koneksi FTP **tidak di-hardcode** — simpan di `config.properties` / environment variable.

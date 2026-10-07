@@ -205,5 +205,23 @@ services:
       - service-request-service
       - payments-service
 
+  # ---- WSO2 API Manager (APIM 4.3.0 - Low-Code GUI & API Gateway) ----
+  api-manager:
+    image: ${APIM_IMAGE:-wso2/wso2am:4.3.0}
+    container_name: middleware-wso2-apim
+    restart: unless-stopped
+    ports:
+      - "${APIM_PORT_HTTPS:-9443}:9443"   # Web GUI (Publisher, DevPortal, Admin Portal)
+      - "${APIM_GATEWAY_PORT:-8243}:8243" # API Gateway HTTPS
+    environment:
+      DATABASE_HOST: mariadb
+      DATABASE_PORT: "3306"
+      DATABASE_NAME: assa_middleware_db
+    volumes:
+      - apim_repository_data:/home/wso2carbon/wso2am-4.3.0/repository/deployment/server
+    depends_on:
+      mariadb: { condition: service_healthy }
+
 volumes:
   mariadb_data:
+  apim_repository_data:

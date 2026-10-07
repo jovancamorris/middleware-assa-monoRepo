@@ -338,7 +338,7 @@ components:
           example: TRX-VMD-20260924-001
         fileName:
           type: string
-          example: VMD_20260924153000_TRX-VMD-20260924-001.xml
+          example: VMD_20260925042649.xml
         documentNumber:
           type: string
           example: VENDOR-ATLAS-000123

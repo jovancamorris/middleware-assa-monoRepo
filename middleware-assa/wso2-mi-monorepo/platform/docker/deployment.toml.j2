@@ -21,6 +21,12 @@ algorithm = "AES"
 listener_enable = {{ VFS_LISTENER_ENABLE | default('false') }}
 sender_enable = {{ VFS_SENDER_ENABLE | default('false') }}
 
+[[service_catalog]]
+apim_host = "{{ APIM_HOST | default('https://api-manager:9443') }}"
+enable = {{ APIM_SERVICE_CATALOG_ENABLE | default('true') }}
+username = "{{ APIM_ADMIN_USERNAME | default('admin') }}"
+password = "{{ APIM_ADMIN_PASSWORD | default('admin') }}"
+
 [system.parameter]
 'sap.core.base.url' = "{{ SAP_CORE_BASE_URL | default('https://devsapcoreapi.assa.id') }}"
 'sap.core.customer.base.url' = "{{ SAP_CORE_CUSTOMER_BASE_URL | default('https://sapcoreapi.assa.id') }}"
