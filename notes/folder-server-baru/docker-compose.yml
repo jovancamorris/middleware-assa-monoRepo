@@ -31,7 +31,7 @@ services:
     environment:
       MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "yes"
       MARIADB_DATABASE: ${DB_NAME:-assa_middleware_db}
-    ports:  
+    ports:
       - "${COMPOSE_DB_PORT:-3308}:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
@@ -83,12 +83,16 @@ services:
       - DATABASE_PORT=3306
       - APIM_HOSTNAME=${APIM_HOSTNAME:-devmiddleware.assa.id}
       - APIM_PROXY_PORT=${APIM_PROXY_PORT:-443}
+      - APIM_ADMIN_USERNAME=${APIM_ADMIN_USERNAME:-admindev}
+      - APIM_ADMIN_PASSWORD=${APIM_ADMIN_PASSWORD:-4554r3nt*2023}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
         CONF=/home/wso2carbon/wso2am-4.3.0/repository/conf/deployment.toml
         TARGET_HOST="$${APIM_HOSTNAME:-devmiddleware.assa.id}"
         TARGET_PORT="$${APIM_PROXY_PORT:-443}"
+        ADMIN_USER="$${APIM_ADMIN_USERNAME:-admindev}"
+        ADMIN_PASS="$${APIM_ADMIN_PASSWORD:-4554r3nt*2023}"
         if [ -f "$$CONF" ]; then
           if [ "$$TARGET_HOST" != "localhost" ]; then
             sed -i "s/hostname = \"localhost\"/hostname = \"$$TARGET_HOST\"/g" "$$CONF"
@@ -101,10 +105,26 @@ services:
               printf '\n[transport.https.properties]\nproxyPort = %s\n' "$$TARGET_PORT" >> "$$CONF"
             fi
           fi
+          sed -i "s|^https_endpoint = .*|https_endpoint = \"https://$$TARGET_HOST:$$TARGET_PORT\"|g" "$$CONF"
+          sed -i "s|^http_endpoint = .*|http_endpoint = \"http://$$TARGET_HOST:80\"|g" "$$CONF"
+          if ! grep -q "\[super_admin\]" "$$CONF"; then
+            printf '\n[super_admin]\nusername = "%s"\npassword = "%s"\ncreate_admin_account = true\n\n[apim.key_manager]\nusername = "%s"\npassword = "%s"\n' "$$ADMIN_USER" "$$ADMIN_PASS" "$$ADMIN_USER" "$$ADMIN_PASS" >> "$$CONF"
+          else
+            sed -i "/\[super_admin\]/,/^\[/{s/username = .*/username = \"$$ADMIN_USER\"/; s/password = .*/password = \"$$ADMIN_PASS\"/;}" "$$CONF"
+          fi
+        fi
+        TEMPLATE=/home/wso2carbon/wso2am-4.3.0/repository/resources/conf/templates/repository/conf/user-mgt.xml.j2
+        CONF_XML=/home/wso2carbon/wso2am-4.3.0/repository/conf/user-mgt.xml
+        if [ -f "$$TEMPLATE" ]; then
+          sed -i 's/com.assa.wso2.userstore.AssaRestUserStoreManager/org.wso2.carbon.user.core.jdbc.UniqueIDJDBCUserStoreManager/g' "$$TEMPLATE"
+        fi
+        if [ -f "$$CONF_XML" ]; then
+          sed -i 's/com.assa.wso2.userstore.AssaRestUserStoreManager/org.wso2.carbon.user.core.jdbc.UniqueIDJDBCUserStoreManager/g' "$$CONF_XML"
         fi
         exec /home/wso2carbon/docker-entrypoint.sh
     volumes:
       - apim_repository_data:/home/wso2carbon/wso2am-4.3.0/repository/data
+      - apim_repository_database:/home/wso2carbon/wso2am-4.3.0/repository/database
     depends_on:
       mariadb:
         condition: service_healthy
@@ -138,3 +158,4 @@ volumes:
   mariadb_init_script:
   doc_data:
   apim_repository_data:
+  apim_repository_database:

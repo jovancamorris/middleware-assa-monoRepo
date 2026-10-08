@@ -12,3 +12,4 @@ wso2-mi-monorepo/docs/screenshots/swagger/vehicle-service.png
 wso2-mi-monorepo/docs/screenshots/swagger/vendor-service.png
 wso2-mi-monorepo/SWAGGER_API_DOCUMENTATION.zip
 wso2-mi-monorepo/docs/screenshots/swagger/authorization-modal.png
+*.car
