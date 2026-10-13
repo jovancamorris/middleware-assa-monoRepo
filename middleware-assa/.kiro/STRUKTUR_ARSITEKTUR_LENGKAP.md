@@ -3,13 +3,7 @@
 
 Selamat datang di proyek **ASSA Middleware**! Dokumen ini dirancang khusus sebagai panduan komprehensif yang ramah pemula untuk memahami seluruh struktur folder, fungsi setiap file, dan bagaimana file-file tersebut saling terhubung satu sama lain.
 
-> **📌 Update v2 (Monorepo)**: Proyek kini berbentuk **monorepo multi-service** bernama `wso2-mi-monorepo`, bukan lagi single-project `middleware-assa`. Setiap domain (Branch, Customer, Vehicle, Vendor, SPK, Service Request, **Payment**) menjadi **service terpisah** di dalam `integrations/`, sedangkan sequence yang dipakai bersama (Auth, Logging, Error, Idempotency, Retry, DB, dll) dipusatkan di modul **`shared/`**. Konsep dasar WSO2 (API → Sequence → Endpoint) tetap sama; yang berubah adalah tata letak folder.
->
-> **📌 Update v2.1 (perubahan terkini)**:
-> - **payments-service** (service ke-7): `POST /api/payments` → XML → FTP folder `/payments` (sebagian kontrak masih PROPOSED).
-> - **Vendor callback inbound** (PROPOSED): baca file XML balikan SAP di FTP `/vmd/upload`, callback `vendor_code` (= `Vendor_SAP`) ke ATLAS, arsip `success`/`failed`, reprocess folder `failed`.
-> - **auth-service** (PROPOSED): `POST /api/auth/login` & `GET /api/auth/findemployee` (LDAP, forward ke `devhcbead.assa.id`), scope `auth`.
-> - Vendor/SPK/Service-Request **sudah terimplementasi** (bukan lagi "kerangka").
+> **📌 Update v2 (Monorepo)**: Proyek kini berbentuk **monorepo multi-service** bernama `wso2-mi-monorepo`, bukan lagi single-project `middleware-assa`. Setiap domain (Branch, Customer, Vehicle, Vendor, SPK, Service Request) menjadi **service terpisah** di dalam `integrations/`, sedangkan sequence yang dipakai bersama (Auth, Logging, Error, Idempotency, Retry, DB, dll) dipusatkan di modul **`shared/`**. Konsep dasar WSO2 (API → Sequence → Endpoint) tetap sama; yang berubah adalah tata letak folder.
 
 ---
 
@@ -86,11 +80,9 @@ wso2-mi-monorepo/
 │   │       └── endpoints/  (SapCoreDynamicEndpoint)
 │   ├── customer-service/                         # Domain Customer (CustomerAPI + CustomerGetByCreateDateSeq)
 │   ├── vehicle-service/                          # Domain Vehicle (VehicleAPI + VehicleGetByLicensePlateSeq + ExtServiceDynamicEndpoint)
-│   ├── vendor-service/                           # Vendor Master Data (VMD) → XML → FTP  (+callback inbound PROPOSED)
-│   ├── spk-service/                              # SPK Duelist → XML → FTP
-│   ├── service-request-service/                  # Service Request fan-out (ATLAS + Ext) + WorkerAPI
-│   ├── payments-service/                         # Payment Duelist → XML → FTP /payments  (sebagian PROPOSED)
-│   └── auth-service/                             # LDAP login + find employee (PROPOSED, belum ada di repo)
+│   ├── vendor-service/                           # Vendor Master Data (VMD) → XML → FTP   [kerangka]
+│   ├── spk-service/                              # SPK Duelist → XML → FTP                [kerangka]
+│   └── service-request-service/                  # Service Request fan-out (ATLAS + Ext) + WorkerAPI [kerangka]
 │       └── (tiap service punya: apis/, sequences/, endpoints/, resources/conf/config.properties)
 │
 └── platform/                                     # 🏗️ INFRA & BASE CONFIG
@@ -204,10 +196,9 @@ Inilah "otak" dari middleware:
 #### 1. `AuthGuardSeq.xml` (Satpam Keamanan & App Registry)
 - **Tugas**:
   1. Membaca header `Authorization: Bearer <token>`. Jika kosong, langsung tolak dengan **401 Unauthorized**.
-  2. Mencocokkan token dengan App Registry di `config.properties` (`AuthGuardSeq` mengenali app_a, app_b, app_qa, app_atlas, app_omnichannel, app_barantum):
-     - Token App A -> `appId = app_a`, scope luas (branches, customers, vehicles, vendors, service_requests, spk, payments)
+  2. Mencocokkan token dengan App Registry di `config.properties`:
+     - Token App A -> `appId = app_a`, scope: `branches, customers, vehicles`
      - Token App B -> `appId = app_b`, scope: `vehicles`
-     - Token ATLAS -> `appId = app_atlas`, scope default: `vendors, service_requests` (perluas via config untuk domain lain)
   3. Memeriksa apakah aplikasi berhak mengakses resource tersebut. Jika tidak berhak, tolak dengan **403 Forbidden**.
   4. Menetapkan atau membuat `X-Correlation-Id` untuk pelacakan end-to-end.
 
