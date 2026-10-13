@@ -444,17 +444,9 @@
     <!-- Generate TransGuID: yyyy-MM-dd HH:mm:ss-VMD -->
     <property name="transGuId" expression="fn:concat(get-property('SYSTEM_DATE', 'yyyy-MM-dd HH:mm:ss'), '-VMD')" scope="default" type="STRING"/>
 
-    <!-- File Name Resolution: Allow X-File-Name header override or default VMD_{yyyyMMddHHmmss}.xml -->
-    <property name="customFileName" expression="$trp:X-File-Name" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:customFileName) &gt; 0">
-        <then>
-            <property name="fileName" expression="$ctx:customFileName" scope="default" type="STRING"/>
-        </then>
-        <else>
-            <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
-            <property name="fileName" expression="fn:concat('VMD_', $ctx:fileTimestamp, '.xml')" scope="default" type="STRING"/>
-        </else>
-    </filter>
+    <!-- File Name Resolution: Auto-generated standard format VMD-{vendorId}-{yyyyMMdd}.xml -->
+    <property name="fileDate" expression="get-property('SYSTEM_DATE', 'yyyyMMdd')" scope="default" type="STRING"/>
+    <property name="fileName" expression="fn:concat('VMD-', $ctx:vendorId, '-', $ctx:fileDate, '.xml')" scope="default" type="STRING"/>
 
     <!-- Build XML Target conforming strictly to ATLAS VMD schema via payloadFactory -->
     <payloadFactory media-type="xml">
@@ -588,7 +580,7 @@
         </then>
     </filter>
 
-    <!-- Priority resolution for directory: ENV -> VMD remote dir -> vendor remote dir -> fallback /vmd -->
+    <!-- Priority resolution for directory: ENV -> VMD remote dir -> vendor remote dir -> fallback /vmd/upload -->
     <property name="ftpTargetDir" expression="get-property('env', 'FTP_SAP_TARGET')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:ftpTargetDir) = 0">
         <then>
@@ -612,7 +604,14 @@
     </filter>
     <filter xpath="string-length($ctx:ftpTargetDir) = 0">
         <then>
-            <property name="ftpTargetDir" value="/vmd" scope="default" type="STRING"/>
+            <property name="ftpTargetDir" value="/vmd/upload" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Normalize target directory: if resolved as '/vmd' or 'vmd', route to '/vmd/upload' -->
+    <filter xpath="$ctx:ftpTargetDir = '/vmd' or $ctx:ftpTargetDir = 'vmd' or $ctx:ftpTargetDir = '/vmd/' or $ctx:ftpTargetDir = 'vmd/'">
+        <then>
+            <property name="ftpTargetDir" value="/vmd/upload" scope="default" type="STRING"/>
         </then>
     </filter>
 

@@ -18,8 +18,8 @@ alias = "symmetric.key.value"
 algorithm = "AES"
 
 [transport.vfs]
-listener_enable = {{ VFS_LISTENER_ENABLE | default('false') }}
-sender_enable = {{ VFS_SENDER_ENABLE | default('false') }}
+listener_enable = {{ VFS_LISTENER_ENABLE | default('true') }}
+sender_enable = {{ VFS_SENDER_ENABLE | default('true') }}
 
 [[service_catalog]]
 apim_host = "{{ APIM_HOST | default('https://api-manager:9443') }}"
@@ -45,7 +45,14 @@ password = "{{ APIM_ADMIN_PASSWORD | default('admin') }}"
 'ftp.vendor.port' = "{{ FTP_SAP_PORT | default('21') }}"
 'ftp.vendor.username' = "{{ FTP_SAP_USERNAME | default('middlewaredev') }}"
 'ftp.vendor.password' = "{{ FTP_SAP_PASSWORD | default('$env{FTP_SAP_PASSWORD}') }}"
-'ftp.vendor.remote.dir' = "{{ FTP_SAP_TARGET | default('/vmd') }}"
+'ftp.vendor.remote.dir' = "{{ FTP_SAP_TARGET | default('/vmd/upload') }}"
+'ftp.vendor.upload.remote.dir' = "{{ FTP_SAP_UPLOAD_DIR | default('/vmd/upload') }}"
+'ftp.vendor.success.remote.dir' = "{{ FTP_SAP_SUCCESS_DIR | default('/vmd/upload/success') }}"
+'ftp.vendor.failed.remote.dir' = "{{ FTP_SAP_FAILED_DIR | default('/vmd/upload/failed') }}"
+'ftp.vendor.processing.remote.dir' = "{{ FTP_SAP_PROCESSING_DIR | default('/vmd/upload/processing') }}"
+'atlas.vendor.callback.base.url' = "{{ ATLAS_VENDOR_CALLBACK_URL | default('https://fe.atlas-dev.assa.id') }}"
+'atlas.vendor.callback.path' = "{{ ATLAS_VENDOR_CALLBACK_PATH | default('/api/vendor/public/callback') }}"
+'atlas.vendor.callback.apikey' = "{{ ATLAS_VENDOR_CALLBACK_APIKEY | default('$env{ATLAS_VENDOR_CALLBACK_APIKEY}') }}"
 'ftp.spk.host' = "{{ FTP_SPK_HOST | default('devqaxmlpool.assa.id') }}"
 'ftp.spk.port' = "{{ FTP_SPK_PORT | default('21') }}"
 'ftp.spk.username' = "{{ FTP_SPK_USERNAME | default('middlewaredev') }}"

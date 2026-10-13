@@ -53,6 +53,12 @@ services:
       AUTH_APP_ATLAS_TOKEN: "${AUTH_APP_ATLAS_TOKEN:?set AUTH_APP_ATLAS_TOKEN in .env}"
       AUTH_APP_OMNICHANNEL_TOKEN: "${AUTH_APP_OMNICHANNEL_TOKEN:?set AUTH_APP_OMNICHANNEL_TOKEN in .env}"
       AUTH_APP_BARANTUM_TOKEN: "${AUTH_APP_BARANTUM_TOKEN:?set AUTH_APP_BARANTUM_TOKEN in .env}"
+      AUTH_APP_A_SCOPES: "${AUTH_APP_A_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}"
+      AUTH_APP_B_SCOPES: "${AUTH_APP_B_SCOPES:-vehicles}"
+      AUTH_APP_QA_SCOPES: "${AUTH_APP_QA_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}"
+      AUTH_APP_ATLAS_SCOPES: "${AUTH_APP_ATLAS_SCOPES:-vendors,service_requests,spk}"
+      AUTH_APP_OMNICHANNEL_SCOPES: "${AUTH_APP_OMNICHANNEL_SCOPES:-service_requests}"
+      AUTH_APP_BARANTUM_SCOPES: "${AUTH_APP_BARANTUM_SCOPES:-service_requests}"
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 8290 || exit 1"]
       interval: 10s
@@ -112,9 +118,17 @@ services:
       <<: *common-env
       FTP_SAP_HOST: ${FTP_SAP_HOST:-devqaxmlpool.assa.id}
       FTP_SAP_PORT: ${FTP_SAP_PORT:-21}
-      FTP_SAP_TARGET: ${FTP_SAP_TARGET:-/vmd}
+      FTP_SAP_TARGET: ${FTP_SAP_TARGET:-/vmd/upload}
       FTP_SAP_USERNAME: ${FTP_SAP_USERNAME:-middlewaredev}
       FTP_SAP_PASSWORD: ${FTP_SAP_PASSWORD:-}
+      VFS_LISTENER_ENABLE: ${VFS_LISTENER_ENABLE:-true}
+      FTP_SAP_UPLOAD_DIR: ${FTP_SAP_UPLOAD_DIR:-/vmd/upload}
+      FTP_SAP_SUCCESS_DIR: ${FTP_SAP_SUCCESS_DIR:-/vmd/upload/success}
+      FTP_SAP_FAILED_DIR: ${FTP_SAP_FAILED_DIR:-/vmd/upload/failed}
+      FTP_SAP_PROCESSING_DIR: ${FTP_SAP_PROCESSING_DIR:-/vmd/upload/processing}
+      ATLAS_VENDOR_CALLBACK_URL: ${ATLAS_VENDOR_CALLBACK_URL:-https://fe.atlas-dev.assa.id}
+      ATLAS_VENDOR_CALLBACK_PATH: ${ATLAS_VENDOR_CALLBACK_PATH:-/api/vendor/public/callback}
+      ATLAS_VENDOR_CALLBACK_APIKEY: "${ATLAS_VENDOR_CALLBACK_APIKEY:-}"
 
   spk-service:
     build:
@@ -183,6 +197,26 @@ services:
       FTP_PAYMENTS_USERNAME: ${FTP_PAYMENTS_USERNAME:-middlewaredev}
       FTP_PAYMENTS_PASSWORD: "${FTP_PAYMENTS_PASSWORD:?set FTP_PAYMENTS_PASSWORD in .env}"
 
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: auth-service
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
+    image: assa/auth-service:1.0.0
+    container_name: auth-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8297:8290"
+    environment:
+      <<: *common-env
+      HC_BASE_URL: ${HC_BASE_URL:-https://devhcbead.assa.id}
+      HC_AUTH_LOGIN_PATH: ${HC_AUTH_LOGIN_PATH:-/auth/login}
+      HC_FINDEMP_PATH: ${HC_FINDEMP_PATH:-/userldap/getbyusername}
+
   nginx:
     image: nginx:alpine
     container_name: middleware-wso2-nginx
@@ -204,6 +238,7 @@ services:
       - spk-service
       - service-request-service
       - payments-service
+      - auth-service
 
   # ---- WSO2 API Manager (APIM 4.3.0 - Low-Code GUI & API Gateway) ----
   api-manager:

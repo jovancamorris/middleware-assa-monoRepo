@@ -27,7 +27,7 @@
     "id": "vendor-service",
     "name": "Vendor Service",
     "port": 8293,
-    "description": "Registrasi master vendor V2 XML -> FTP SAP dengan Idempotency Guard.",
+    "description": "Master data vendor (Get By Create Date + Registrasi V2 XML -> FTP SAP).",
     "specUrl": "/docs/openapi/vendor-service.yaml",
     "scope": "vendors"
   },
@@ -54,5 +54,13 @@
     "description": "Layanan posting payment accounting document XML -> FTP SAP.",
     "specUrl": "/docs/openapi/payments-service.yaml",
     "scope": "payments"
+  },
+  {
+    "id": "auth-service",
+    "name": "Auth Service",
+    "port": 8297,
+    "description": "Layanan autentikasi LDAP dan pencarian pegawai terintegrasi dengan HC.",
+    "specUrl": "/docs/openapi/auth-service.yaml",
+    "scope": "auth"
   }
 ]

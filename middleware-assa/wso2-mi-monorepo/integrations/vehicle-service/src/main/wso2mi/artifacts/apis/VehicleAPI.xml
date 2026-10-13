@@ -24,4 +24,28 @@
             <sequence key="ErrorResponseSeq"/>
         </faultSequence>
     </resource>
+
+    <resource methods="GET" uri-template="/">
+        <inSequence>
+            <property name="api.endpoint" value="/api/vehicles" scope="default" type="STRING"/>
+            <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+            <sequence key="VehicleGetByLicensePlateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+
+    <resource methods="GET" uri-template="/{plateNo}">
+        <inSequence>
+            <property name="api.endpoint" value="/api/vehicles/getByLicensePlate" scope="default" type="STRING"/>
+            <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+            <sequence key="VehicleGetByLicensePlateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
 </api>

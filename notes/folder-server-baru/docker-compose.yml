@@ -58,6 +58,12 @@ services:
     environment:
       DB_HOST: ${DB_HOST:-mariadb}
       DB_PORT: ${DB_PORT:-3306}
+      AUTH_APP_A_SCOPES: ${AUTH_APP_A_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}
+      AUTH_APP_B_SCOPES: ${AUTH_APP_B_SCOPES:-vehicles}
+      AUTH_APP_QA_SCOPES: ${AUTH_APP_QA_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}
+      AUTH_APP_ATLAS_SCOPES: ${AUTH_APP_ATLAS_SCOPES:-vendors,service_requests,spk}
+      AUTH_APP_OMNICHANNEL_SCOPES: ${AUTH_APP_OMNICHANNEL_SCOPES:-service_requests}
+      AUTH_APP_BARANTUM_SCOPES: ${AUTH_APP_BARANTUM_SCOPES:-service_requests}
     volumes:
       - ./render-registry-secrets.sh:/home/wso2carbon/render-registry-secrets.sh:ro
     depends_on:

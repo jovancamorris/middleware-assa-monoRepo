@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="AuthLoginSeq" onError="ErrorResponseSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- 1. Ekstrak kredensial dari body (mendukung form-urlencoded & JSON) -->
+    <!-- ================================================================= -->
+    <property name="username" expression="//username/text()" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:username) = 0">
+        <then>
+            <property name="username" expression="$url:username" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:username) = 0">
+        <then>
+            <property name="username" expression="json-eval($.username)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="password" expression="//password/text()" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:password) = 0">
+        <then>
+            <property name="password" expression="$url:password" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:password) = 0">
+        <then>
+            <property name="password" expression="json-eval($.password)" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 2. Validasi kredensial (JANGAN PERNAH me-log nilai password)       -->
+    <!-- ================================================================= -->
+    <filter xpath="string-length($ctx:username) = 0 or string-length($ctx:password) = 0">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Field 'username' dan 'password' wajib diisi" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 3. Resolve base URL backend HC                                    -->
+    <!-- ================================================================= -->
+    <property name="baseUrlConfigKey" value="hc.base.url" scope="default" type="STRING"/>
+    <property name="envVarKey" value="HC_BASE_URL" scope="default" type="STRING"/>
+    <sequence key="ResolveBaseUrlSeq"/>
+    <filter xpath="string-length($ctx:resolvedBaseUrl) = 0 or $ctx:resolvedBaseUrl = 'https://devsapcoreapi.assa.id'">
+        <then>
+            <property name="resolvedBaseUrl" value="https://devhcbead.assa.id" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 4. Path endpoint login (config file -> fallback)                  -->
+    <!-- ================================================================= -->
+    <property name="hcLoginPath" expression="get-property('file', 'hc.auth.login.path')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:hcLoginPath) = 0">
+        <then>
+            <property name="hcLoginPath" value="/auth/login" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <property name="uri.var.hcBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:hcLoginPath)" scope="default" type="STRING"/>
+
+    <!-- ================================================================= -->
+    <!-- 5. Bentuk payload x-www-form-urlencoded untuk backend HC          -->
+    <!-- ================================================================= -->
+    <payloadFactory media-type="xml">
+        <format>
+            <root>
+                <username>$1</username>
+                <password>$2</password>
+            </root>
+        </format>
+        <args>
+            <arg evaluator="xml" expression="$ctx:username"/>
+            <arg evaluator="xml" expression="$ctx:password"/>
+        </args>
+    </payloadFactory>
+
+    <!-- ================================================================= -->
+    <!-- 6. Set transport properties: form-urlencoded, POST                -->
+    <!-- ================================================================= -->
+    <property name="messageType" value="application/x-www-form-urlencoded" scope="axis2"/>
+    <property name="ContentType" value="application/x-www-form-urlencoded" scope="axis2"/>
+    <property name="DISABLE_CHUNKING" value="true" scope="axis2"/>
+    <property name="HTTP_METHOD" value="POST" scope="axis2"/>
+    <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+    <header name="Authorization" action="remove" scope="transport"/>
+
+    <!-- ================================================================= -->
+    <!-- 7. Panggil backend HC                                             -->
+    <!-- ================================================================= -->
+    <call>
+        <endpoint key="HcLdapDynamicEndpoint"/>
+    </call>
+
+    <!-- ================================================================= -->
+    <!-- 8. Teruskan response dan status code HC ke client sebagai JSON    -->
+    <!-- ================================================================= -->
+    <property name="hcStatusCode" expression="$axis2:HTTP_SC" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:hcStatusCode) &gt; 0">
+        <then>
+            <property name="HTTP_SC" expression="$ctx:hcStatusCode" scope="axis2"/>
+        </then>
+    </filter>
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+    <respond/>
+</sequence>

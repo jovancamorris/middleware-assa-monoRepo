@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VMD_RESPONSE>
+    <Header>
+        <TransGuID>GUID-TEST-12345</TransGuID>
+        <Key1>VMD-TEST</Key1>
+    </Header>
+    <TransactionData>
+        <Vendor_ID>82165871</Vendor_ID>
+        <Vendor_SAP>VMD-SAP-9988</Vendor_SAP>
+    </TransactionData>
+</VMD_RESPONSE>

@@ -17,6 +17,7 @@ Setiap service memiliki file spesifikasinya masing-masing karena arsitektur micr
 | **Vendor Service** | `8293` | [`vendor-service.yaml`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/wso2-mi-monorepo/docs/openapi/vendor-service.yaml) | `POST` | `/api/vendors/create` | `vendors` |
 | **SPK Service** | `8294` | [`spk-service.yaml`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/wso2-mi-monorepo/docs/openapi/spk-service.yaml) | `POST` | `/api/spk/duelist` | `spk` |
 | **Service Request** | `8295` | [`service-request-service.yaml`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/wso2-mi-monorepo/docs/openapi/service-request-service.yaml) | `POST`<br>`GET/POST` | `/api/service-requests`<br>`/api/worker/retry` | `service_requests`<br>*(Operasional)* |
+| **Auth Service** | `8297` | [`auth-service.yaml`](file:///Users/jovan-eksad/assa/middleware-assa-monoRepo/middleware-assa/wso2-mi-monorepo/docs/openapi/auth-service.yaml) | `POST`<br>`GET` | `/api/auth/login`<br>`/api/auth/findemployee` | Public login<br>`employees` |
 
 > Setiap file juga mendokumentasikan probe liveness `GET /health/<service>` dan readiness `GET /readiness/<service>` tanpa proteksi token (`security: []`).
 

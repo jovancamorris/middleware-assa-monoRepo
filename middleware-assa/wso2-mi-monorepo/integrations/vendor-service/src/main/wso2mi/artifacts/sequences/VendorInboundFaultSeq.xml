@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="VendorInboundFaultSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Vendor Inbound Fault Handler (No HTTP respond for VFS Inbound)    -->
+    <!-- ================================================================= -->
+    <log level="custom">
+        <property name="VENDOR_INBOUND_FAULT" expression="fn:concat('Fault occurred in Vendor Inbound: ', get-property('ERROR_MESSAGE'), ' | Detail: ', get-property('ERROR_DETAIL'))"/>
+    </log>
+    <drop/>
+</sequence>

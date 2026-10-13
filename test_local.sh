@@ -368,6 +368,7 @@ run_pagination_test "PAGE-04" "Vehicle Pagination (page 1 vs 2 vs perPage 10)" "
 echo -e "\n${BOLD}${CYAN}>>> BAGIAN 7: BACKGROUND RETRY WORKER${RESET}"
 
 run_test "WORKER-01" "Trigger Background Retry Worker" "GET" "${BASE_URL_SR}/api/worker/retry" "200" "" "" "" "" 10
+run_test "WORKER-02" "Trigger Vendor Reprocess Failed Worker" "POST" "${BASE_URL_VENDOR}/api/vendors/worker/reprocess-failed" "200" "" "" "" "" 10
 
 # ------------------------------------------------------------------------------
 # BAGIAN 8: Transactional & Fan-Out Endpoints (POST dengan 10x Retries)

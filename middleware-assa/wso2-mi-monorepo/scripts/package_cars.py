@@ -18,6 +18,7 @@ OTHER_SERVICES = [
     "spk-service",
     "vendor-service",
     "payments-service",
+    "auth-service",
 ]
 os.makedirs(DIST_DIR, exist_ok=True)
 
@@ -299,6 +300,115 @@ def update_vendor_car():
         os.path.join(extract_dir, "VendorCreateSeq_1.0.0/VendorCreateSeq-1.0.0.xml")
     )
     print("  -> Updated VendorCreateSeq-1.0.0.xml")
+
+    # Copy VendorGetByCreateDateSeq
+    seq_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/sequences/VendorGetByCreateDateSeq.xml")
+    seq_dest_dir = os.path.join(extract_dir, "VendorGetByCreateDateSeq_1.0.0")
+    os.makedirs(seq_dest_dir, exist_ok=True)
+    shutil.copy2(seq_src, os.path.join(seq_dest_dir, "VendorGetByCreateDateSeq-1.0.0.xml"))
+    art_seq_xml = os.path.join(seq_dest_dir, "artifact.xml")
+    if not os.path.exists(art_seq_xml):
+        with open(art_seq_xml, "w", encoding="utf-8") as f:
+            f.write('<artifact name="VendorGetByCreateDateSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>VendorGetByCreateDateSeq-1.0.0.xml</file></artifact>')
+    print("  -> Updated VendorGetByCreateDateSeq-1.0.0.xml")
+
+    # Copy VendorAPI
+    api_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/apis/VendorAPI.xml")
+    api_dest_dir = os.path.join(extract_dir, "VendorAPI_1.0.0")
+    if os.path.exists(api_dest_dir):
+        shutil.copy2(api_src, os.path.join(api_dest_dir, "VendorAPI-1.0.0.xml"))
+        print("  -> Updated VendorAPI-1.0.0.xml")
+
+    # Copy AtlasVendorCallbackEndpoint
+    ep_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/endpoints/AtlasVendorCallbackEndpoint.xml")
+    if os.path.exists(ep_src):
+        ep_dest_dir = os.path.join(extract_dir, "AtlasVendorCallbackEndpoint_1.0.0")
+        os.makedirs(ep_dest_dir, exist_ok=True)
+        shutil.copy2(ep_src, os.path.join(ep_dest_dir, "AtlasVendorCallbackEndpoint-1.0.0.xml"))
+        with open(os.path.join(ep_dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="AtlasVendorCallbackEndpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseIntegrator"><file>AtlasVendorCallbackEndpoint-1.0.0.xml</file></artifact>')
+        print("  -> Added AtlasVendorCallbackEndpoint-1.0.0.xml")
+
+    # Copy VendorInboundCallbackSeq
+    cb_seq_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/sequences/VendorInboundCallbackSeq.xml")
+    if os.path.exists(cb_seq_src):
+        cb_dest_dir = os.path.join(extract_dir, "VendorInboundCallbackSeq_1.0.0")
+        os.makedirs(cb_dest_dir, exist_ok=True)
+        shutil.copy2(cb_seq_src, os.path.join(cb_dest_dir, "VendorInboundCallbackSeq-1.0.0.xml"))
+        with open(os.path.join(cb_dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="VendorInboundCallbackSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>VendorInboundCallbackSeq-1.0.0.xml</file></artifact>')
+        print("  -> Added VendorInboundCallbackSeq-1.0.0.xml")
+
+    # Copy VendorInboundFaultSeq
+    fb_seq_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/sequences/VendorInboundFaultSeq.xml")
+    if os.path.exists(fb_seq_src):
+        fb_dest_dir = os.path.join(extract_dir, "VendorInboundFaultSeq_1.0.0")
+        os.makedirs(fb_dest_dir, exist_ok=True)
+        shutil.copy2(fb_seq_src, os.path.join(fb_dest_dir, "VendorInboundFaultSeq-1.0.0.xml"))
+        with open(os.path.join(fb_dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="VendorInboundFaultSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>VendorInboundFaultSeq-1.0.0.xml</file></artifact>')
+        print("  -> Added VendorInboundFaultSeq-1.0.0.xml")
+
+    # Copy VendorReprocessFailedSeq
+    rp_seq_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/sequences/VendorReprocessFailedSeq.xml")
+    if os.path.exists(rp_seq_src):
+        rp_dest_dir = os.path.join(extract_dir, "VendorReprocessFailedSeq_1.0.0")
+        os.makedirs(rp_dest_dir, exist_ok=True)
+        shutil.copy2(rp_seq_src, os.path.join(rp_dest_dir, "VendorReprocessFailedSeq-1.0.0.xml"))
+        with open(os.path.join(rp_dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="VendorReprocessFailedSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>VendorReprocessFailedSeq-1.0.0.xml</file></artifact>')
+        print("  -> Added VendorReprocessFailedSeq-1.0.0.xml")
+
+    # Copy VendorWorkerAPI
+    wapi_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/apis/VendorWorkerAPI.xml")
+    if os.path.exists(wapi_src):
+        wapi_dest_dir = os.path.join(extract_dir, "VendorWorkerAPI_1.0.0")
+        os.makedirs(wapi_dest_dir, exist_ok=True)
+        shutil.copy2(wapi_src, os.path.join(wapi_dest_dir, "VendorWorkerAPI-1.0.0.xml"))
+        with open(os.path.join(wapi_dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="VendorWorkerAPI" version="1.0.0" type="synapse/api" serverRole="EnterpriseIntegrator"><file>VendorWorkerAPI-1.0.0.xml</file></artifact>')
+        print("  -> Added VendorWorkerAPI-1.0.0.xml")
+
+    # Copy VendorUploadInbound (Inbound Endpoint)
+    inbound_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/inbound-endpoints/VendorUploadInbound.xml")
+    if os.path.exists(inbound_src):
+        inbound_dest_dir = os.path.join(extract_dir, "VendorUploadInbound_1.0.0")
+        os.makedirs(inbound_dest_dir, exist_ok=True)
+        shutil.copy2(inbound_src, os.path.join(inbound_dest_dir, "VendorUploadInbound-1.0.0.xml"))
+        with open(os.path.join(inbound_dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="VendorUploadInbound" version="1.0.0" type="synapse/inbound-endpoint" serverRole="EnterpriseIntegrator"><file>VendorUploadInbound-1.0.0.xml</file></artifact>')
+        print("  -> Added VendorUploadInbound-1.0.0.xml")
+
+    # Update config.properties
+    config_src = os.path.join(vmd_dir, "src/main/wso2mi/resources/conf/config.properties")
+    config_dest = os.path.join(extract_dir, "config_1.0.0/config.properties")
+    if os.path.exists(config_dest) and os.path.exists(config_src):
+        shutil.copy2(config_src, config_dest)
+        print("  -> Updated config.properties")
+
+    # Update dependencies in artifacts.xml and metadata.xml
+    new_dependencies = [
+        "VendorGetByCreateDateSeq",
+        "AtlasVendorCallbackEndpoint",
+        "VendorInboundCallbackSeq",
+        "VendorInboundFaultSeq",
+        "VendorReprocessFailedSeq",
+        "VendorWorkerAPI",
+        "VendorUploadInbound",
+    ]
+    for meta_file in ["artifacts.xml", "metadata.xml"]:
+        artifacts_xml_path = os.path.join(extract_dir, meta_file)
+        if os.path.exists(artifacts_xml_path):
+            tree = ET.parse(artifacts_xml_path)
+            root = tree.getroot()
+            main_art = root.find("artifact")
+            deps = [d.attrib.get("artifact") for d in main_art.findall("dependency")]
+            for art_name in new_dependencies:
+                if art_name not in deps:
+                    elem = ET.SubElement(main_art, "dependency")
+                    elem.attrib = {"artifact": art_name, "version": "1.0.0", "include": "true", "serverRole": "EnterpriseIntegrator"}
+            tree.write(artifacts_xml_path, encoding="UTF-8", xml_declaration=True)
+
     xslt_src = os.path.join(vmd_dir, "src/main/wso2mi/artifacts/local-entries/VendorCreateXmlXslt.xml")
     xslt_dest = os.path.join(extract_dir, "VendorCreateXmlXslt_1.0.0/VendorCreateXmlXslt-1.0.0.xml")
     if os.path.exists(xslt_dest):

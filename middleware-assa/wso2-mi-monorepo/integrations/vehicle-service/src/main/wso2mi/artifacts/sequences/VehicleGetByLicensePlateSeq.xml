@@ -25,6 +25,15 @@
             <property name="platNo" expression="$url:plateNo" scope="default" type="STRING"/>
         </then>
     </filter>
+    <filter xpath="string-length($ctx:platNo) = 0 and boolean($ctx:uri.var.plateNo)">
+        <then>
+            <filter xpath="$ctx:uri.var.plateNo != 'getByLicensePlate' and $ctx:uri.var.plateNo != 'vehicleatlas'">
+                <then>
+                    <property name="platNo" expression="$ctx:uri.var.plateNo" scope="default" type="STRING"/>
+                </then>
+            </filter>
+        </then>
+    </filter>
     <property name="plateNo" expression="$ctx:platNo" scope="default" type="STRING"/>
 
     <!-- Pagination parameters identical to Customer service (page, perPage) -->
@@ -65,6 +74,16 @@
     <filter xpath="string-length($ctx:equipmentNo) = 0">
         <then>
             <property name="equipmentNo" expression="$url:equipmentNo" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:equipmentNo) = 0">
+        <then>
+            <property name="equipmentNo" expression="$url:equipmentNumber" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:equipmentNo) = 0">
+        <then>
+            <property name="equipmentNo" expression="$url:chassisNumber" scope="default" type="STRING"/>
         </then>
     </filter>
 

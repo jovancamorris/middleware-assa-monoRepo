@@ -12,6 +12,7 @@
     </filter>
     <filter xpath="string-length($ctx:resolvedBaseUrl) = 0"><then><property name="resolvedBaseUrl" expression="get-property('system', $ctx:baseUrlConfigKey)" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:resolvedBaseUrl) = 0"><then><property name="resolvedBaseUrl" expression="get-property('file', $ctx:baseUrlConfigKey)" scope="default" type="STRING"/></then></filter>
+    <filter xpath="string-length($ctx:resolvedBaseUrl) = 0 and $ctx:baseUrlConfigKey = 'hc.base.url'"><then><property name="resolvedBaseUrl" value="https://devhcbead.assa.id" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:resolvedBaseUrl) = 0"><then><property name="resolvedBaseUrl" expression="get-property('file', 'sap.core.base.url.dev')" scope="default" type="STRING"/></then></filter>
     <filter xpath="string-length($ctx:resolvedBaseUrl) = 0">
         <then>

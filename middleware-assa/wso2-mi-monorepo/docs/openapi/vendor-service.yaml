@@ -13,6 +13,8 @@ servers:
 tags:
   - name: Vendor
     description: Registrasi dan sinkronisasi master data vendor
+  - name: Worker
+    description: Eksekutor background worker dan reprocess antrean transaksi gagal
   - name: Health
     description: Probe liveness dan readiness container
 
@@ -26,7 +28,7 @@ paths:
       description: |
         Menerima payload JSON 17 field master data vendor dari sistem client (ATLAS), 
         mengkonversinya menjadi dokumen XML standar SAP VMD, mencatat transaksi ke database MariaDB,
-        dan mengunggah file XML ke server FTP Inbound SAP (`/vmd`).
+        dan mengunggah file XML ke server FTP Inbound SAP (`/vmd/upload`).
 
         **Mekanisme Idempotency**:
         Sertakan header `X-Transaction-Id` (atau `X-Idempotency-Key`). Bila transaksi dengan ID yang sama
@@ -40,13 +42,6 @@ paths:
         - $ref: '#/components/parameters/TransactionId'
         - $ref: '#/components/parameters/IdempotencyKey'
         - $ref: '#/components/parameters/ForwardedFor'
-        - name: X-File-Name
-          in: header
-          required: false
-          description: Override opsional nama file XML target pada FTP
-          schema:
-            type: string
-            example: VMD_CUSTOM_001.xml
       requestBody:
         required: true
         description: 17 Field Master Data Vendor
@@ -108,6 +103,84 @@ paths:
         '502':
           $ref: '#/components/responses/BadGateway'
 
+  /api/vendors/getByCreateDate:
+    get:
+      tags:
+        - Vendor
+      operationId: getVendorByCreateDate
+      summary: Ambil data master vendor dari SAP Core berdasarkan rentang tanggal
+      description: |
+        Mengambil data master vendor dari SAP Core (`/api/Vendor/GetByCreateDate`) dengan dukungan:
+        1. Filter universal vendor (`filterBy`) secara substring case-insensitive (mencocokkan VendorCode atau VendorName) di middleware.
+        2. Pagination konsisten dengan envelope `{ success, total, page, perPage, data }`.
+      security:
+        - bearerAuth:
+            - vendors
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: companyCode
+          in: query
+          required: false
+          description: Kode Company SAP ASSA
+          schema:
+            type: string
+            default: '1000'
+            example: '1000'
+        - name: dateStart
+          in: query
+          required: false
+          description: Tanggal awal (format YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            default: '2020-01-01'
+            example: '2020-01-01'
+        - name: dateEnd
+          in: query
+          required: false
+          description: Tanggal akhir (format YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            default: '2026-10-08'
+            example: '2026-10-08'
+        - name: filterBy
+          in: query
+          required: false
+          description: Filter pencarian universal vendor (kode atau nama vendor, substring case-insensitive). Mendukung alias filteredBy atau filterdby.
+          schema:
+            type: string
+            example: 'ASTRA'
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman pagination (dimulai dari 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah data per halaman
+          schema:
+            type: integer
+            default: 10
+            example: 10
+      responses:
+        '200':
+          description: Data vendor berhasil diambil dengan pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorPageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
   /health/vendor:
     get:
       tags:
@@ -139,6 +212,64 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReadinessResponse'
+
+  /api/vendors/worker/reprocess-failed:
+    post:
+      tags:
+        - Worker
+      summary: Trigger manual reprocess of failed vendor callback transactions
+      description: |
+        Memproses ulang transaksi balikan XML vendor dari SAP ke ATLAS yang berstatus `FAILED` atau `RETRY`
+        dan belum melebihi batas percobaan (`max_attempts`).
+      operationId: reprocessFailedVendorCallbacks
+      security: []
+      responses:
+        '200':
+          description: Worker reprocess dieksekusi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  worker:
+                    type: string
+                    example: VendorReprocessFailed
+                  status:
+                    type: string
+                    example: COMPLETED
+                  timestamp:
+                    type: string
+                    example: '2026-10-09T16:30:00'
+                  message:
+                    type: string
+                    example: Vendor reprocess failed worker executed successfully.
+    get:
+      tags:
+        - Worker
+      summary: Trigger manual reprocess via GET
+      description: Sama dengan POST /api/vendors/worker/reprocess-failed untuk kemudahan trigger via browser atau monitoring probe.
+      operationId: getReprocessFailedVendorCallbacks
+      security: []
+      responses:
+        '200':
+          description: Worker reprocess dieksekusi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  worker:
+                    type: string
+                    example: VendorReprocessFailed
+                  status:
+                    type: string
+                    example: COMPLETED
+                  timestamp:
+                    type: string
+                    example: '2026-10-09T16:30:00'
+                  message:
+                    type: string
+                    example: Vendor reprocess failed worker executed successfully.
 
 components:
   securitySchemes:
@@ -338,10 +469,41 @@ components:
           example: TRX-VMD-20260924-001
         fileName:
           type: string
-          example: VMD_20260925042649.xml
+          example: VMD-82165871-20260925.xml
         documentNumber:
           type: string
           example: VENDOR-ATLAS-000123
+
+    VendorPageResponse:
+      type: object
+      required:
+        - success
+        - total
+        - page
+        - perPage
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        total:
+          type: integer
+          description: Total jumlah record yang sesuai filter
+          example: 2
+        page:
+          type: integer
+          description: Halaman saat ini
+          example: 1
+        perPage:
+          type: integer
+          description: Jumlah record per halaman
+          example: 10
+        data:
+          type: array
+          description: List master vendor dari SAP Core
+          items:
+            type: object
+            additionalProperties: true
 
   responses:
     BadRequest:

@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="VendorReprocessFailedSeq" onError="ErrorResponseSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Vendor Reprocess Failed Sequence (Worker for Failed Callbacks)    -->
+    <!-- Referensi: notes/GUIDE_IMPL_VENDOR_CALLBACK_INBOUND.md            -->
+    <!-- ================================================================= -->
+    <property name="reTrxId" value="" scope="default" type="STRING"/>
+    <property name="reXmlPayload" value="" scope="default" type="STRING"/>
+    <property name="reAttemptCount" value="0" scope="default" type="STRING"/>
+    <property name="reMaxAttempts" value="3" scope="default" type="STRING"/>
+
+    <dblookup>
+        <connection><pool>
+            <driver key="conf:/repository/assa/db/driver"/>
+            <url key="conf:/repository/assa/db/url"/>
+            <user key="conf:/repository/assa/db/username"/>
+            <password key="conf:/repository/assa/db/password"/>
+        </pool></connection>
+        <statement>
+            <sql>SELECT transaction_id, request_payload, attempt_count, max_attempts FROM api_transaction
+                 WHERE endpoint = '/callback/vendor'
+                   AND status IN ('FAILED', 'RETRY')
+                   AND attempt_count &lt; max_attempts
+                   AND (next_retry_at IS NULL OR next_retry_at &lt;= NOW())
+                 ORDER BY updated_at ASC LIMIT 1</sql>
+            <result name="reTrxId" column="transaction_id"/>
+            <result name="reXmlPayload" column="request_payload"/>
+            <result name="reAttemptCount" column="attempt_count"/>
+            <result name="reMaxAttempts" column="max_attempts"/>
+        </statement>
+    </dblookup>
+
+    <filter xpath="string-length($ctx:reTrxId) &gt; 0">
+        <then>
+            <log level="custom">
+                <property name="VENDOR_REPROCESS" expression="fn:concat('Reprocessing transaction: ', $ctx:reTrxId, ' (Attempt: ', $ctx:reAttemptCount, ')')"/>
+            </log>
+
+            <!-- Increment attempt count -->
+            <property name="nextAttempt" expression="number($ctx:reAttemptCount) + 1" scope="default" type="STRING"/>
+            <property name="cleanNextAttempt" expression="fn:substring-before(fn:concat($ctx:nextAttempt, '.'), '.')" scope="default" type="STRING"/>
+
+            <!-- Update status to RETRY & set next_retry_at +300s -->
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>UPDATE api_transaction SET status = 'RETRY', attempt_count = ?, next_retry_at = DATE_ADD(NOW(), INTERVAL 300 SECOND), updated_at = NOW() WHERE transaction_id = ?</sql>
+                    <parameter expression="$ctx:cleanNextAttempt" type="INTEGER"/>
+                    <parameter expression="$ctx:reTrxId" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+
+            <!-- Inject raw XML payload to parse parameters -->
+            <payloadFactory media-type="xml">
+                <format>$1</format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:reXmlPayload"/>
+                </args>
+            </payloadFactory>
+
+            <property name="vendorId" expression="//TransactionData/Vendor_ID" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:vendorId) = 0">
+                <then><property name="vendorId" expression="//Vendor_ID" scope="default" type="STRING"/></then>
+            </filter>
+            <property name="vendorSap" expression="//TransactionData/Vendor_SAP" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:vendorSap) = 0">
+                <then><property name="vendorSap" expression="//Vendor_SAP" scope="default" type="STRING"/></then>
+            </filter>
+            <property name="transGuId" expression="//Header/TransGuID" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:transGuId) = 0">
+                <then><property name="transGuId" expression="//TransGuID" scope="default" type="STRING"/></then>
+            </filter>
+
+            <!-- Resolve ATLAS URL & API Key -->
+            <property name="atlasBaseUrl" expression="get-property('env', 'ATLAS_VENDOR_CALLBACK_URL')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+                <then><property name="atlasBaseUrl" expression="get-property('system', 'atlas.vendor.callback.base.url')" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+                <then><property name="atlasBaseUrl" expression="get-property('file', 'atlas.vendor.callback.base.url')" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+                <then><property name="atlasBaseUrl" value="https://fe.atlas-dev.assa.id" scope="default" type="STRING"/></then>
+            </filter>
+
+            <property name="atlasPath" expression="get-property('env', 'ATLAS_VENDOR_CALLBACK_PATH')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasPath) = 0">
+                <then><property name="atlasPath" expression="get-property('system', 'atlas.vendor.callback.path')" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasPath) = 0">
+                <then><property name="atlasPath" expression="get-property('file', 'atlas.vendor.callback.path')" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasPath) = 0">
+                <then><property name="atlasPath" value="/api/vendor/public/callback" scope="default" type="STRING"/></then>
+            </filter>
+
+            <property name="uri.var.atlasVendorCallbackUrl" expression="fn:concat($ctx:atlasBaseUrl, $ctx:atlasPath)" scope="default" type="STRING"/>
+
+            <property name="atlasApiKey" expression="get-property('env', 'ATLAS_VENDOR_CALLBACK_APIKEY')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = '__USE_SECURE_VAULT__'">
+                <then><property name="atlasApiKey" expression="get-property('system', 'atlas.vendor.callback.apikey')" scope="default" type="STRING"/></then>
+            </filter>
+            <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = '__USE_SECURE_VAULT__'">
+                <then><property name="atlasApiKey" expression="get-property('file', 'atlas.vendor.callback.apikey')" scope="default" type="STRING"/></then>
+            </filter>
+
+            <!-- Payload Callback ke ATLAS -->
+            <payloadFactory media-type="json">
+                <format>{"vendor_id":"$1","vendor_code":"$2","trans_guid":"$3","status":"SUCCESS"}</format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:vendorId"/>
+                    <arg evaluator="xml" expression="$ctx:vendorSap"/>
+                    <arg evaluator="xml" expression="$ctx:transGuId"/>
+                </args>
+            </payloadFactory>
+            <property name="callbackPayload" expression="json-eval($)" scope="default" type="STRING"/>
+
+            <!-- Headers -->
+            <header name="Authorization" action="remove" scope="transport"/>
+            <header name="X-API-Key" action="remove" scope="transport"/>
+            <header name="x-api-key" action="remove" scope="transport"/>
+            <header name="Origin" action="remove" scope="transport"/>
+            <filter xpath="string-length($ctx:atlasApiKey) &gt; 0">
+                <then><header name="X-API-Key" expression="$ctx:atlasApiKey" scope="transport"/></then>
+            </filter>
+            <header name="Content-Type" value="application/json" scope="transport"/>
+            <property name="messageType" value="application/json" scope="axis2"/>
+            <property name="ContentType" value="application/json" scope="axis2"/>
+            <property name="HTTP_METHOD" value="POST" scope="axis2"/>
+            <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+
+            <!-- Outbound Call -->
+            <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+            <call>
+                <endpoint key="AtlasVendorCallbackEndpoint"/>
+            </call>
+            <property name="callEndTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+            <property name="rawDurationMs" expression="number($ctx:callEndTime) - number($ctx:callStartTime)" scope="default" type="STRING"/>
+            <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0">
+                <then><property name="durationMs" value="0" scope="default" type="STRING"/></then>
+            </filter>
+
+            <property name="responseStatus" expression="$axis2:HTTP_SC" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:responseStatus) = 0">
+                <then><property name="responseStatus" value="200" scope="default" type="STRING"/></then>
+            </filter>
+            <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:responseBody) = 0">
+                <then><property name="responseBody" value="{}" scope="default" type="STRING"/></then>
+            </filter>
+
+            <!-- Evaluate Reprocess Result -->
+            <filter xpath="number($ctx:responseStatus) &gt;= 200 and number($ctx:responseStatus) &lt; 300">
+                <then>
+                    <dbreport>
+                        <connection><pool>
+                            <driver key="conf:/repository/assa/db/driver"/>
+                            <url key="conf:/repository/assa/db/url"/>
+                            <user key="conf:/repository/assa/db/username"/>
+                            <password key="conf:/repository/assa/db/password"/>
+                        </pool></connection>
+                        <statement>
+                            <sql>UPDATE api_transaction SET status = 'SUCCESS', response_payload = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                            <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                            <parameter expression="$ctx:reTrxId" type="VARCHAR"/>
+                        </statement>
+                    </dbreport>
+                    <dbreport>
+                        <connection><pool>
+                            <driver key="conf:/repository/assa/db/driver"/>
+                            <url key="conf:/repository/assa/db/url"/>
+                            <user key="conf:/repository/assa/db/username"/>
+                            <password key="conf:/repository/assa/db/password"/>
+                        </pool></connection>
+                        <statement>
+                            <sql>INSERT INTO api_transaction_log (transaction_id, attempt_number, endpoint, request_payload, response_status, response_body, error_message, duration_ms, created_at) VALUES (?, ?, '/callback/vendor', ?, ?, ?, 'Reprocess succeeded', ?, NOW())</sql>
+                            <parameter expression="$ctx:reTrxId" type="VARCHAR"/>
+                            <parameter expression="$ctx:cleanNextAttempt" type="INTEGER"/>
+                            <parameter expression="$ctx:callbackPayload" type="VARCHAR"/>
+                            <parameter expression="$ctx:responseStatus" type="INTEGER"/>
+                            <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                            <parameter expression="$ctx:durationMs" type="INTEGER"/>
+                        </statement>
+                    </dbreport>
+                </then>
+                <else>
+                    <filter xpath="number($ctx:cleanNextAttempt) &gt;= number($ctx:reMaxAttempts)">
+                        <then>
+                            <!-- Dead letter exhausted -->
+                            <dbreport>
+                                <connection><pool>
+                                    <driver key="conf:/repository/assa/db/driver"/>
+                                    <url key="conf:/repository/assa/db/url"/>
+                                    <user key="conf:/repository/assa/db/username"/>
+                                    <password key="conf:/repository/assa/db/password"/>
+                                </pool></connection>
+                                <statement>
+                                    <sql>UPDATE api_transaction SET status = 'FAILED', response_payload = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                                    <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                                    <parameter expression="$ctx:reTrxId" type="VARCHAR"/>
+                                </statement>
+                            </dbreport>
+                        </then>
+                        <else>
+                            <dbreport>
+                                <connection><pool>
+                                    <driver key="conf:/repository/assa/db/driver"/>
+                                    <url key="conf:/repository/assa/db/url"/>
+                                    <user key="conf:/repository/assa/db/username"/>
+                                    <password key="conf:/repository/assa/db/password"/>
+                                </pool></connection>
+                                <statement>
+                                    <sql>UPDATE api_transaction SET status = 'FAILED', next_retry_at = DATE_ADD(NOW(), INTERVAL 300 SECOND), response_payload = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                                    <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                                    <parameter expression="$ctx:reTrxId" type="VARCHAR"/>
+                                </statement>
+                            </dbreport>
+                        </else>
+                    </filter>
+                    <dbreport>
+                        <connection><pool>
+                            <driver key="conf:/repository/assa/db/driver"/>
+                            <url key="conf:/repository/assa/db/url"/>
+                            <user key="conf:/repository/assa/db/username"/>
+                            <password key="conf:/repository/assa/db/password"/>
+                        </pool></connection>
+                        <statement>
+                            <sql>INSERT INTO api_transaction_log (transaction_id, attempt_number, endpoint, request_payload, response_status, response_body, error_message, duration_ms, created_at) VALUES (?, ?, '/callback/vendor', ?, ?, ?, 'Reprocess attempt failed', ?, NOW())</sql>
+                            <parameter expression="$ctx:reTrxId" type="VARCHAR"/>
+                            <parameter expression="$ctx:cleanNextAttempt" type="INTEGER"/>
+                            <parameter expression="$ctx:callbackPayload" type="VARCHAR"/>
+                            <parameter expression="$ctx:responseStatus" type="INTEGER"/>
+                            <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                            <parameter expression="$ctx:durationMs" type="INTEGER"/>
+                        </statement>
+                    </dbreport>
+                </else>
+            </filter>
+        </then>
+    </filter>
+</sequence>

@@ -30,12 +30,14 @@ $baseUrlVehicle = if ($env:BASE_URL2) { $env:BASE_URL2 } else { "http://localhos
 $baseUrlVendor = if ($env:BASE_URL3) { $env:BASE_URL3 } else { "http://localhost:8293" }
 $baseUrlSpk = if ($env:BASE_URL4) { $env:BASE_URL4 } else { "http://localhost:8294" }
 $baseUrlServiceRequest = if ($env:BASE_URL5) { $env:BASE_URL5 } else { "http://localhost:8295" }
+$baseUrlAuth = if ($env:BASE_URL7) { $env:BASE_URL7 } else { "http://localhost:8297" }
 $baseUrl = $baseUrl.TrimEnd('/')
 $baseUrlCustomer = $baseUrlCustomer.TrimEnd('/')
 $baseUrlVehicle = $baseUrlVehicle.TrimEnd('/')
 $baseUrlVendor = $baseUrlVendor.TrimEnd('/')
 $baseUrlSpk = $baseUrlSpk.TrimEnd('/')
 $baseUrlServiceRequest = $baseUrlServiceRequest.TrimEnd('/')
+$baseUrlAuth = $baseUrlAuth.TrimEnd('/')
 $baseUri = [System.Uri]$baseUrl
 $baseHost = $baseUri.Host
 $basePort = if ($baseUri.Port -gt 0) {
@@ -337,6 +339,8 @@ Run-Test -TestNumber "TEST 15" -TestName "Vendor Create: Valid Payload ke FTP de
 
 Run-Test -TestNumber "TEST 16" -TestName "Vendor Create: Idempotency Replay (Harus 200 replay)" -Url "$baseUrlVendor/api/vendors/create" -Method "POST" -Token $tokenQA -Body $validVendorJson -ExtraHeaders @{ "X-Transaction-Id" = $uniqueTrxId } -ExpectedStatus 200
 
+Run-Test -TestNumber "TEST 16B" -TestName "Vendor Worker: Reprocess Failed Trigger (Harus 200)" -Url "$baseUrlVendor/api/vendors/worker/reprocess-failed" -Method "POST" -ExpectedStatus 200
+
 # SPK Duelist Tests (GUIDE_SPK_DUELIST_XML_FTP_V2.md)
 Run-Test -TestNumber "TEST 17" -TestName "SPK Duelist: Tanpa Token (Harus 401)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Body "{}" -ExpectedStatus 401
 Run-Test -TestNumber "TEST 18" -TestName "SPK Duelist: App B tanpa scope 'spk' (Harus 403)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Token $tokenAppB -Body "{}" -ExpectedStatus 403
@@ -457,6 +461,14 @@ Run-Test -TestNumber "TEST 27" -TestName "Service Request: Idempotency Replay (H
 # Background Worker Tests (GUIDE / Retry Worker)
 Run-Test -TestNumber "TEST 28" -TestName "Background Worker: Manual Trigger Retry Worker (Harus 200)" -Url "$baseUrlServiceRequest/api/worker/retry" -Method "GET" -ExpectedStatus 200
 
+# Auth Service Tests (LDAP Login)
+Run-Test -TestNumber "AUTH 01" -TestName "Auth: Health Check (200)" -Url "$baseUrlAuth/health/auth" -Method "GET" -ExpectedStatus 200
+Run-Test -TestNumber "AUTH 02" -TestName "Auth: Readiness Check (200)" -Url "$baseUrlAuth/readiness/auth" -Method "GET" -ExpectedStatus 200
+Run-Test -TestNumber "AUTH 03" -TestName "Auth Login: Field Kosong (Harus 400)" -Url "$baseUrlAuth/api/auth/login" -Method "POST" -Body "" -ExpectedStatus 400
+Run-Test -TestNumber "AUTH 04" -TestName "Find Employee: Tanpa token (Harus 401)" -Url "$baseUrlAuth/api/auth/findemployee?username=test.user" -Method "GET" -ExpectedStatus 401
+Run-Test -TestNumber "AUTH 05" -TestName "Find Employee: App A token lewat guard dan validasi username kosong (Harus 400)" -Url "$baseUrlAuth/api/auth/findemployee" -Token $tokenAppA -Method "GET" -ExpectedStatus 400
+Run-Test -TestNumber "AUTH 06" -TestName "Find Employee: QA token lewat guard dan validasi username kosong (Harus 400)" -Url "$baseUrlAuth/api/auth/findemployee" -Token $tokenQA -Method "GET" -ExpectedStatus 400
+
 Write-Host "`n========================================================" -ForegroundColor Cyan
-Write-Host "     SELURUH PENGUJIAN SELESAI (40 SKENARIO)!" -ForegroundColor Cyan
+Write-Host "     SELURUH PENGUJIAN SELESAI!" -ForegroundColor Cyan
 Write-Host "========================================================`n" -ForegroundColor Cyan

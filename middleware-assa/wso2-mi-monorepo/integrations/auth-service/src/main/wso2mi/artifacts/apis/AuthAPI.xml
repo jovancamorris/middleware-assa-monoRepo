@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/auth" name="AuthAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" uri-template="/login">
+        <inSequence>
+            <sequence key="AuthLoginSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+    <resource methods="GET" uri-template="/findemployee">
+        <inSequence>
+            <property name="requiredScope" value="employees" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+            <sequence key="AuthFindEmployeeSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+</api>
