@@ -28,6 +28,9 @@ services:
     image: ${DB_IMAGE:-mariadb:11}
     container_name: mi-mariadb
     restart: unless-stopped
+    # Memory guardrail: MariaDB di sini hanya untuk idempotency/retry (ringan, ~120 MB).
+    mem_limit: ${DB_MEM_LIMIT:-384m}
+    mem_reservation: ${DB_MEM_RESERVATION:-192m}
     environment:
       MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "yes"
       MARIADB_DATABASE: ${DB_NAME:-assa_middleware_db}
@@ -52,12 +55,21 @@ services:
     image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.9}
     container_name: middleware-wso2-api
     restart: unless-stopped
+    # Memory guardrail: WSO2 MI lebih ringan dari APIM.
+    # mem_limit = plafon keras container; -Xmx di JAVA_OPTS = plafon heap JVM.
+    # Keduanya WAJIB diset bersamaan agar JVM tidak minta heap melebihi limit
+    # container (yang akan menyebabkan OOM-kill mendadak oleh Docker).
+    mem_limit: ${MI_MEM_LIMIT:-1024m}
+    mem_reservation: ${MI_MEM_RESERVATION:-512m}
     env_file:
       - path: .env
         required: false
     environment:
       DB_HOST: ${DB_HOST:-mariadb}
       DB_PORT: ${DB_PORT:-3306}
+      # Batasi heap JVM MI. Sisa (~512m) untuk metaspace/thread/off-heap.
+      JAVA_OPTS: ${MI_JAVA_OPTS:--Xms256m -Xmx512m}
+      JVM_MEM_OPTS: ${MI_JVM_MEM_OPTS:--Xms256m -Xmx512m}
       AUTH_APP_A_SCOPES: ${AUTH_APP_A_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}
       AUTH_APP_B_SCOPES: ${AUTH_APP_B_SCOPES:-vehicles}
       AUTH_APP_QA_SCOPES: ${AUTH_APP_QA_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}
@@ -81,6 +93,19 @@ services:
     image: ${APIM_IMAGE:-wso2/wso2am:4.3.0}
     container_name: middleware-wso2-apim
     restart: unless-stopped
+    # ============================================================
+    # Memory guardrail — PENYEBAB UTAMA RAM melonjak ada di sini.
+    # Tanpa mem_limit, JVM APIM "melihat" seluruh RAM host dan heap
+    # tumbuh terus hingga server swap → hang.
+    #
+    # Dua lapis WAJIB diset bersamaan:
+    #   1) mem_limit        = plafon keras RAM container (Docker)
+    #   2) JVM_MEM_OPTS/-Xmx = plafon heap JVM (di dalam APIM)
+    # mem_limit > -Xmx karena JVM butuh non-heap (metaspace, thread
+    # stack, code cache, direct buffer) ~600-800 MB di luar heap.
+    # ============================================================
+    mem_limit: ${APIM_MEM_LIMIT:-1800m}
+    mem_reservation: ${APIM_MEM_RESERVATION:-1024m}
     ports:
       - "${APIM_PORT_HTTPS:-9443}:9443"
       - "${APIM_GATEWAY_PORT:-8243}:8243"
@@ -91,6 +116,10 @@ services:
       - APIM_PROXY_PORT=${APIM_PROXY_PORT:-443}
       - APIM_ADMIN_USERNAME=${APIM_ADMIN_USERNAME:-admindev}
       - APIM_ADMIN_PASSWORD=${APIM_ADMIN_PASSWORD:-4554r3nt*2023}
+      # Batasi heap APIM. Default APIM -Xmx1024m; dipertahankan tapi
+      # kini eksplisit + dibatasi mem_limit container di atas.
+      - JVM_MEM_OPTS=${APIM_JVM_MEM_OPTS:--Xms512m -Xmx1024m}
+      - JAVA_OPTS=${APIM_JAVA_OPTS:--Xms512m -Xmx1024m}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
