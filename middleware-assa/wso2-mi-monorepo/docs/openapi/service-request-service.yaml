@@ -1,0 +1,725 @@
+openapi: 3.0.3
+info:
+  title: Service Request & Background Worker API
+  description: |
+    API integrasi penerimaan Service Request (Fan-out Paralel ke External Service & ATLAS)
+    serta pemicu operasional Background Retry Worker melalui WSO2 Integrator: MI.
+    Sesuai standar `API_DEVELOPMENT_GUIDE.md` pada repository `wso2-mi-monorepo`.
+  version: 1.0.0
+
+servers:
+  - url: /
+    description: Gateway URL configured by SWAGGER_SERVER_URL
+
+tags:
+  - name: Service Request
+    description: Penerimaan tiket perawatan kendaraan dan fan-out paralel
+  - name: Background Worker
+    description: Pemrosesan ulang otomatis transaksi tertunda/gagal
+  - name: Health
+    description: Probe liveness dan readiness container
+
+paths:
+  /api/service-requests:
+    post:
+      tags:
+        - Service Request
+      operationId: createServiceRequest
+      summary: Membuat tiket Service Request baru (Fan-out Paralel)
+      description: |
+        Menerima pembuatan tiket perawatan berkala / insiden kendaraan dari kanal Omnichannel.
+        Middleware mengeksekusi **Fan-out Paralel**:
+        1. Mengirim payload ke ASSA External Services (`assa-ext-services.assa.id`).
+        2. Mengirim payload ke sistem ATLAS FMS (jika toggle aktif).
+        3. Mencatat status audit transaksi ke database MariaDB.
+
+        **Mekanisme Idempotency**:
+        Sertakan header `X-Transaction-Id` untuk mencegah duplikasi tiket.
+      security:
+        - bearerAuth:
+            - service_requests
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/TransactionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceRequestPayload'
+      responses:
+        '200':
+          description: Tiket service request berhasil diproses oleh seluruh downstream
+          headers:
+            X-Transaction-Id:
+              schema:
+                type: string
+            X-Correlation-Id:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestSuccessResponse'
+        '207':
+          description: Multi-Status — sebagian target downstream berhasil, sebagian gagal dan masuk antrean retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          description: Salah satu atau seluruh target downstream gagal merespons setelah 10x proses retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestFailResponse'
+
+    get:
+      tags:
+        - Service Request
+      operationId: getServiceRequests
+      summary: Mengambil daftar tiket Service Request dengan pagination
+      description: |
+        Menampilkan riwayat transaksi Service Request yang tersimpan pada database middleware MariaDB (`api_transaction`).
+        Mendukung pagination terstandar (`page`, `perPage`) dan filter spesifik berdasarkan `referenceNumber` / `transactionId`.
+      security:
+        - bearerAuth:
+            - service_requests
+        - apiKeyAuth: []
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman (default 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah baris per halaman (default 10)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: referenceNumber
+          in: query
+          required: false
+          description: Filter spesifik berdasarkan nomor referensi tiket
+          schema:
+            type: string
+            example: BRT-2026-000999
+      responses:
+        '200':
+          description: Berhasil mengambil data transaksi dengan metadata pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/vendor/public/service-requests:
+    post:
+      tags:
+        - Service Request
+      operationId: createVendorPublicServiceRequest
+      summary: Membuat tiket Service Request baru (Format Vendor Publik Barantum CRM)
+      description: |
+        Endpoint khusus konsumsi pihak ketiga / vendor (seperti Barantum CRM) dengan autentikasi `X-API-Key`.
+        Mendukung format payload JSON dengan struktur nested `unit`.
+        
+        Middleware mengeksekusi **Fan-out Paralel**:
+        1. Target 1 (ATLAS): `POST https://fe.atlas-dev.assa.id/api/vendor/public/service-requests` (toggle)
+        2. Target 2 (External Services ke SAP): `POST https://assa-ext-services.assa.id/dev/service/input_service_request`
+      security:
+        - apiKeyAuth: []
+        - bearerAuth:
+            - service_requests
+      parameters:
+        - name: Origin
+          in: header
+          required: false
+          description: Header origin vendor CRM
+          schema:
+            type: string
+            example: https://barantum.internal
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BarantumServiceRequestPayload'
+      responses:
+        '200':
+          description: Tiket service request berhasil diproses oleh semua target
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestSuccessResponse'
+        '207':
+          description: Multi-Status — sebagian target berhasil, sebagian gagal (misal SAP gagal validasi nopol)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '502':
+          description: Salah satu atau seluruh target downstream gagal setelah 10x proses retry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestFailResponse'
+
+    get:
+      tags:
+        - Service Request
+      operationId: getVendorPublicServiceRequests
+      summary: Mengambil daftar tiket Service Request dengan pagination (Vendor Publik Barantum CRM)
+      description: |
+        Mengambil riwayat transaksi Service Request terdaftar pada database middleware MariaDB (`api_transaction`).
+        Mendukung parameter pagination `page` dan `perPage` serta filter `referenceNumber`.
+      security:
+        - apiKeyAuth: []
+        - bearerAuth:
+            - service_requests
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman (default 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah baris per halaman (default 10)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: referenceNumber
+          in: query
+          required: false
+          description: Filter spesifik berdasarkan nomor tiket Barantum
+          schema:
+            type: string
+            example: BRT-2026-000999
+      responses:
+        '200':
+          description: Data list berhasil diambil beserta pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequestListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/worker/retry:
+    get:
+      tags:
+        - Background Worker
+      operationId: triggerRetryWorkerGet
+      summary: Memicu pemrosesan manual Background Retry Worker (GET)
+      description: |
+        Menjalankan sequence pemrosesan antrean transaksi tertunda (*PENDING/FAILED*) pada tabel retry MariaDB
+        untuk dikirimkan ulang ke sistem downstream.
+      security: []
+      responses:
+        '200':
+          description: Retry worker berhasil dieksekusi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags:
+        - Background Worker
+      operationId: triggerRetryWorkerPost
+      summary: Memicu pemrosesan manual Background Retry Worker (POST)
+      description: |
+        Menjalankan sequence pemrosesan antrean transaksi tertunda via HTTP POST.
+      security: []
+      responses:
+        '200':
+          description: Retry worker berhasil dieksekusi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkerResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /health/service-request:
+    get:
+      tags:
+        - Health
+      operationId: getServiceRequestHealth
+      summary: Health check liveness Service Request & Worker
+      description: Memeriksa apakah service WSO2 MI hidup dan responsif.
+      security: []
+      responses:
+        '200':
+          description: Service hidup (Liveness probe sukses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /readiness/service-request:
+    get:
+      tags:
+        - Health
+      operationId: getServiceRequestReadiness
+      summary: Health check readiness Service Request & Worker
+      description: Memeriksa kesiapan service menerima traffic.
+      security: []
+      responses:
+        '200':
+          description: Service siap (Readiness probe sukses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Masukkan Bearer Token aplikasi yang memiliki scope `service_requests` (misal Token Omnichannel).
+        Token dibaca dari environment/secret lokal.
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API Key untuk autentikasi vendor publik (seperti Barantum CRM).
+        Token API Key disediakan oleh tim Middleware / Administrator.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: ID korelasi unik untuk tracing log end-to-end
+      schema:
+        type: string
+        maxLength: 128
+        example: corr-sr-001
+    TransactionId:
+      name: X-Transaction-Id
+      in: header
+      required: false
+      description: ID unik transaksi untuk proteksi Idempotency Guard
+      schema:
+        type: string
+        example: SR-TRX-20260924-001
+    IdempotencyKey:
+      name: X-Idempotency-Key
+      in: header
+      required: false
+      description: Alias alternatif untuk X-Transaction-Id
+      schema:
+        type: string
+        example: SR-TRX-20260924-001
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+
+    ReadinessResponse:
+      type: object
+      required:
+        - status
+        - backend
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: READY
+        backend:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Bad Request
+        detail:
+          type: string
+          example: Missing required field app_id.
+        transactionId:
+          type: string
+          nullable: true
+          example: TRX-20260924150000001
+
+    WorkerResponse:
+      type: object
+      properties:
+        worker:
+          type: string
+          example: RetryWorker
+        status:
+          type: string
+          example: COMPLETED
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+        message:
+          type: string
+          example: Background retry worker executed successfully.
+
+    ServiceRequestPayload:
+      type: object
+      required:
+        - app_id
+        - reff_number
+        - branchCode
+        - license_plate
+        - ticket_no
+      properties:
+        app_id:
+          type: string
+          example: sr_app_omnichannel
+        reff_number:
+          type: string
+          example: REF-SR-20260917-001
+        branchCode:
+          type: string
+          example: JKT01
+        equipment_number:
+          type: string
+          example: EQ-998877
+        license_plate:
+          type: string
+          example: B-1234-SSA
+        customerCode:
+          type: string
+          example: CUST-00123
+        customer_name:
+          type: string
+          example: PT Maju Bersama ASSA
+        channel:
+          type: string
+          example: Omnichannel-Web
+        cp_title:
+          type: string
+          example: Bpk
+        cp_name:
+          type: string
+          example: Ahmad Fauzi
+        cp_phone:
+          type: string
+          example: '081234567890'
+        cp_email:
+          type: string
+          format: email
+          example: ahmad.fauzi@example.com
+        cp_address:
+          type: string
+          example: Jl. Gatot Subroto No. 45 Jakarta
+        km:
+          type: string
+          example: '25000'
+        description:
+          type: string
+          example: Perawatan berkala 25.000 KM dan pengecekan rem
+        service_datetime:
+          type: string
+          example: '2026-09-20 10:00:00'
+        service_location:
+          type: string
+          example: Bengkel Resmi ASSA Sunter
+        jenis_permintaan:
+          type: string
+          example: Service Berkala
+        incident_datetime:
+          type: string
+          example: '2026-09-17 09:00:00'
+        tipe_tiket:
+          type: string
+          example: Regular
+        judul:
+          type: string
+          example: Service Berkala Kendaraan Operasional
+        created_datetime:
+          type: string
+          example: '17-09-2026'
+        created_by:
+          type: string
+          example: omnichannel_agent
+        ticket_no:
+          type: string
+          example: TICKET-SR-99901
+
+    ServiceRequestSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Service request diteruskan ke semua target
+        transactionId:
+          type: string
+          example: SR-TRX-20260924-001
+        ticket_no:
+          type: string
+          example: TICKET-SR-99901
+        targets:
+          type: object
+          properties:
+            atlas:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: SKIPPED
+                httpStatus:
+                  type: integer
+                  example: 200
+                detail:
+                  type: string
+                  example: API ATLAS disabled or no response
+            extService:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: SUCCESS
+                httpStatus:
+                  type: integer
+                  example: 200
+                detail:
+                  type: string
+                  example: Success forwarded to ASSA External Services
+
+    ServiceRequestFailResponse:
+      type: object
+      properties:
+        error:
+          type: boolean
+          example: true
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Service request gagal diteruskan (target gagal setelah 10x percobaan)
+        transactionId:
+          type: string
+          example: TEST-RETRY-002
+        ticket_no:
+          type: string
+          example: TEST-RETRY-002
+        targets:
+          type: object
+          properties:
+            atlas:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: SKIPPED
+                httpStatus:
+                  type: integer
+                  example: 200
+                detail:
+                  type: string
+                  example: API ATLAS disabled or no response
+            extService:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: FAILED
+                httpStatus:
+                  type: integer
+                  example: 400
+                detail:
+                  type: string
+                  example: Forward to ASSA External Services failed after 10 attempts
+
+
+    BarantumServiceRequestPayload:
+      type: object
+      required:
+        - customerName
+        - requestorName
+        - branch
+        - referenceNumber
+        - unit
+      properties:
+        customerName:
+          type: string
+          example: Budi Santoso
+        requestorName:
+          type: string
+          example: Budi Santoso
+        requestorPhone:
+          type: string
+          example: '081234567890'
+        branch:
+          type: string
+          example: Jakarta Pusat
+        referenceNumber:
+          type: string
+          example: BRT-2026-000123
+        unit:
+          $ref: '#/components/schemas/BarantumUnit'
+
+    BarantumUnit:
+      type: object
+      required:
+        - licensePlate
+      properties:
+        chassisNumber:
+          type: string
+          example: MHFXX1234567890
+        engineNumber:
+          type: string
+          example: ENG1234567
+        brand:
+          type: string
+          example: Toyota
+        model:
+          type: string
+          example: Avanza
+        licensePlate:
+          type: string
+          example: B 1234 XYZ
+        vehicleType:
+          type: string
+          example: MPV
+        year:
+          type: string
+          example: '2022'
+        color:
+          type: string
+          example: Silver
+        transmisi:
+          type: string
+          example: Automatic
+        cc:
+          type: integer
+          example: 1500
+        odometer:
+          type: integer
+          example: 25000
+
+    ServiceRequestListResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 1
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceRequestItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    ServiceRequestItem:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          example: BRT-2026-000999
+        referenceNumber:
+          type: string
+          example: BRT-2026-000999
+        status:
+          type: string
+          example: FAILED
+        createdAt:
+          type: string
+          example: '2026-09-25 06:22:55.0'
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        perPage:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 3
+
+  responses:
+    BadRequest:
+      description: Payload tidak valid atau parameter wajib kosong
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Token tidak ada atau salah
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Token valid tetapi tidak memiliki scope `service_requests`
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Transaksi dengan ID ini sedang diproses (409 Conflict)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalError:
+      description: Terjadi kesalahan internal pada runtime WSO2 MI
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

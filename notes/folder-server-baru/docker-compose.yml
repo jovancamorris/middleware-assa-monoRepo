@@ -1,0 +1,196 @@
+services:
+  # ---- 1. Init Container: Ekstrak Skema SQL dari Image ----
+  mariadb-init:
+    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.9}
+    container_name: mi-mariadb-init
+    user: root
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "cp /docker-entrypoint-initdb.d/01_init.sql /init-target/01_init.sql"
+    volumes:
+      - mariadb_init_script:/init-target
+
+  # ---- 1b. Init Container: Ekstrak Dokumentasi OpenAPI dari Image ----
+  doc-init:
+    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.9}
+    container_name: mi-doc-init
+    user: root
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - "mkdir -p /doc-target && rm -rf /doc-target/* 2>/dev/null || true; cp -r /app/docs/* /doc-target/"
+    volumes:
+      - doc_data:/doc-target
+
+  # ---- 2. MariaDB Database (Idempotency & Retry Tracking) ----
+  mariadb:
+    image: ${DB_IMAGE:-mariadb:11}
+    container_name: mi-mariadb
+    restart: unless-stopped
+    # Memory guardrail: MariaDB di sini hanya untuk idempotency/retry (ringan, ~120 MB).
+    mem_limit: ${DB_MEM_LIMIT:-384m}
+    mem_reservation: ${DB_MEM_RESERVATION:-192m}
+    environment:
+      MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "yes"
+      MARIADB_DATABASE: ${DB_NAME:-assa_middleware_db}
+    ports:
+      - "${COMPOSE_DB_PORT:-3308}:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      # Mengambil schema dari shared volume yang diisi oleh mariadb-init:
+      - mariadb_init_script:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      mariadb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ---- 3. WSO2 MI Monorepo (Single Image from GitLab Container Registry) ----
+  middleware-wso2-api:
+    image: ${MI_IMAGE:-registry.assa.id/nobi.sumariga/middleware-assa:1.0.9}
+    container_name: middleware-wso2-api
+    restart: unless-stopped
+    # Memory guardrail: WSO2 MI lebih ringan dari APIM.
+    # mem_limit = plafon keras container; -Xmx di JAVA_OPTS = plafon heap JVM.
+    # Keduanya WAJIB diset bersamaan agar JVM tidak minta heap melebihi limit
+    # container (yang akan menyebabkan OOM-kill mendadak oleh Docker).
+    mem_limit: ${MI_MEM_LIMIT:-1024m}
+    mem_reservation: ${MI_MEM_RESERVATION:-512m}
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DB_HOST: ${DB_HOST:-mariadb}
+      DB_PORT: ${DB_PORT:-3306}
+      # Batasi heap JVM MI. Sisa (~512m) untuk metaspace/thread/off-heap.
+      JAVA_OPTS: ${MI_JAVA_OPTS:--Xms256m -Xmx512m}
+      JVM_MEM_OPTS: ${MI_JVM_MEM_OPTS:--Xms256m -Xmx512m}
+      AUTH_APP_A_SCOPES: ${AUTH_APP_A_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}
+      AUTH_APP_B_SCOPES: ${AUTH_APP_B_SCOPES:-vehicles}
+      AUTH_APP_QA_SCOPES: ${AUTH_APP_QA_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}
+      AUTH_APP_ATLAS_SCOPES: ${AUTH_APP_ATLAS_SCOPES:-vendors,service_requests,spk}
+      AUTH_APP_OMNICHANNEL_SCOPES: ${AUTH_APP_OMNICHANNEL_SCOPES:-service_requests}
+      AUTH_APP_BARANTUM_SCOPES: ${AUTH_APP_BARANTUM_SCOPES:-service_requests}
+    volumes:
+      - ./render-registry-secrets.sh:/home/wso2carbon/render-registry-secrets.sh:ro
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8290 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---- 3b. WSO2 API Manager 4.3.0 (Low-Code API GUI, Publisher & DevPortal) ----
+  api-manager:
+    image: ${APIM_IMAGE:-wso2/wso2am:4.3.0}
+    container_name: middleware-wso2-apim
+    restart: unless-stopped
+    # ============================================================
+    # Memory guardrail — PENYEBAB UTAMA RAM melonjak ada di sini.
+    # Tanpa mem_limit, JVM APIM "melihat" seluruh RAM host dan heap
+    # tumbuh terus hingga server swap → hang.
+    #
+    # Dua lapis WAJIB diset bersamaan:
+    #   1) mem_limit        = plafon keras RAM container (Docker)
+    #   2) JVM_MEM_OPTS/-Xmx = plafon heap JVM (di dalam APIM)
+    # mem_limit > -Xmx karena JVM butuh non-heap (metaspace, thread
+    # stack, code cache, direct buffer) ~600-800 MB di luar heap.
+    # ============================================================
+    mem_limit: ${APIM_MEM_LIMIT:-1800m}
+    mem_reservation: ${APIM_MEM_RESERVATION:-1024m}
+    ports:
+      - "${APIM_PORT_HTTPS:-9443}:9443"
+      - "${APIM_GATEWAY_PORT:-8243}:8243"
+    environment:
+      - DATABASE_HOST=mariadb
+      - DATABASE_PORT=3306
+      - APIM_HOSTNAME=${APIM_HOSTNAME:-devmiddleware.assa.id}
+      - APIM_PROXY_PORT=${APIM_PROXY_PORT:-443}
+      - APIM_ADMIN_USERNAME=${APIM_ADMIN_USERNAME:-admindev}
+      - APIM_ADMIN_PASSWORD=${APIM_ADMIN_PASSWORD:-4554r3nt*2023}
+      # Batasi heap APIM. Default APIM -Xmx1024m; dipertahankan tapi
+      # kini eksplisit + dibatasi mem_limit container di atas.
+      - JVM_MEM_OPTS=${APIM_JVM_MEM_OPTS:--Xms512m -Xmx1024m}
+      - JAVA_OPTS=${APIM_JAVA_OPTS:--Xms512m -Xmx1024m}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        CONF=/home/wso2carbon/wso2am-4.3.0/repository/conf/deployment.toml
+        TARGET_HOST="$${APIM_HOSTNAME:-devmiddleware.assa.id}"
+        TARGET_PORT="$${APIM_PROXY_PORT:-443}"
+        ADMIN_USER="$${APIM_ADMIN_USERNAME:-admindev}"
+        ADMIN_PASS="$${APIM_ADMIN_PASSWORD:-4554r3nt*2023}"
+        if [ -f "$$CONF" ]; then
+          if [ "$$TARGET_HOST" != "localhost" ]; then
+            sed -i "s/hostname = \"localhost\"/hostname = \"$$TARGET_HOST\"/g" "$$CONF"
+            if ! grep -q "$$TARGET_HOST" "$$CONF"; then
+              printf '\n[server]\nhostname = "%s"\n' "$$TARGET_HOST" >> "$$CONF"
+            fi
+          fi
+          if [ -n "$$TARGET_PORT" ] && [ "$$TARGET_PORT" != "9443" ]; then
+            if ! grep -q "proxyPort = $$TARGET_PORT" "$$CONF"; then
+              printf '\n[transport.https.properties]\nproxyPort = %s\n' "$$TARGET_PORT" >> "$$CONF"
+            fi
+          fi
+          sed -i "s|^https_endpoint = .*|https_endpoint = \"https://$$TARGET_HOST:$$TARGET_PORT\"|g" "$$CONF"
+          sed -i "s|^http_endpoint = .*|http_endpoint = \"http://$$TARGET_HOST:80\"|g" "$$CONF"
+          if ! grep -q "\[super_admin\]" "$$CONF"; then
+            printf '\n[super_admin]\nusername = "%s"\npassword = "%s"\ncreate_admin_account = true\n\n[apim.key_manager]\nusername = "%s"\npassword = "%s"\n' "$$ADMIN_USER" "$$ADMIN_PASS" "$$ADMIN_USER" "$$ADMIN_PASS" >> "$$CONF"
+          else
+            sed -i "/\[super_admin\]/,/^\[/{s/username = .*/username = \"$$ADMIN_USER\"/; s/password = .*/password = \"$$ADMIN_PASS\"/;}" "$$CONF"
+          fi
+        fi
+        TEMPLATE=/home/wso2carbon/wso2am-4.3.0/repository/resources/conf/templates/repository/conf/user-mgt.xml.j2
+        CONF_XML=/home/wso2carbon/wso2am-4.3.0/repository/conf/user-mgt.xml
+        if [ -f "$$TEMPLATE" ]; then
+          sed -i 's/com.assa.wso2.userstore.AssaRestUserStoreManager/org.wso2.carbon.user.core.jdbc.UniqueIDJDBCUserStoreManager/g' "$$TEMPLATE"
+        fi
+        if [ -f "$$CONF_XML" ]; then
+          sed -i 's/com.assa.wso2.userstore.AssaRestUserStoreManager/org.wso2.carbon.user.core.jdbc.UniqueIDJDBCUserStoreManager/g' "$$CONF_XML"
+        fi
+        exec /home/wso2carbon/docker-entrypoint.sh
+    volumes:
+      - apim_repository_data:/home/wso2carbon/wso2am-4.3.0/repository/data
+      - apim_repository_database:/home/wso2carbon/wso2am-4.3.0/repository/database
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9443 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # ---- 4. Nginx Reverse Proxy (Satu Pintu Akses HTTP & Docs) ----
+  nginx:
+    image: nginx:alpine
+    container_name: middleware-wso2-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-6030}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - doc_data:/usr/share/nginx/html/docs:ro
+    depends_on:
+      doc-init:
+        condition: service_completed_successfully
+      middleware-wso2-api:
+        condition: service_started
+      api-manager:
+        condition: service_started
+
+volumes:
+  mariadb_data:
+  mariadb_init_script:
+  doc_data:
+  apim_repository_data:
+  apim_repository_database:

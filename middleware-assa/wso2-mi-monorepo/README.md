@@ -46,12 +46,12 @@ wso2-mi-monorepo/
 
 | Service | API | Domain Sequence | Endpoint | Backend |
 |---|---|---|---|---|
-| `branch-service` | `BranchAPI`, `HealthAPI` | `BranchGetByCreateDateSeq` | `SapCoreDynamicEndpoint` | SAP Core |
-| `customer-service` | `CustomerAPI`, `HealthAPI` | `CustomerGetByCreateDateSeq` | `SapCoreDynamicEndpoint` | SAP Core |
-| `vehicle-service` | `VehicleAPI`, `HealthAPI` | `VehicleGetByLicensePlateSeq` | `ExtServiceDynamicEndpoint` | ASSA Ext / Vehicle Atlas |
-| `vendor-service` | `HealthAPI` (+ VMD API menyusul) | (VMD → XML → FTP) | (FTP VFS) | SAP via FTP |
-| `spk-service` | `HealthAPI` (+ SPK API menyusul) | (SPK Duelist → XML → FTP) | (FTP VFS) | SAP via FTP |
-| `service-request-service` | `WorkerAPI`, `HealthAPI` (+ SR API menyusul) | fan-out ATLAS + Ext | (ATLAS/Ext POST) | ATLAS + ASSA Ext |
+| `branch-service` | `BranchAPI`, `BranchHealthAPI`, `BranchReadinessAPI` | `BranchGetByCreateDateSeq` | `SapCoreDynamicEndpoint` | SAP Core |
+| `customer-service` | `CustomerAPI`, `CustomerHealthAPI`, `CustomerReadinessAPI` | `CustomerGetByCreateDateSeq` | `SapCoreDynamicEndpoint` | SAP Core |
+| `vehicle-service` | `VehicleAPI`, `VehicleHealthAPI`, `VehicleReadinessAPI` | `VehicleGetByLicensePlateSeq` | `ExtServiceDynamicEndpoint` | ASSA Ext / Vehicle Atlas |
+| `vendor-service` | `VendorHealthAPI`, `VendorReadinessAPI` (+ VMD API menyusul) | (VMD → XML → FTP) | (FTP VFS) | SAP via FTP |
+| `spk-service` | `SpkHealthAPI`, `SpkReadinessAPI` (+ SPK API menyusul) | (SPK Duelist → XML → FTP) | (FTP VFS) | SAP via FTP |
+| `service-request-service` | `WorkerAPI`, `ServiceRequestHealthAPI`, `ServiceRequestReadinessAPI` (+ SR API menyusul) | fan-out ATLAS + Ext | (ATLAS/Ext POST) | ATLAS + ASSA Ext |
 
 > Semua sequence lintas-domain (Auth, Logging, Error, Idempotency, Retry, DB, Pagination, Health, Worker) berada di `shared/` dan dirujuk tiap service via `<sequence key="..."/>`.
 >
@@ -97,15 +97,15 @@ Pemetaan port host → service (semua kontainer internal `8290`):
 
 Uji health, contoh:
 ```powershell
-curl http://localhost:8290/health
-curl http://localhost:8291/health/ready
+curl http://localhost:8290/health/branch
+curl http://localhost:8290/readiness/branch
 ```
 
 ---
 
 ## Deploy ke Kubernetes
 
-Gunakan base manifest `platform/k8s/base-deployment.yaml` (Deployment + Service, dengan probe `/health` & `/health/ready`). Render per service lalu apply:
+Gunakan base manifest `platform/k8s/base-deployment.yaml` (Deployment + Service, dengan probe service-specific `/health/<service>` & `/readiness/<service>`). Render per service lalu apply:
 ```powershell
 # contoh untuk branch-service
 (Get-Content platform/k8s/base-deployment.yaml) `

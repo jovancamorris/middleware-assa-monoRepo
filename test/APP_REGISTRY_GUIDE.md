@@ -277,51 +277,48 @@ Port default HTTP WSO2 MI adalah `8290`. Berikut skenario pengujian menggunakan 
 
 ## 6. Panduan Pengujian Manual via Postman
 
-Tersedia file koleksi Postman yang siap diimport di root proyek:
-📁 **[`ASSA_Middleware.postman_collection.json`](./ASSA_Middleware.postman_collection.json)**
+Tersedia file koleksi Postman yang siap diimport di direktori `test/` dan `postman/`:
+- 📁 **[`test/ASSA_Middleware.postman_collection.json`](./ASSA_Middleware.postman_collection.json)** (Updated API Collection)
+- 📁 **[`postman/ASSA_Middleware_Local.postman_collection.json`](../postman/ASSA_Middleware_Local.postman_collection.json)** (Pre-configured Local Port 6031)
+- 📁 **[`postman/ASSA_Middleware_ServerDev.postman_collection.json`](../postman/ASSA_Middleware_ServerDev.postman_collection.json)** (Pre-configured Server Dev)
 
 ### Langkah Cepat (1-Click Import):
 1. Buka aplikasi **Postman**.
 2. Klik tombol **Import** (di pojok kiri atas).
 3. Pilih / drag-and-drop file [`ASSA_Middleware.postman_collection.json`](./ASSA_Middleware.postman_collection.json).
-4. Koleksi **"ASSA Middleware API Collection"** langsung terpasang lengkap dengan 5 folder pengujian dan variabel otomatis!
+4. Koleksi **"ASSA Middleware API Collection"** langsung terpasang lengkap dengan 6 folder pengujian (48 request) dan variabel otomatis!
 
 ---
 
-### Langkah Manual (Jika Ingin Membuat Sendiri di Postman):
+### Langkah Manual (Setup Environment Postman):
 
 #### 1. Setup Environment Variables
-Buat Environment baru di Postman (misal: `ASSA-Local`) dengan variabel berikut:
+Buat Environment baru di Postman (misal: `ASSA-Local`) dengan variabel resmi berikut:
 
-| Variable | Initial Value | Current Value |
+| Variable | Current Value | Scope / Deskripsi |
 | :--- | :--- | :--- |
-| `baseUrl` | `http://localhost:8290` | `http://localhost:8290` |
-| `token_app_a` | `3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` | `3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` |
-| `token_app_b` | `988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` | `988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` |
-| `token_qa` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
-| `companyCode` | `1000` | `1000` |
+| `baseUrl` | `http://localhost:6031` | Gateway Nginx (atau `http://localhost:8290` direct) |
+| `companyCode` | `1000` | Kode Perusahaan SAP ASSA |
+| `token_app_a` | `c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd` | Super Client (All Scopes) |
+| `token_app_b` | `988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` | Operations & Fleet (`vehicles`) |
+| `token_qa` | `e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be` | QA Automation Test Runner (All Scopes) |
+| `token_omnichannel` | `14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12` | Omnichannel Internal (`service_requests`) |
+| `token_barantum` | `umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` | Barantum CRM Public Gateway (`service_requests`) |
+| `token_atlas` | `ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` | ATLAS Vendor Client (`vendors`) |
 
-#### 2. Konfigurasi Autentikasi Request
-- Pada tab **Authorization**:
-  - Pilih Type: **Bearer Token**
-  - Pada input Token: masukkan `{{token_app_a}}` (atau `{{token_app_b}}` / `{{token_qa}}`)
-- Pada tab **Headers**:
-  - Key: `X-Correlation-Id`, Value: `corr-manual-001` *(Opsional untuk audit log)*
+#### 2. Ringkasan 6 Folder Pengujian (48 Requests)
 
-#### 3. Ringkasan Request Postman
-
-| Folder | Request Name | Method | URL & Query Params | Auth Token |
-| :--- | :--- | :---: | :--- | :--- |
-| **Health** | Liveness Probe | `GET` | `{{baseUrl}}/health` | *No Auth* |
-| **Health** | Readiness Probe | `GET` | `{{baseUrl}}/health/ready` | *No Auth* |
-| **Branch** | Get Branch by Date | `GET` | `{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10` | Bearer `{{token_app_a}}` |
-| **Customer** | Get Customer by Date | `GET` | `{{baseUrl}}/api/customers/getByCreateDate?companyCode={{companyCode}}&dateStart=2020-01-01&dateEnd=2026-09-11&page=1&perPage=10` | Bearer `{{token_app_a}}` |
-| **Vehicle** | Get Vehicle Plate | `GET` | `{{baseUrl}}/api/vehicles/getByLicensePlate?companyCode={{companyCode}}&licensePlate=B-9065-UCU` | Bearer `{{token_app_b}}` |
-| **Security** | 401 No Token | `GET` | `{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}` | *No Auth* |
-| **Security** | 401 Invalid Token | `GET` | `{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}` | Bearer `invalid-token` |
-| **Security** | 403 Forbidden | `GET` | `{{baseUrl}}/api/branches/getByCreateDate?companyCode={{companyCode}}` | Bearer `{{token_app_b}}` |
+| Folder | Jumlah Request | Deskripsi Fitur yang Diuji |
+| :--- | :---: | :--- |
+| **1. Health & Readiness** | 14 | Probe liveness & readiness gateway umum (`/health`, `/readiness`) dan per-service (Branch, Customer, Vehicle, Vendor, SPK, SR). |
+| **2. Auth & Scope Security Guards** | 9 | Pengujian keamanan 401 Unauthorized (tanpa token, token invalid) dan 403 Forbidden (cross-scope isolation: App B, App ATLAS, Omnichannel). |
+| **3. Parameter Validation** | 7 | Validasi input 400 Bad Request (vehicle tanpa filter, vendor invalid title / tanpa bank, SPK tanpa noSpk / mismatch total / invoice parsial, SR tanpa app_id). |
+| **4. Inquiry & Pagination** | 9 | Data retrieval GET 200 OK dengan query filter dan metadata pagination WSO2 MI untuk Branch, Customer, Vehicle Atlas, dan Service Request. |
+| **5. Transactional & Fan-Out** | 7 | Transaksi POST paralel fan-out (10x retries), Idempotency Re-try, Barantum nested unit format, Vendor Create V2 XML ke FTP SAP, dan SPK Duelist V2 dengan Invoice. |
+| **6. Background Retry Worker** | 2 | Eksekusi trigger worker background retry antrean MariaDB via GET dan POST (200 OK). |
 
 ---
+
 
 ## 7. Perintah Build CAR
 

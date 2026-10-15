@@ -1,0 +1,17 @@
+{
+  "folders": [
+    {
+      "name": "Monorepo (GitHub - All Repo)",
+      "path": "."
+    },
+    {
+      "name": "middleware-assa (GitLab)",
+      "path": "middleware-assa"
+    }
+  ],
+  "settings": {
+    "git.autoRepositoryDetection": true,
+    "git.repositoryScanMaxDepth": 2,
+    "git.openRepositoryInParentFolders": "always"
+  }
+}

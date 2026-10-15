@@ -1,18 +1,312 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="GenericPaginationSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Generic Response & Pagination Formatter                           -->
-    <!-- Sesuai CLEAN_ARCHITECTURE.md Bagian 6                             -->
-    <!-- ================================================================= -->
-    <property name="messageType" value="application/json" scope="axis2"/>
-    <property name="ContentType" value="application/json" scope="axis2"/>
-
-    <!-- Echo Correlation ID in response header -->
-    <filter xpath="boolean($ctx:correlationId)">
+    <filter xpath="string($ctx:paginationEnabled) = 'true'">
         <then>
-            <header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/>
+            <script language="js"><![CDATA[
+                var payload = mc.getPayloadJSON();
+                var records = null;
+                var total = null;
+                if (Array.isArray(payload)) {
+                    records = payload;
+                } else if (payload && Array.isArray(payload.data)) {
+                    records = payload.data;
+                    total = Number(payload.total);
+                } else if (payload && Array.isArray(payload.values)) {
+                    records = payload.values;
+                    total = Number(payload.total);
+                } else if (payload && (payload.message === "Empty!" || payload.message === "No data")) {
+                    records = [];
+                }
+
+                if (records !== null) {
+                    var filterCustomerCode = mc.getProperty("customerCode");
+                    var filterCustomerName = mc.getProperty("customerName");
+                    var filterApplied = false;
+
+                    if (filterCustomerCode && String(filterCustomerCode).trim().length > 0) {
+                        filterApplied = true;
+                        var codeNeedle = String(filterCustomerCode).trim().toLowerCase();
+                        var filteredByCode = [];
+                        for (var i = 0; i < records.length; i++) {
+                            var item = records[i];
+                            if (item) {
+                                var codeVal = item.CustomerCode || item.customerCode || item.customercode || "";
+                                if (String(codeVal).toLowerCase().indexOf(codeNeedle) !== -1) {
+                                    filteredByCode.push(item);
+                                }
+                            }
+                        }
+                        records = filteredByCode;
+                    }
+
+                    if (filterCustomerName && String(filterCustomerName).trim().length > 0) {
+                        filterApplied = true;
+                        var nameNeedle = String(filterCustomerName).trim().toLowerCase();
+                        var filteredByName = [];
+                        for (var j = 0; j < records.length; j++) {
+                            var itm = records[j];
+                            if (itm) {
+                                var nameVal = itm.CustomerName || itm.customerName || itm.customername || "";
+                                if (String(nameVal).toLowerCase().indexOf(nameNeedle) !== -1) {
+                                    filteredByName.push(itm);
+                                }
+                            }
+                        }
+                        records = filteredByName;
+                    }
+
+                    var filterVendorName = mc.getProperty("vendorName");
+                    if (filterVendorName && String(filterVendorName).trim().length > 0) {
+                        filterApplied = true;
+                        var vNameNeedle = String(filterVendorName).trim().toLowerCase();
+                        var filteredByVendor = [];
+                        for (var vIdx = 0; vIdx < records.length; vIdx++) {
+                            var vItm = records[vIdx];
+                            if (vItm) {
+                                var vNameVal = vItm.VendorName || vItm.vendorName || vItm.vendor_name || vItm.name || vItm.Vendor_Name || "";
+                                if (String(vNameVal).toLowerCase().indexOf(vNameNeedle) !== -1) {
+                                    filteredByVendor.push(vItm);
+                                }
+                            }
+                        }
+                        records = filteredByVendor;
+                    }
+
+                    var filterVendorCode = mc.getProperty("vendorCode");
+                    if (filterVendorCode && String(filterVendorCode).trim().length > 0) {
+                        filterApplied = true;
+                        var vCodeNeedle = String(filterVendorCode).trim().toLowerCase();
+                        var filteredByVendorCode = [];
+                        for (var vcIdx = 0; vcIdx < records.length; vcIdx++) {
+                            var vcItm = records[vcIdx];
+                            if (vcItm) {
+                                var vCodeVal = vcItm.VendorCode || vcItm.vendorCode || vcItm.vendor_code || vcItm.vendorcode || "";
+                                if (String(vCodeVal).toLowerCase().indexOf(vCodeNeedle) !== -1) {
+                                    filteredByVendorCode.push(vcItm);
+                                }
+                            }
+                        }
+                        records = filteredByVendorCode;
+                    }
+
+                    var rawFilterBy = mc.getProperty("filterBy");
+                    if (rawFilterBy && String(rawFilterBy).trim().length > 0) {
+                        filterApplied = true;
+                        var needle = String(rawFilterBy).trim().toLowerCase();
+                        var needleClean = needle.replace(/[-\s]/g, "");
+                        var filteredByParam = [];
+                        for (var k = 0; k < records.length; k++) {
+                            var item = records[k];
+                            if (!item) continue;
+                            var matched = false;
+
+                            // 1. Customer entity fields
+                            var custCode = item.CustomerCode || item.customerCode || item.customercode || "";
+                            var custName = item.CustomerName || item.customerName || item.customername || "";
+                            if (String(custCode).toLowerCase().indexOf(needle) !== -1 ||
+                                String(custName).toLowerCase().indexOf(needle) !== -1) {
+                                matched = true;
+                            }
+
+                            // 2. Vehicle entity fields
+                            var vPlat = item.plate_no || item.plat_no || item.licensePlate || item.plateNo || "";
+                            var vPlatClean = String(vPlat).toLowerCase().replace(/[-\s]/g, "");
+                            var vEquip = item.equipment_no || item.equipmentNo || "";
+                            var vBrCode = item.branch_code || item.branchCode || "";
+                            var vBrName = item.branch_name || item.branchName || "";
+                            var vTipe = item.tipe_kendaraan || item.tipeKendaraan || item.type || "";
+                            var vColor = item.color || "";
+
+                            if (String(vPlat).toLowerCase().indexOf(needle) !== -1 ||
+                                (needleClean.length > 0 && vPlatClean.indexOf(needleClean) !== -1) ||
+                                String(vEquip).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vBrCode).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vBrName).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vTipe).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vColor).toLowerCase().indexOf(needle) !== -1) {
+                                matched = true;
+                            }
+
+                            // 3. Branch entity fields
+                            var branchCode = item.BranchCode || item.branchCode || item.branch_code || "";
+                            var branchName = item.BranchName || item.branchName || item.branch_name || "";
+                            if (String(branchCode).toLowerCase().indexOf(needle) !== -1 ||
+                                String(branchName).toLowerCase().indexOf(needle) !== -1) {
+                                matched = true;
+                            }
+
+                            // 4. Vendor entity fields
+                            var vendorCode = item.VendorCode || item.vendorCode || item.vendor_code || "";
+                            var vendorName = item.VendorName || item.vendorName || item.vendor_name || item.name || item.Vendor_Name || "";
+                            if (String(vendorCode).toLowerCase().indexOf(needle) !== -1 ||
+                                String(vendorName).toLowerCase().indexOf(needle) !== -1) {
+                                matched = true;
+                            }
+
+                            if (matched) {
+                                filteredByParam.push(item);
+                            }
+                        }
+                        records = filteredByParam;
+                    }
+
+                    var page = parseInt(mc.getProperty("page"), 10);
+                    var perPage = parseInt(mc.getProperty("perPage"), 10);
+                    if (!(page > 0)) page = 1;
+                    if (!(perPage > 0)) perPage = 10;
+                    if (filterApplied || total === null || isNaN(total) || total < 0) {
+                        total = records.length;
+                    }
+
+                    var alreadyPaginated = false;
+                    if (!filterApplied && payload && (payload.offset !== undefined || payload.limit !== undefined)) {
+                        alreadyPaginated = true;
+                    } else if (!filterApplied && total !== null && total > records.length && records.length <= perPage) {
+                        alreadyPaginated = true;
+                    }
+
+                    var pagedData = alreadyPaginated ? records : records.slice((page - 1) * perPage, page * perPage);
+
+                    // Normalize Vehicle entity records if applicable
+                    var isVehicle = false;
+                    var reqScope = mc.getProperty("requiredScope");
+                    var ep = mc.getProperty("api.endpoint");
+                    if (reqScope === "vehicles" || (ep && String(ep).indexOf("/vehicles") !== -1)) {
+                        isVehicle = true;
+                    } else if (pagedData && pagedData.length > 0 && (pagedData[0].plate_no || pagedData[0].licensePlate || pagedData[0].tipe_kendaraan)) {
+                        isVehicle = true;
+                    }
+
+                    if (isVehicle && Array.isArray(pagedData)) {
+                        var transformed = [];
+                        for (var t = 0; t < pagedData.length; t++) {
+                            var item = pagedData[t];
+                            if (!item) continue;
+                            var rawTipe = String(item.tipe_kendaraan || item.vehicleType || "").trim();
+
+                            var brand = item.brand || "";
+                            if (!brand && rawTipe) {
+                                var knownBrands = ["MERCEDES-BENZ", "UD TRUCKS", "TOYOTA", "DAIHATSU", "HONDA", "MITSUBISHI", "SUZUKI", "ISUZU", "HINO", "NISSAN", "HYUNDAI", "WULING", "MAZDA", "FORD", "CHEVROLET", "BMW", "KIA", "DFSK", "CHERY", "MG", "VOLVO", "SCANIA"];
+                                for (var b = 0; b < knownBrands.length; b++) {
+                                    if (rawTipe.toUpperCase().indexOf(knownBrands[b]) === 0) {
+                                        brand = knownBrands[b];
+                                        break;
+                                    }
+                                }
+                                if (!brand) {
+                                    var sp = rawTipe.split(" ");
+                                    brand = sp.length > 0 ? sp[0] : "";
+                                }
+                            }
+
+                            var transmisi = item.transmisi || item.transmission || "";
+                            if (!transmisi && rawTipe) {
+                                if (/\b(A\/T|AT|AUTOMATIC|CVT)\b/i.test(rawTipe)) {
+                                    transmisi = "Automatic";
+                                } else if (/\b(M\/T|MT|MANUAL)\b/i.test(rawTipe)) {
+                                    transmisi = "Manual";
+                                }
+                            }
+
+                            var cc = 0;
+                            if (item.cc !== undefined && item.cc !== null && item.cc !== "") {
+                                cc = parseInt(item.cc, 10) || 0;
+                            } else if (rawTipe) {
+                                var ccMatch = rawTipe.match(/\b(\d\.\d)\b/);
+                                if (ccMatch) {
+                                    cc = Math.round(parseFloat(ccMatch[1]) * 1000);
+                                } else {
+                                    var ccDirect = rawTipe.match(/\b(\d{3,4})\s*(?:cc)?\b/i);
+                                    if (ccDirect) {
+                                        cc = parseInt(ccDirect[1], 10) || 0;
+                                    }
+                                }
+                            }
+
+                            var model = item.model || "";
+                            if (!model && rawTipe) {
+                                var mStr = rawTipe;
+                                if (brand) {
+                                    mStr = mStr.replace(new RegExp("^" + brand + "\\s*", "i"), "");
+                                }
+                                mStr = mStr.replace(/\b(M\/T|A\/T|MT|AT|CVT|MANUAL|AUTOMATIC)\b/gi, "");
+                                mStr = mStr.replace(/\b\d\.\d\b/g, "");
+                                mStr = mStr.replace(/\b\d{3,4}\s*cc\b/gi, "");
+                                mStr = mStr.replace(/\s+/g, " ").trim();
+                                model = mStr;
+                            }
+
+                            var vehicleType = item.vehicleType || "";
+                            if (!vehicleType) {
+                                var upTipe = rawTipe.toUpperCase();
+                                if (upTipe.indexOf("BLIND VAN") !== -1 || upTipe.indexOf("BV") !== -1) {
+                                    vehicleType = "Blind Van";
+                                } else if (upTipe.indexOf("TRUCK") !== -1 || upTipe.indexOf("DUTRO") !== -1 || upTipe.indexOf("COLT FE") !== -1) {
+                                    vehicleType = "Truck";
+                                } else if (upTipe.indexOf("PICK UP") !== -1 || upTipe.indexOf("PU") !== -1) {
+                                    vehicleType = "Pick Up";
+                                } else if (upTipe.indexOf("BOX") !== -1) {
+                                    vehicleType = "Box";
+                                } else if (upTipe.indexOf("AVANZA") !== -1 || upTipe.indexOf("SIGRA") !== -1 || upTipe.indexOf("INNOVA") !== -1 || upTipe.indexOf("CALYA") !== -1 || upTipe.indexOf("XPANDER") !== -1 || upTipe.indexOf("MOBILIO") !== -1 || upTipe.indexOf("ERTIGA") !== -1) {
+                                    vehicleType = "Minibus";
+                                } else if (upTipe.indexOf("RUSH") !== -1 || upTipe.indexOf("TERIOS") !== -1 || upTipe.indexOf("FORTUNER") !== -1 || upTipe.indexOf("PAJERO") !== -1) {
+                                    vehicleType = "SUV";
+                                } else if (upTipe.indexOf("SEDAN") !== -1) {
+                                    vehicleType = "Sedan";
+                                } else {
+                                    vehicleType = rawTipe || "Minibus";
+                                }
+                            }
+
+                            var licensePlate = item.licensePlate || item.plate_no || item.plat_no || item.plateNo || "";
+                            var equipmentNumber = item.equipmentNumber || item.equipment_no || item.equipmentNo || "";
+                            var chassisNumber = item.chassisNumber || item.chassis_number || item.chassis_no || item.chassis || item.no_rangka || item.vin || equipmentNumber;
+                            var engineNumber = item.engineNumber || item.engine_no || item.engine || item.no_mesin || "";
+                            var year = item.year ? String(item.year) : (item.production_year ? String(item.production_year) : "");
+                            var color = item.color || "";
+                            var odometer = (item.odometer !== undefined && item.odometer !== null && item.odometer !== "") ? parseInt(item.odometer, 10) : ((item.km !== undefined && item.km !== null && item.km !== "") ? parseInt(item.km, 10) : 0);
+
+                            transformed.push({
+                                licensePlate: licensePlate,
+                                equipmentNumber: equipmentNumber,
+                                chassisNumber: chassisNumber,
+                                engineNumber: engineNumber,
+                                brand: brand,
+                                model: model,
+                                vehicleType: vehicleType,
+                                year: year,
+                                color: color,
+                                transmisi: transmisi,
+                                cc: cc,
+                                odometer: odometer,
+                                plate_no: item.plate_no || licensePlate,
+                                equipment_no: item.equipment_no || equipmentNumber,
+                                branch_code: item.branch_code || item.branchCode || "",
+                                branch_name: item.branch_name || item.branchName || "",
+                                tipe_kendaraan: item.tipe_kendaraan || rawTipe,
+                                unit_allocation: item.unit_allocation || "",
+                                status_id: item.status_id !== undefined ? item.status_id : null,
+                                asset_status: item.asset_status || "",
+                                responsible_area: item.responsible_area || "",
+                                booking_status: item.booking_status || "",
+                                production_year: item.production_year || (year ? parseInt(year, 10) : null)
+                            });
+                        }
+                        pagedData = transformed;
+                    }
+
+                    mc.setPayloadJSON({
+                        success: true,
+                        total: total,
+                        page: page,
+                        perPage: perPage,
+                        data: pagedData
+                    });
+                }
+            ]]></script>
         </then>
     </filter>
-
-    <respond/>
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+    <filter xpath="boolean($ctx:correlationId)"><then><header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/></then></filter>
 </sequence>

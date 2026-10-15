@@ -150,7 +150,7 @@ flowchart LR
 | UC-04 | Create Vendor (VMD → XML → FTP) | vendor-service | `POST /api/vendors/create` | vendors |
 | UC-05 | Create SPK Duelist (→ XML → FTP) | spk-service | `POST /api/spk/duelist` | spk |
 | UC-06 | Service Request fan-out (ATLAS + Ext) | service-request-service | `POST /api/service-requests` | service_requests |
-| UC-07 | Health Liveness/Readiness | semua service | `GET /health`, `/health/ready` | (tanpa token) |
+| UC-07 | Health Liveness/Readiness | semua service | `GET /health/<service>`, `/readiness/<service>` | (tanpa token) |
 | UC-08 | Trigger Retry Worker | service-request-service | `POST /api/worker/retry` | operasional |
 
 > UC-04, UC-05, UC-06 mengikuti spesifikasi pada guide di `docs/` dan saat ini berupa kerangka service (Health + config) yang siap diimplementasi.
@@ -492,8 +492,8 @@ wso2-mi-monorepo/
 │                                                # DbRecord*, Pagination, HealthCheck,
 │                                                # RetryWorker, FaultHandlerSequence
 ├── integrations/                                # 1 service = 1 CAR + Dockerfile + pom.xml
-│   ├── branch-service/    (BranchAPI, BranchGetByCreateDateSeq, SapCoreDynamicEndpoint)
-│   ├── customer-service/  (CustomerAPI, CustomerGetByCreateDateSeq, SapCoreDynamicEndpoint)
+│   ├── branch-service/    (BranchAPI, BranchGetByCreateDateSeq)
+│   ├── customer-service/  (CustomerAPI, CustomerGetByCreateDateSeq)
 │   ├── vehicle-service/   (VehicleAPI, VehicleGetByLicensePlateSeq, ExtServiceDynamicEndpoint)
 │   ├── vendor-service/    (VMD → XML → FTP) [kerangka]
 │   ├── spk-service/       (SPK Duelist → XML → FTP) [kerangka]

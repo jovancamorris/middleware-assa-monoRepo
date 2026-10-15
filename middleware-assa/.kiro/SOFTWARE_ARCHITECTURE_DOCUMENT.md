@@ -6,14 +6,21 @@
 | Field | Value |
 |---|---|
 | **Nama Proyek** | ASSA Middleware (`wso2-mi-monorepo`) |
-| **Versi Dokumen** | 2.0.0 |
-| **Tanggal** | 17 September 2026 |
+| **Versi Dokumen** | 2.1.0 |
+| **Tanggal** | 17 September 2026 (rev. 2.1.0) |
 | **Platform Runtime** | WSO2 Micro Integrator 4.6.0 |
 | **Bahasa/Framework** | Apache Synapse (XML), Maven (multi-module), MariaDB |
 | **Arsitektur Repo** | Monorepo multi-service (shared artifacts + integration services) |
 | **Status** | Aktif / Production-oriented |
 
 > **Catatan v2.0.0**: Dokumen ini diperbarui setelah restrukturisasi dari single-project `middleware-assa` menjadi **monorepo multi-service `wso2-mi-monorepo`**. Setiap domain integrasi kini menjadi service terpisah (CAR & image sendiri), dengan sequence lintas-domain dipusatkan di modul `shared/`.
+>
+> **Catatan v2.1.0 (perubahan terkini)**:
+> - **payments-service** ditambahkan sebagai service ke-7 (`POST /api/payments`, scope `payments`, XML → FTP folder `/payments`). Beberapa detail kontrak masih **PROPOSED**.
+> - **Vendor callback inbound** (PROPOSED): middleware membaca file XML balikan SAP di FTP `/vmd/upload`, callback `vendor_code` (= `Vendor_SAP`) ke ATLAS, arsip ke `success`/`failed`, plus mekanisme reprocess folder `failed`. Lihat guide callback vendor.
+> - **auth-service** (PROPOSED): endpoint LDAP `POST /api/auth/login` & `GET /api/auth/findemployee` yang mem-forward ke backend HC (`devhcbead.assa.id`); diusulkan scope `auth`.
+> - **App Registry** diperbarui: `app_atlas` (default scope `vendors, service_requests`), `app_omnichannel`, dan `app_barantum` kini aktif di `AuthGuardSeq`.
+> - Status vendor/spk/service-request bukan lagi "kerangka" — API & sequence domainnya sudah terimplementasi.
 
 ---
 
@@ -56,7 +63,7 @@ Repositori diorganisir sebagai **monorepo multi-service**: satu build Maven meng
 | **Sequence** | Rangkaian mediator (langkah kerja) yang dieksekusi berurutan |
 | **Endpoint** | Definisi koneksi keluar menuju backend eksternal |
 | **Idempotency** | Jaminan bahwa request berulang tidak menyebabkan efek ganda |
-| **Scope** | Cakupan izin akses per-aplikasi (branches, customers, vehicles, vendors, spk, service_requests) |
+| **Scope** | Cakupan izin akses per-aplikasi (branches, customers, vehicles, vendors, spk, service_requests, payments; `auth` diusulkan untuk auth-service) |
 | **Monorepo** | Satu repositori berisi banyak service yang di-build bersama (Maven multi-module) |
 | **Shared CAR** | Artefak `shared-artifacts_1.0.0.car` berisi sequence reusable, dideploy bersama tiap service |
 | **VFS** | Virtual File System transport WSO2 (untuk menulis file ke FTP) |
@@ -122,7 +129,7 @@ flowchart LR
 | Runtime | WSO2 Micro Integrator 4.6.0; logika ditulis dalam Synapse XML |
 | Java | Compiler target Java 1.8 (build image memakai JDK 11/17) |
 | Database | MariaDB (driver `mariadb-java-client:3.3.3`), port lokal 3307 / container 3306 |
-| Build | Maven multi-module (parent aggregator → `shared` + 6 service), tiap module menghasilkan `.car` |
+| Build | Maven multi-module (parent aggregator → `shared` + 7 service: branch, customer, vehicle, vendor, spk, service-request, payments), tiap module menghasilkan `.car` |
 | Port | HTTP `8290`, HTTPS `8253`, Management API `9164` (per service) |
 | Transport | HTTP/HTTPS pass-through; VFS (FTP/SFTP) untuk vendor & spk |
 | Deployment | Docker (multi-stage per service), Docker Compose, Kubernetes |
@@ -134,11 +141,12 @@ flowchart LR
 ### 4.1 Aktor
 - **Client App A** — mengonsumsi data Branch, Customer, dan Vehicle (scope: `branches, customers, vehicles`).
 - **Client App B** — mengonsumsi data Vehicle/Fleet (scope: `vehicles`).
-- **ATLAS** — producer untuk Vendor Master Data (VMD), SPK Duelist, dan Service Request.
+- **ATLAS** — producer untuk Vendor Master Data (VMD), SPK Duelist, Service Request, dan Payment; serta **penerima callback** `vendor_code` dari middleware (alur inbound vendor).
 - **Omnichannel** — consumer Service Request (fan-out).
+- **Barantum** — consumer omnichannel (scope `service_requests, vendors`).
 - **QA Automation** — pengujian otomatis (scope penuh).
 - **Load Balancer / Kubernetes** — melakukan health probe (tanpa token).
-- **Operator/Scheduler** — memicu background retry worker.
+- **Operator/Scheduler** — memicu background retry worker & reprocess vendor failed.
 
 ### 4.2 Use Case Utama
 
@@ -149,11 +157,14 @@ flowchart LR
 | UC-03 | Get Vehicle by License Plate | vehicle-service | `GET /api/vehicles/getByLicensePlate` | vehicles |
 | UC-04 | Create Vendor (VMD → XML → FTP) | vendor-service | `POST /api/vendors/create` | vendors |
 | UC-05 | Create SPK Duelist (→ XML → FTP) | spk-service | `POST /api/spk/duelist` | spk |
-| UC-06 | Service Request fan-out (ATLAS + Ext) | service-request-service | `POST /api/service-requests` | service_requests |
-| UC-07 | Health Liveness/Readiness | semua service | `GET /health`, `/health/ready` | (tanpa token) |
-| UC-08 | Trigger Retry Worker | service-request-service | `POST /api/worker/retry` | operasional |
+| UC-06 | Service Request fan-out (ATLAS + Ext) | service-request-service | `POST`/`GET /api/service-requests` | service_requests |
+| UC-07 | Create Payment Duelist (→ XML → FTP) | payments-service | `POST /api/payments` | payments |
+| UC-08 | Health Liveness/Readiness | semua service | `GET /health/<svc>`, `/readiness/<svc>` | (tanpa token) |
+| UC-09 | Trigger Retry Worker | service-request-service | `POST`/`GET /api/worker/retry` | operasional |
+| UC-10 | Vendor Callback Inbound + Reprocess (PROPOSED) | vendor-service | baca FTP `/vmd/upload` → callback `vendor_code` ke ATLAS; `POST /api/vendors/worker/reprocess-failed` | vendors / operasional |
+| UC-11 | LDAP Login & Find Employee (PROPOSED) | auth-service | `POST /api/auth/login`, `GET /api/auth/findemployee` | auth |
 
-> UC-04, UC-05, UC-06 mengikuti spesifikasi pada guide di `docs/` dan saat ini berupa kerangka service (Health + config) yang siap diimplementasi.
+> **Status:** UC-01…UC-06 dan UC-07 sudah terimplementasi (API + sequence). UC-07 payments sebagian **PROPOSED** (kontrak XML/FTP payments). UC-10 (vendor callback inbound/reprocess) dan UC-11 (auth LDAP) masih **PROPOSED** — rancangan di guide, belum ada artefak runtime.
 
 ---
 
@@ -342,6 +353,7 @@ flowchart TB
 | vendor-service | 8290 | 8293 |
 | spk-service | 8290 | 8294 |
 | service-request-service | 8290 | 8295 |
+| payments-service | 8290 | 8296 |
 | (semua) HTTPS / Management | 8253 / 9164 | — |
 | MariaDB | 3306 | 3308 |
 
@@ -495,9 +507,11 @@ wso2-mi-monorepo/
 │   ├── branch-service/    (BranchAPI, BranchGetByCreateDateSeq, SapCoreDynamicEndpoint)
 │   ├── customer-service/  (CustomerAPI, CustomerGetByCreateDateSeq, SapCoreDynamicEndpoint)
 │   ├── vehicle-service/   (VehicleAPI, VehicleGetByLicensePlateSeq, ExtServiceDynamicEndpoint)
-│   ├── vendor-service/    (VMD → XML → FTP) [kerangka]
-│   ├── spk-service/       (SPK Duelist → XML → FTP) [kerangka]
-│   └── service-request-service/ (fan-out ATLAS + Ext, WorkerAPI) [kerangka]
+│   ├── vendor-service/    (VendorAPI, VendorCreateSeq, VendorFtpEndpoint; callback inbound PROPOSED)
+│   ├── spk-service/       (SpkAPI, SpkDuelistSeq, SpkFtpEndpoint)
+│   ├── service-request-service/ (ServiceRequestAPI, SrToAtlasSeq/Ext, WorkerAPI)
+│   ├── payments-service/  (PaymentsAPI, PaymentsCreateSeq, PaymentsFtpEndpoint; sebagian PROPOSED)
+│   └── auth-service/      (AuthAPI login + findemployee, LDAP → devhcbead.assa.id; PROPOSED)
 ├── platform/
 │   ├── docker/deployment.toml.j2                # Base config template
 │   ├── docker/entrypoint.sh                     # DB forwarder bridge
@@ -513,20 +527,24 @@ wso2-mi-monorepo/
 | SAP Core (dev) | `https://devsapcoreapi.assa.id` | branch-service |
 | SAP Core Customer (prod) | `https://sapcoreapi.assa.id` | customer-service |
 | ASSA External Services (QA/dev) | `https://assa-ext-services.assa.id/{qa,dev}` | vehicle-service, service-request-service |
-| FTP Inbound → SAP | (VFS FTP/SFTP, dari config) | vendor-service, spk-service |
-| API ATLAS (dev) | configurable/toggle (`sr.target.atlas.*`) | service-request-service |
+| FTP Inbound → SAP | (VFS FTP/SFTP, dari config) | vendor-service, spk-service, payments-service |
+| FTP `/vmd/upload` (balikan SAP) | (VFS, dari config) | vendor-service (callback inbound, PROPOSED) |
+| API ATLAS (dev) | configurable/toggle (`sr.target.atlas.*`) | service-request-service; vendor callback (PROPOSED) |
+| HC LDAP backend | `https://devhcbead.assa.id` | auth-service (PROPOSED) |
 
 ### 13.3 App Registry & Scope
 
 | App ID | Nama | Scope |
 |---|---|---|
-| `app_a` | Customer and Branch Service Consumer | branches, customers, vehicles, vendors |
+| `app_a` | Customer and Branch Service Consumer | branches, customers, vehicles, vendors, service_requests, spk, payments |
 | `app_b` | Operations and Fleet Consumer | vehicles |
-| `app_qa` | QA Automation Consumer | branches, customers, vehicles, vendors |
-| `app_atlas` (rencana) | ATLAS Producer | vendors, spk, service_requests |
-| `app_omnichannel` (rencana) | Omnichannel SR Consumer | service_requests |
+| `app_qa` | QA Automation Consumer | branches, customers, vehicles, vendors, service_requests, spk |
+| `app_atlas` | ATLAS Producer/Consumer | **default:** vendors, service_requests |
+| `app_omnichannel` | Omnichannel SR Consumer | service_requests |
+| `app_barantum` | Barantum Omnichannel Consumer | service_requests, vendors |
 
-> Scope `spk` & `service_requests` ditambahkan seiring implementasi service terkait; daftarkan token app pada App Registry (`config.properties`) / Secret.
+> **Catatan scope `app_atlas`:** default saat ini di `AuthGuardSeq` adalah `vendors, service_requests`. Agar ATLAS dapat mengonsumsi seluruh domain (branch, customer, vehicle, spk, payment) dan auth, perluas `auth.app.app_atlas.scopes` menjadi `branches, customers, vehicles, vendors, spk, service_requests, payments, auth` (atau `*`) di `config.properties`/env. Lihat `API_MIDDLEWARE_FOR_ATLAS.md`.
+> Nilai token tiap app di-set via environment (`AUTH_APP_*_TOKEN`); jangan commit nilai rahasia.
 
 ---
 

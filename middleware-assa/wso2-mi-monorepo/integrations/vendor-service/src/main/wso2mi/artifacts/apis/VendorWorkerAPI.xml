@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/vendors/worker" name="VendorWorkerAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Vendor Worker API: Background Job & Reprocess Trigger             -->
+    <!-- Referensi: notes/GUIDE_IMPL_VENDOR_CALLBACK_INBOUND.md            -->
+    <!-- ================================================================= -->
+    <resource methods="POST GET" uri-template="/reprocess-failed">
+        <inSequence>
+            <sequence key="VendorReprocessFailedSeq"/>
+            <property name="HTTP_SC" value="200" scope="axis2" type="STRING"/>
+            <property name="messageType" value="application/json" scope="axis2"/>
+            <property name="ContentType" value="application/json" scope="axis2"/>
+            <payloadFactory media-type="json">
+                <format>
+                    {
+                        "worker": "VendorReprocessFailed",
+                        "status": "COMPLETED",
+                        "timestamp": "$1",
+                        "message": "Vendor reprocess failed worker executed successfully."
+                    }
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="fn:concat(get-property('SYSTEM_DATE', 'yyyy-MM-dd'), 'T', get-property('SYSTEM_DATE', 'HH:mm:ss'))"/>
+                </args>
+            </payloadFactory>
+            <respond/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+</api>

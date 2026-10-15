@@ -4,71 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- ============================================================= -->
-    <!-- Root / Parent POM — WSO2 MI Monorepo (ASSA Middleware)        -->
-    <!-- Aggregator untuk shared/ dan seluruh integrations/*           -->
-    <!-- ============================================================= -->
+    <!-- The existing integrations project remains the source of all modules. -->
     <groupId>id.assa.middleware</groupId>
-    <artifactId>wso2-mi-monorepo</artifactId>
+    <artifactId>assa-wso2-integrators</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
-    <name>wso2-mi-monorepo</name>
-    <description>ASSA WSO2 Micro Integrator Monorepo (multi-service integrations)</description>
+    <name>assa-wso2-integrators</name>
+    <description>Monorepo entry point for the existing ASSA WSO2 integrations</description>
 
-    <!-- Daftar module yang di-aggregate & di-build bersama -->
     <modules>
         <module>shared</module>
-        <module>integrations/branch-service</module>
-        <module>integrations/customer-service</module>
-        <module>integrations/vehicle-service</module>
-        <module>integrations/vendor-service</module>
-        <module>integrations/spk-service</module>
-        <module>integrations/service-request-service</module>
+        <module>integrations</module>
     </modules>
-
-    <properties>
-        <!-- Versi runtime & plugin dipusatkan di parent agar konsisten antar-service -->
-        <project.runtime.version>4.6.0</project.runtime.version>
-        <car.plugin.version>5.4.18</car.plugin.version>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <mariadb.driver.version>3.3.3</mariadb.driver.version>
-        <http.connector.version>0.1.14</http.connector.version>
-        <dockerfile.base.image>wso2/wso2mi:${project.runtime.version}</dockerfile.base.image>
-    </properties>
-
-    <repositories>
-        <repository>
-            <id>wso2-nexus</id>
-            <name>WSO2 internal Repository</name>
-            <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>daily</updatePolicy>
-                <checksumPolicy>ignore</checksumPolicy>
-            </releases>
-        </repository>
-        <repository>
-            <id>wso2.releases</id>
-            <name>WSO2 internal Repository</name>
-            <url>https://maven.wso2.org/nexus/content/repositories/releases/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>daily</updatePolicy>
-                <checksumPolicy>ignore</checksumPolicy>
-            </releases>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>wso2-nexus</id>
-            <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
-            <releases>
-                <enabled>true</enabled>
-                <updatePolicy>daily</updatePolicy>
-                <checksumPolicy>ignore</checksumPolicy>
-            </releases>
-        </pluginRepository>
-    </pluginRepositories>
 </project>

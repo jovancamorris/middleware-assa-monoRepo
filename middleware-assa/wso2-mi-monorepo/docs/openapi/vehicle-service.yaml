@@ -1,0 +1,542 @@
+openapi: 3.0.3
+info:
+  title: Vehicle Service API
+  description: |
+    API integrasi data armada kendaraan (*vehicle*) ASSA dengan backend FMS/ATLAS melalui WSO2 Integrator: MI.
+    Sesuai standar `API_DEVELOPMENT_GUIDE.md` pada repository `wso2-mi-monorepo`.
+  version: 1.0.0
+
+servers:
+  - url: /
+    description: Gateway URL configured by SWAGGER_SERVER_URL
+
+tags:
+  - name: Vehicle
+    description: Pencarian dan detail spesifikasi kendaraan
+  - name: Health
+    description: Probe liveness dan readiness container
+
+paths:
+  /api/vehicles:
+    get:
+      tags:
+        - Vehicle
+      operationId: getVehicles
+      summary: Mengambil data kendaraan dengan pagination dan filter
+      description: |
+        Mencari data kendaraan dan alokasi unit. Endpoint ini merupakan rute dasar `/api/vehicles`
+        dan menggunakan sequence pencarian kendaraan yang sama dengan endpoint lainnya.
+        Memerlukan token terdaftar dengan scope `vehicles`.
+      security:
+        - bearerAuth:
+            - vehicles
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: plat_no
+          in: query
+          required: false
+          description: Nomor polisi kendaraan untuk filter / pencarian
+          schema:
+            type: string
+            example: 'B-9065'
+        - name: plate_no
+          in: query
+          required: false
+          description: Alias untuk `plat_no`
+          schema:
+            type: string
+        - name: equipment_no
+          in: query
+          required: false
+          description: Nomor equipment kendaraan
+          schema:
+            type: string
+            example: '10066574'
+        - name: branchCode
+          in: query
+          required: false
+          description: Kode cabang
+          schema:
+            type: string
+            example: '1131'
+        - name: status_id
+          in: query
+          required: false
+          description: Filter status unit kendaraan
+          schema:
+            type: integer
+            example: 11
+        - name: color
+          in: query
+          required: false
+          description: Filter warna kendaraan
+          schema:
+            type: string
+            example: WHITE
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman data (default 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah data per halaman (default 10)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - $ref: '#/components/parameters/FilterBy'
+        - name: limit
+          in: query
+          required: false
+          description: Alias limit data (ekuivalen perPage)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: offset
+          in: query
+          required: false
+          description: Alias offset pagination data
+          schema:
+            type: integer
+            default: 0
+            example: 0
+      responses:
+        '200':
+          description: Data kendaraan berhasil ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleDataResponse'
+              example:
+                success: true
+                total: 30370
+                page: 1
+                perPage: 10
+                data:
+                  - licensePlate: 'B-2188-URR'
+                    equipmentNumber: '10066574'
+                    chassisNumber: '10066574'
+                    engineNumber: ''
+                    brand: DAIHATSU
+                    model: SIGRA R
+                    vehicleType: Minibus
+                    year: '2026'
+                    color: HITAM
+                    transmisi: Automatic
+                    cc: 1200
+                    odometer: 0
+                    plate_no: 'B-2188-URR'
+                    equipment_no: '10066574'
+                    branch_code: '1131'
+                    branch_name: Bandung
+                    tipe_kendaraan: 'DAIHATSU SIGRA R 1.2 A/T'
+                    unit_allocation: LT
+                    status_id: 11
+                    asset_status: ''
+                    responsible_area: ''
+                    booking_status: ''
+                    production_year: 2026
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/vehicles/getByLicensePlate:
+    get:
+      tags:
+        - Vehicle
+      operationId: getVehicleByLicensePlate
+      summary: Mengambil data kendaraan dengan pagination dan filter plat_no
+      description: |
+        Mencari data kendaraan dan alokasi unit berdasarkan parameter pencarian nomor polisi (`plat_no`).
+        Mendukung paginasi data menggunakan `page` dan `perPage` seperti pada Customer Service.
+        Memerlukan token terdaftar dengan scope `vehicles`.
+      security:
+        - bearerAuth:
+            - vehicles
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: plat_no
+          in: query
+          required: false
+          description: Nomor polisi kendaraan untuk filter / pencarian (misal B-9065, DD-8112)
+          schema:
+            type: string
+            example: 'B-9065'
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman data (default 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah data per halaman (default 10)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - $ref: '#/components/parameters/FilterBy'
+        - name: limit
+          in: query
+          required: false
+          description: Alias limit data (ekuivalen perPage)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - name: offset
+          in: query
+          required: false
+          description: Alias offset pagination data
+          schema:
+            type: integer
+            default: 0
+            example: 0
+      responses:
+        '200':
+          description: Data kendaraan berhasil ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleDataResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/vehicles/vehicleatlas:
+    get:
+      tags:
+        - Vehicle
+      operationId: getVehicleAtlas
+      summary: Endpoint alias / legacy Vehicle Atlas dengan pagination dan filter plat_no
+      description: |
+        Endpoint integrasi pencarian data armada untuk aplikasi ATLAS.
+        Rute ini memanggil sequence domain yang sama dengan `/getByLicensePlate` dan mendukung filter `plat_no` serta pagination `page` & `perPage`.
+      security:
+        - bearerAuth:
+            - vehicles
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: plat_no
+          in: query
+          required: false
+          description: Nomor polisi kendaraan untuk filter / pencarian (misal B-9065, DD-8112)
+          schema:
+            type: string
+            example: 'B-9065'
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman data (default 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah data per halaman (default 10)
+          schema:
+            type: integer
+            default: 10
+            example: 10
+        - $ref: '#/components/parameters/FilterBy'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Data kendaraan berhasil ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleDataResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /health/vehicle:
+    get:
+      tags:
+        - Health
+      operationId: getVehicleHealth
+      summary: Health check liveness Vehicle Service
+      description: Memeriksa apakah service WSO2 MI hidup dan responsif.
+      security: []
+      responses:
+        '200':
+          description: Service hidup (Liveness probe sukses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /readiness/vehicle:
+    get:
+      tags:
+        - Health
+      operationId: getVehicleReadiness
+      summary: Health check readiness Vehicle Service
+      description: Memeriksa apakah service siap menerima traffic.
+      security: []
+      responses:
+        '200':
+          description: Service siap (Readiness probe sukses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Masukkan Bearer Token aplikasi yang memiliki scope `vehicles` (misal Token App B atau QA).
+        Token dibaca dari environment/secret lokal.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: ID korelasi unik untuk tracing log end-to-end
+      schema:
+        type: string
+        maxLength: 128
+        example: corr-vehicle-001
+    FilterBy:
+      name: filterBy
+      in: query
+      required: false
+      description: |
+        Parameter pencarian serbaguna (single field search). Nilai parameter ini dapat berupa:
+        - Nomor polisi / plat kendaraan (misal `B-9065`, `DD-8112`, atau alias `plate_no`/`licensePlate`)
+        - Nomor equipment unik kendaraan (`equipment_no`, misal `10027282`)
+        - Kode cabang (`branchCode`, misal `1411`)
+        - Filter status unit kendaraan (`status_id`, misal `11`)
+        - Filter warna kendaraan (`color`, misal `WHITE`)
+        - Nama cabang atau tipe kendaraan
+      schema:
+        type: string
+        example: 'B-9065'
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+
+    ReadinessResponse:
+      type: object
+      required:
+        - status
+        - backend
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: READY
+        backend:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Bad Request
+        detail:
+          type: string
+          example: Parameter plate_no or search query is required.
+        transactionId:
+          type: string
+          nullable: true
+          example: TRX-20260924150000001
+
+    VehicleDataResponse:
+      type: object
+      description: Response payload data armada kendaraan dengan paginasi standar ASSA Middleware
+      properties:
+        success:
+          type: boolean
+          example: true
+        total:
+          type: integer
+          example: 30370
+        page:
+          type: integer
+          example: 1
+        perPage:
+          type: integer
+          example: 10
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleDetail'
+
+    VehicleDetail:
+      type: object
+      properties:
+        licensePlate:
+          type: string
+          example: 'B-2188-URR'
+          description: Nomor polisi / plat kendaraan
+        equipmentNumber:
+          type: string
+          example: '10066574'
+          description: Nomor equipment kendaraan
+        chassisNumber:
+          type: string
+          example: '10066574'
+          description: Nomor rangka / chassis kendaraan
+        engineNumber:
+          type: string
+          example: ''
+          description: Nomor mesin kendaraan
+        brand:
+          type: string
+          example: 'DAIHATSU'
+          description: Merek kendaraan
+        model:
+          type: string
+          example: 'SIGRA R'
+          description: Model / varian kendaraan
+        vehicleType:
+          type: string
+          example: 'Minibus'
+          description: Tipe kendaraan
+        year:
+          type: string
+          example: '2026'
+          description: Tahun produksi kendaraan
+        color:
+          type: string
+          example: 'HITAM'
+          description: Warna kendaraan
+        transmisi:
+          type: string
+          example: 'Automatic'
+          description: Transmisi kendaraan (Automatic / Manual)
+        cc:
+          type: integer
+          example: 1200
+          description: Kapasitas mesin dalam cc
+        odometer:
+          type: integer
+          example: 0
+          description: Jarak tempuh kendaraan (km / odometer)
+        equipment_no:
+          type: string
+          example: '10066574'
+        plate_no:
+          type: string
+          example: 'B-2188-URR'
+        branch_code:
+          type: string
+          example: '1131'
+        branch_name:
+          type: string
+          example: 'Bandung'
+        tipe_kendaraan:
+          type: string
+          example: 'DAIHATSU SIGRA R 1.2 A/T'
+        unit_allocation:
+          type: string
+          example: 'LT'
+        status_id:
+          type: integer
+          nullable: true
+          example: 11
+        production_year:
+          type: integer
+          nullable: true
+          example: 2026
+        asset_status:
+          type: string
+          example: ''
+        responsible_area:
+          type: string
+          example: ''
+        booking_status:
+          type: string
+          example: ''
+
+  responses:
+    BadRequest:
+      description: Parameter pencarian tidak valid atau kosong
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Token tidak ada, format salah, atau tidak terdaftar
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Token valid tetapi tidak memiliki scope `vehicles`
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadGateway:
+      description: Backend FMS gagal merespons
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="BranchGetByCreateDateSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- 1. Parameter Extraction with Defaults from Configuration          -->
-    <!-- ================================================================= -->
     <property name="companyCode" expression="$url:companyCode" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:companyCode) = 0">
         <then>
@@ -54,24 +51,66 @@
         </then>
     </filter>
 
-    <!-- ================================================================= -->
-    <!-- 2. Observability Logging & Idempotency Guard                      -->
-    <!-- ================================================================= -->
+    <property name="page" expression="$url:page" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:page) = 0">
+        <then>
+            <property name="page" expression="get-property('file', 'default.page')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:page) = 0">
+                <then>
+                    <property name="page" expression="get-property('system', 'default.page')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:page) = 0">
+                <then>
+                    <property name="page" value="1" scope="default" type="STRING"/>
+                </then>
+            </filter>
+        </then>
+    </filter>
+
+    <property name="perPage" expression="$url:perPage" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:perPage) = 0">
+        <then>
+            <property name="perPage" expression="get-property('file', 'default.perPage')" scope="default" type="STRING"/>
+            <filter xpath="string-length($ctx:perPage) = 0">
+                <then>
+                    <property name="perPage" expression="get-property('system', 'default.perPage')" scope="default" type="STRING"/>
+                </then>
+            </filter>
+            <filter xpath="string-length($ctx:perPage) = 0">
+                <then>
+                    <property name="perPage" value="10" scope="default" type="STRING"/>
+                </then>
+            </filter>
+        </then>
+    </filter>
+
+    <property name="filterBy" expression="$url:filterBy" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filterdby" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filteredBy" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:filterBy) = 0">
+        <then>
+            <property name="filterBy" expression="$url:filter_by" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
     <property name="api.endpoint" value="/api/branches/getByCreateDate" scope="default" type="STRING"/>
-    <property name="api.params" expression="fn:concat('companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd)" scope="default" type="STRING"/>
+    <property name="api.params" expression="fn:concat('companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage, '&amp;filterBy=', $ctx:filterBy)" scope="default" type="STRING"/>
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>
 
-    <!-- ================================================================= -->
-    <!-- 3. Base URL Resolution (4-Layer: ENV -> System -> File -> Default)-->
-    <!-- ================================================================= -->
     <property name="baseUrlConfigKey" value="sap.core.base.url" scope="default" type="STRING"/>
     <property name="envVarKey" value="SAP_CORE_BASE_URL" scope="default" type="STRING"/>
     <sequence key="ResolveBaseUrlSeq"/>
 
-    <!-- ================================================================= -->
-    <!-- 4. Path from Configuration & Compose Target Backend URL           -->
-    <!-- ================================================================= -->
     <property name="sapApiPath" expression="get-property('file', 'sap.api.path.branch.getByCreateDate')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:sapApiPath) = 0">
         <then>
@@ -79,11 +118,8 @@
         </then>
     </filter>
 
-    <property name="uri.var.sapBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:sapApiPath, '?companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd)" scope="default" type="STRING"/>
-
-    <!-- ================================================================= -->
-    <!-- 5. Invoke SapCoreDynamicEndpoint with 3x Retry & DB Logging       -->
-    <!-- ================================================================= -->
+    <property name="uri.var.sapBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:sapApiPath, '?companyCode=', $ctx:companyCode, '&amp;dateStart=', $ctx:dateStart, '&amp;dateEnd=', $ctx:dateEnd, '&amp;page=', $ctx:page, '&amp;perPage=', $ctx:perPage)" scope="default" type="STRING"/>
+    <property name="paginationEnabled" value="true" scope="default" type="STRING"/>
     <property name="targetEndpointKey" value="SapCoreDynamicEndpoint" scope="default" type="STRING"/>
     <sequence key="SafeApiCallWithRetrySeq"/>
 </sequence>

@@ -1,0 +1,348 @@
+openapi: 3.0.3
+info:
+  title: Auth Service API
+  description: |
+    Layanan integrasi autentikasi LDAP ASSA dengan backend Human Capital (HC) melalui WSO2 Integrator: MI.
+    Sesuai standar `API_DEVELOPMENT_GUIDE.md` pada repository `wso2-mi-monorepo`.
+  version: 1.0.0
+
+servers:
+  - url: /
+    description: Gateway URL configured by SWAGGER_SERVER_URL
+
+tags:
+  - name: Auth
+    description: Layanan autentikasi dan identitas pengguna
+  - name: Health
+    description: Probe liveness dan readiness container
+
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      operationId: loginLdap
+      summary: Autentikasi pengguna via LDAP backend Human Capital (HC)
+      description: |
+        Menerima kredensial `username` dan `password` dalam format `application/x-www-form-urlencoded`
+        (atau `application/json`) dan mem-forward ke backend Human Capital (HC) `/auth/login`.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: Username akun LDAP pengguna
+                  example: admindev
+                password:
+                  type: string
+                  format: password
+                  description: Password akun pengguna
+                  example: "********"
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: Username akun LDAP pengguna
+                  example: admindev
+                password:
+                  type: string
+                  format: password
+                  description: Password akun pengguna
+                  example: "********"
+      responses:
+        '200':
+          description: Login berhasil dan kredensial valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccessResponse'
+        '400':
+          description: Request tidak valid, field kosong, atau kredensial salah
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/LoginFailedResponse'
+                  - $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Bad Gateway - backend Human Capital (HC) tidak dapat dihubungi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: Gateway Timeout - koneksi ke backend Human Capital (HC) timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/findemployee:
+    get:
+      tags:
+        - Auth
+      operationId: findEmployeeByUsername
+      summary: Mencari data pegawai berdasarkan username LDAP
+      description: |
+        Meneruskan pencarian ke backend Human Capital (HC) `/userldap/getbyusername`.
+        Memerlukan token App A atau QA yang terdaftar dengan scope `employees` pada auth-service.
+      security:
+        - bearerAuth:
+            - employees
+      parameters:
+        - name: username
+          in: query
+          required: true
+          description: Username LDAP pegawai yang dicari
+          schema:
+            type: string
+          example: nobi.sumariga
+      responses:
+        '200':
+          description: Data pegawai berhasil ditemukan; response diteruskan dari HC
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindEmployeeResponse'
+        '400':
+          description: Query parameter username tidak diberikan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Token tidak ada, format salah, atau tidak terdaftar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Token valid tetapi tidak memiliki scope employees
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Backend HC gagal merespons
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: Backend HC timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health/auth:
+    get:
+      tags:
+        - Health
+      operationId: getAuthHealth
+      summary: Health check liveness Auth Service
+      description: Memeriksa apakah service WSO2 MI hidup dan responsif.
+      responses:
+        '200':
+          description: Service aktif
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /readiness/auth:
+    get:
+      tags:
+        - Health
+      operationId: getAuthReadiness
+      summary: Readiness check Auth Service
+      description: Memeriksa apakah service WSO2 MI siap menerima trafik.
+      responses:
+        '200':
+          description: Service siap menerima request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Masukkan token aplikasi yang terdaftar dan memiliki scope employees.
+
+  schemas:
+    FindEmployeeResponse:
+      type: object
+      description: Response employee dari backend HC
+      properties:
+        message:
+          type: string
+          example: Success
+        count:
+          type: integer
+          example: 1
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 445
+              ldap_id:
+                type: string
+                example: nobi.sumariga
+              fullname:
+                type: string
+                example: Nobi Sumariga
+              email:
+                type: string
+                format: email
+                example: employee@example.com
+              emplno:
+                type: string
+                example: '1605287'
+              isActive:
+                type: integer
+                example: 1
+
+    LoginSuccessResponse:
+      type: object
+      description: Payload response sukses autentikasi LDAP dari backend HC
+      properties:
+        message:
+          type: string
+          example: Success
+        count:
+          type: integer
+          example: 1
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserDataItem'
+
+    UserDataItem:
+      type: object
+      properties:
+        ldap_id:
+          type: string
+          example: admindev
+        empl_no:
+          type: string
+          nullable: true
+          example: null
+        firstname:
+          type: string
+          example: Administrator
+        lastname:
+          type: string
+          nullable: true
+          example: null
+        company_code:
+          type: string
+          nullable: true
+          example: null
+        personnel_area_code:
+          type: string
+          nullable: true
+          example: null
+        personnel_area_name:
+          type: string
+          nullable: true
+          example: null
+        personnel_subarea_code:
+          type: string
+          nullable: true
+          example: null
+        personnel_subarea_name:
+          type: string
+          nullable: true
+          example: null
+        isActive:
+          type: integer
+          example: 1
+        organization_unit:
+          type: string
+          nullable: true
+          example: null
+
+    LoginFailedResponse:
+      type: object
+      description: Payload response gagal autentikasi LDAP dari backend HC
+      properties:
+        message:
+          type: string
+          example: Failed
+        count:
+          type: integer
+          nullable: true
+          example: null
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Invalid Credential or Account Terminated
+
+    ErrorResponse:
+      type: object
+      description: Standar format respons error middleware ASSA
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Bad Request
+        detail:
+          type: string
+          example: Field 'username' dan 'password' wajib diisi
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-10-12T09:00:00'
+
+    ReadinessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: READY
+        backend:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-10-12T09:00:00'

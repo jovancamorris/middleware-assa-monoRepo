@@ -1,30 +1,68 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>id.assa.middleware</groupId>
-        <artifactId>wso2-mi-monorepo</artifactId>
+        <artifactId>assa-wso2-integrators</artifactId>
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
-
-    <!-- ============================================================= -->
-    <!-- Shared Artifacts — Reusable Sequences (Auth, Logging, Error,  -->
-    <!-- Idempotency, Retry, DB, Pagination, Health, Worker)           -->
-    <!-- Di-package sebagai CAR agar bisa dideploy sekali & dipakai    -->
-    <!-- lintas service via <sequence key="..."/>.                     -->
-    <!-- ============================================================= -->
+    <groupId>com.microintegrator.projects</groupId>
     <artifactId>shared-artifacts</artifactId>
     <packaging>pom</packaging>
     <name>shared-artifacts</name>
-
+    <description>Reusable WSO2 MI sequences shared by integration services</description>
+    <repositories>
+        <repository>
+            <id>wso2-nexus</id>
+            <name>WSO2 internal Repository</name>
+            <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
+        </repository>
+        <repository>
+            <id>wso2.releases</id>
+            <name>WSO2 internal Repository</name>
+            <url>https://maven.wso2.org/nexus/content/repositories/releases/</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>wso2-nexus</id>
+            <name>WSO2 internal Repository</name>
+            <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
+            <releases>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
+        </pluginRepository>
+    </pluginRepositories>
     <properties>
         <projectType>integration-project</projectType>
+        <versionedDeployment>false</versionedDeployment>
+        <uuid>c1e6e6c8-38cc-4c7d-8db9-42f97a1e2b0a</uuid>
+        <keystore.type>JKS</keystore.type>
+        <keystore.name>wso2carbon.jks</keystore.name>
+        <keystore.password>wso2carbon</keystore.password>
+        <keystore.alias>wso2carbon</keystore.alias>
+        <fat.car.enable>false</fat.car.enable>
+        <ciphertool.enable>true</ciphertool.enable>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.scm.id>integration-project</project.scm.id>
+        <dockerfile.base.image>wso2/wso2mi:${project.runtime.version}</dockerfile.base.image>
+        <project.runtime.version>4.6.0</project.runtime.version>
+        <car.plugin.version>5.4.18</car.plugin.version>
     </properties>
-
     <build>
         <plugins>
             <plugin>
@@ -38,6 +76,27 @@
                         <goals>
                             <goal>car</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>2.5.2</version>
+                <executions>
+                    <execution>
+                        <id>install-car</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <configuration>
+                            <packaging>car</packaging>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <groupId>${project.groupId}</groupId>
+                            <version>${project.version}</version>
+                            <file>${project.build.directory}/${project.artifactId}_${project.version}.car</file>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

@@ -1,12 +1,4 @@
-# ==============================================================================
-# Base Kubernetes Manifest — WSO2 MI Integration Service (template)
-# Reusable base untuk SEMUA service. Ganti placeholder __SERVICE_NAME__ dan
-# __IMAGE__ (via kustomize/helm/sed) untuk tiap service integrasi.
-#
-# Contoh render:
-#   sed 's/__SERVICE_NAME__/branch-service/g; s#__IMAGE__#<REGISTRY>/branch-service:1.0.0#g' \
-#       platform/k8s/base-deployment.yaml | kubectl apply -f -
-# ==============================================================================
+# Reusable Kubernetes manifest for each existing integration service.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -26,8 +18,6 @@ spec:
         app: __SERVICE_NAME__
         tier: integration
     spec:
-      # imagePullSecrets:
-      #   - name: regcred
       containers:
         - name: __SERVICE_NAME__
           image: __IMAGE__
@@ -44,25 +34,25 @@ spec:
             - name: DB_PASSWORD
               valueFrom: { secretKeyRef: { name: middleware-secret, key: DB_PASSWORD } }
           startupProbe:
-            httpGet: { path: /health, port: 8290 }
+            httpGet: { path: /health/__SERVICE_NAME__, port: 8290 }
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 30
           readinessProbe:
-            httpGet: { path: /health/ready, port: 8290 }
+            httpGet: { path: /readiness/__SERVICE_NAME__, port: 8290 }
             initialDelaySeconds: 40
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 6
           livenessProbe:
-            httpGet: { path: /health, port: 8290 }
+            httpGet: { path: /health/__SERVICE_NAME__, port: 8290 }
             initialDelaySeconds: 60
             periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 3
           resources:
             requests: { cpu: "500m", memory: "768Mi" }
-            limits:   { cpu: "1500m", memory: "1536Mi" }
+            limits: { cpu: "1500m", memory: "1536Mi" }
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false

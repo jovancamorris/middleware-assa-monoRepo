@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="AuthFindEmployeeSeq" onError="ErrorResponseSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <property name="username" expression="$url:username" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:username) = 0">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Query param 'username' wajib diisi" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <property name="baseUrlConfigKey" value="hc.base.url" scope="default" type="STRING"/>
+    <property name="envVarKey" value="HC_BASE_URL" scope="default" type="STRING"/>
+    <sequence key="ResolveBaseUrlSeq"/>
+
+    <property name="hcFindPath" expression="get-property('env', 'HC_FINDEMP_PATH')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:hcFindPath) = 0">
+        <then>
+            <property name="hcFindPath" expression="get-property('file', 'hc.findemp.path')" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <filter xpath="string-length($ctx:hcFindPath) = 0">
+        <then>
+            <property name="hcFindPath" value="/userldap/getbyusername" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <property name="uri.var.hcBackendUrl" expression="fn:concat($ctx:resolvedBaseUrl, $ctx:hcFindPath, '?username=', url-encode($ctx:username))" scope="default" type="STRING"/>
+    <property name="HTTP_METHOD" value="GET" scope="axis2"/>
+    <header name="To" action="remove"/>
+    <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+    <call>
+        <endpoint key="HcLdapDynamicEndpoint"/>
+    </call>
+
+    <property name="hcStatusCode" expression="$axis2:HTTP_SC" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:hcStatusCode) &gt; 0">
+        <then>
+            <property name="HTTP_SC" expression="$ctx:hcStatusCode" scope="axis2"/>
+        </then>
+    </filter>
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+    <respond/>
+</sequence>

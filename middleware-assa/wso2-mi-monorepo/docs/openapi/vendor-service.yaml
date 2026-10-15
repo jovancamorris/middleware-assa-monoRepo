@@ -1,0 +1,538 @@
+openapi: 3.0.3
+info:
+  title: Vendor Service API
+  description: |
+    API integrasi pembuatan master vendor ASSA (VMD Interface V2 XML -> FTP SAP) melalui WSO2 Integrator: MI.
+    Sesuai standar `API_DEVELOPMENT_GUIDE.md` pada repository `wso2-mi-monorepo`.
+  version: 1.0.0
+
+servers:
+  - url: /
+    description: Gateway URL configured by SWAGGER_SERVER_URL
+
+tags:
+  - name: Vendor
+    description: Registrasi dan sinkronisasi master data vendor
+  - name: Worker
+    description: Eksekutor background worker dan reprocess antrean transaksi gagal
+  - name: Health
+    description: Probe liveness dan readiness container
+
+paths:
+  /api/vendors/create:
+    post:
+      tags:
+        - Vendor
+      operationId: createVendor
+      summary: Registrasi master vendor baru (XML over FTP)
+      description: |
+        Menerima payload JSON 17 field master data vendor dari sistem client (ATLAS), 
+        mengkonversinya menjadi dokumen XML standar SAP VMD, mencatat transaksi ke database MariaDB,
+        dan mengunggah file XML ke server FTP Inbound SAP (`/vmd/upload`).
+
+        **Mekanisme Idempotency**:
+        Sertakan header `X-Transaction-Id` (atau `X-Idempotency-Key`). Bila transaksi dengan ID yang sama
+        sudah pernah sukses diproses, sistem akan mengembalikan status `200 OK` (Replay) dengan header
+        `X-Idempotent-Replay: true` tanpa mengunggah ulang file ke FTP.
+      security:
+        - bearerAuth:
+            - vendors
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/TransactionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/ForwardedFor'
+      requestBody:
+        required: true
+        description: 17 Field Master Data Vendor
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VendorCreateRequest'
+            example:
+              Vendor_ID: "82165871"
+              Company_Code: "1000"
+              Company_Name: "PT Adi Sarana Armada Tbk"
+              Vendor_Type: "New/Extend"
+              Account_Number: "1200010978489"
+              Account_Name: "Robby Yulianto Setiawan"
+              Bank_Name: "Mandiri"
+              HO_Email: "assa@assarent.co.id"
+              HO_Phone: "082246605199"
+              HO_Address: "Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410"
+              Contact_Name: "Robby Contact"
+              Contact_Phone: "08224660189"
+              NPWP: "3173080209920003"
+              TOP: "T014"
+              Account_Group: "V010"
+              GL_Account: "2121000000"
+              DocumentNumber: "VENDOR-ATLAS-000123"
+      responses:
+        '201':
+          description: Vendor berhasil dibuat dan diunggah ke FTP
+          headers:
+            X-Transaction-Id:
+              schema:
+                type: string
+            X-Correlation-Id:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorSuccessResponse'
+        '200':
+          description: Idempotency Replay — transaksi sudah sukses sebelumnya
+          headers:
+            X-Idempotent-Replay:
+              schema:
+                type: boolean
+                example: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/vendors/getByCreateDate:
+    get:
+      tags:
+        - Vendor
+      operationId: getVendorByCreateDate
+      summary: Ambil data master vendor dari SAP Core berdasarkan rentang tanggal
+      description: |
+        Mengambil data master vendor dari SAP Core (`/api/Vendor/GetByCreateDate`) dengan dukungan:
+        1. Filter universal vendor (`filterBy`) secara substring case-insensitive (mencocokkan VendorCode atau VendorName) di middleware.
+        2. Pagination konsisten dengan envelope `{ success, total, page, perPage, data }`.
+      security:
+        - bearerAuth:
+            - vendors
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - name: companyCode
+          in: query
+          required: false
+          description: Kode Company SAP ASSA
+          schema:
+            type: string
+            default: '1000'
+            example: '1000'
+        - name: dateStart
+          in: query
+          required: false
+          description: Tanggal awal (format YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            default: '2020-01-01'
+            example: '2020-01-01'
+        - name: dateEnd
+          in: query
+          required: false
+          description: Tanggal akhir (format YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+            default: '2026-10-08'
+            example: '2026-10-08'
+        - name: filterBy
+          in: query
+          required: false
+          description: Filter pencarian universal vendor (kode atau nama vendor, substring case-insensitive). Mendukung alias filteredBy atau filterdby.
+          schema:
+            type: string
+            example: 'ASTRA'
+        - name: page
+          in: query
+          required: false
+          description: Nomor halaman pagination (dimulai dari 1)
+          schema:
+            type: integer
+            default: 1
+            example: 1
+        - name: perPage
+          in: query
+          required: false
+          description: Jumlah data per halaman
+          schema:
+            type: integer
+            default: 10
+            example: 10
+      responses:
+        '200':
+          description: Data vendor berhasil diambil dengan pagination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VendorPageResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /health/vendor:
+    get:
+      tags:
+        - Health
+      operationId: getVendorHealth
+      summary: Health check liveness Vendor Service
+      description: Memeriksa apakah service WSO2 MI hidup dan responsif.
+      security: []
+      responses:
+        '200':
+          description: Service hidup (Liveness probe sukses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /readiness/vendor:
+    get:
+      tags:
+        - Health
+      operationId: getVendorReadiness
+      summary: Health check readiness Vendor Service
+      description: Memeriksa kesiapan service dan konektivitas database / FTP.
+      security: []
+      responses:
+        '200':
+          description: Service siap (Readiness probe sukses)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+
+  /api/vendors/worker/reprocess-failed:
+    post:
+      tags:
+        - Worker
+      summary: Trigger manual reprocess of failed vendor callback transactions
+      description: |
+        Memproses ulang transaksi balikan XML vendor dari SAP ke ATLAS yang berstatus `FAILED` atau `RETRY`
+        dan belum melebihi batas percobaan (`max_attempts`).
+      operationId: reprocessFailedVendorCallbacks
+      security: []
+      responses:
+        '200':
+          description: Worker reprocess dieksekusi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  worker:
+                    type: string
+                    example: VendorReprocessFailed
+                  status:
+                    type: string
+                    example: COMPLETED
+                  timestamp:
+                    type: string
+                    example: '2026-10-09T16:30:00'
+                  message:
+                    type: string
+                    example: Vendor reprocess failed worker executed successfully.
+    get:
+      tags:
+        - Worker
+      summary: Trigger manual reprocess via GET
+      description: Sama dengan POST /api/vendors/worker/reprocess-failed untuk kemudahan trigger via browser atau monitoring probe.
+      operationId: getReprocessFailedVendorCallbacks
+      security: []
+      responses:
+        '200':
+          description: Worker reprocess dieksekusi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  worker:
+                    type: string
+                    example: VendorReprocessFailed
+                  status:
+                    type: string
+                    example: COMPLETED
+                  timestamp:
+                    type: string
+                    example: '2026-10-09T16:30:00'
+                  message:
+                    type: string
+                    example: Vendor reprocess failed worker executed successfully.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Masukkan Bearer Token aplikasi yang memiliki scope `vendors` (misal Token QA).
+        Token dibaca dari environment/secret lokal.
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: ID korelasi unik untuk tracing log end-to-end
+      schema:
+        type: string
+        maxLength: 128
+        example: corr-vmd-001
+    TransactionId:
+      name: X-Transaction-Id
+      in: header
+      required: false
+      description: ID unik transaksi untuk proteksi Idempotency Guard
+      schema:
+        type: string
+        example: TRX-VMD-20260924-001
+    IdempotencyKey:
+      name: X-Idempotency-Key
+      in: header
+      required: false
+      description: Alias alternatif untuk X-Transaction-Id
+      schema:
+        type: string
+        example: TRX-VMD-20260924-001
+    ForwardedFor:
+      name: X-Forwarded-For
+      in: header
+      required: false
+      description: Alamat IP client pemanggil (dicatat pada Header XML)
+      schema:
+        type: string
+        example: 10.20.30.40
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+
+    ReadinessResponse:
+      type: object
+      required:
+        - status
+        - backend
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: READY
+        backend:
+          type: string
+          example: UP
+        timestamp:
+          type: string
+          example: '2026-09-24T15:30:00'
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Bad Request
+        detail:
+          type: string
+          example: Missing mandatory vendor fields.
+        transactionId:
+          type: string
+          nullable: true
+          example: TRX-20260924150000001
+
+    VendorCreateRequest:
+      type: object
+      required:
+        - Vendor_ID
+        - Company_Name
+        - Vendor_Type
+        - Account_Number
+        - Account_Name
+        - Bank_Name
+        - HO_Email
+        - HO_Phone
+        - HO_Address
+        - NPWP
+        - TOP
+        - Account_Group
+        - GL_Account
+        - DocumentNumber
+      properties:
+        Vendor_ID:
+          type: string
+          description: ID unik master vendor dari ATLAS/SAP (mis. 82165871)
+          example: '82165871'
+        Company_Code:
+          type: string
+          description: Kode perusahaan SAP tujuan (mis. 1000). Jika tidak disertakan, default ke 1000.
+          example: "1000"
+        Company_Name:
+          type: string
+          description: Nama lengkap perusahaan vendor
+          example: PT Adi Sarana Armada Tbk
+        Vendor_Type:
+          type: string
+          description: Tipe vendor SAP (mis. New/Extend)
+          example: 'New/Extend'
+        Account_Number:
+          type: string
+          description: Nomor rekening bank
+          example: '1200010978489'
+        Account_Name:
+          type: string
+          description: Nama rekening buku tabungan
+          example: Robby Yulianto Setiawan
+        Bank_Name:
+          type: string
+          description: Nama bank rekanan
+          example: Mandiri
+        HO_Email:
+          type: string
+          format: email
+          description: Email kantor pusat
+          example: assa@assarent.co.id
+        HO_Phone:
+          type: string
+          description: Telepon kantor pusat
+          example: '082246605199'
+        HO_Address:
+          type: string
+          description: Alamat kantor pusat lengkap
+          example: Jalan Nusa Indah 2 Block C.ext 8 no 7, Duri Kosambi, Jakarta Barat, DKI Jakarta, 11410
+        Contact_Name:
+          type: string
+          description: Nama PIC vendor (opsional)
+          example: Robby Contact
+        Contact_Phone:
+          type: string
+          description: Telepon PIC vendor (opsional)
+          example: '08224660189'
+        NPWP:
+          type: string
+          description: 16 digit NPWP
+          example: '3173080209920003'
+        TOP:
+          type: string
+          description: Term of Payment SAP (T014, dll.)
+          example: T014
+        Account_Group:
+          type: string
+          description: Grup akun SAP (V010, V020, V030)
+          example: V010
+        GL_Account:
+          type: string
+          description: Nomor General Ledger SAP
+          example: '2121000000'
+        DocumentNumber:
+          type: string
+          description: Nomor referensi dokumen ATLAS
+          example: VENDOR-ATLAS-000123
+
+    VendorSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Vendor (VMD) accepted and delivered to FTP
+        transactionId:
+          type: string
+          example: TRX-VMD-20260924-001
+        fileName:
+          type: string
+          example: VMD-82165871-20260925.xml
+        documentNumber:
+          type: string
+          example: VENDOR-ATLAS-000123
+
+    VendorPageResponse:
+      type: object
+      required:
+        - success
+        - total
+        - page
+        - perPage
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        total:
+          type: integer
+          description: Total jumlah record yang sesuai filter
+          example: 2
+        page:
+          type: integer
+          description: Halaman saat ini
+          example: 1
+        perPage:
+          type: integer
+          description: Jumlah record per halaman
+          example: 10
+        data:
+          type: array
+          description: List master vendor dari SAP Core
+          items:
+            type: object
+            additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Parameter atau payload tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Token tidak ada atau salah
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Token valid tetapi tidak memiliki scope `vendors`
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Transaksi dengan ID ini sedang diproses (409 Conflict)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadGateway:
+      description: Pengunggahan file ke FTP SAP gagal setelah proses retry
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

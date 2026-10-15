@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="VendorInboundCallbackSeq" onError="VendorInboundFaultSeq" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Vendor Inbound Callback Sequence (SAP to ATLAS)                   -->
+    <!-- Referensi: notes/GUIDE_IMPL_VENDOR_CALLBACK_INBOUND.md            -->
+    <!-- ================================================================= -->
+
+    <!-- 1. Ekstrak dari ISI XML -->
+    <property name="originalXmlPayload" expression="$body/*" scope="default" type="STRING"/>
+
+    <property name="vendorId" expression="//TransactionData/Vendor_ID" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:vendorId) = 0">
+        <then><property name="vendorId" expression="//Vendor_ID" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:vendorId) = 0">
+        <then><property name="vendorId" expression="//TransactionData/vendor_id" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="vendorSap" expression="//TransactionData/Vendor_SAP" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:vendorSap) = 0">
+        <then><property name="vendorSap" expression="//Vendor_SAP" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:vendorSap) = 0">
+        <then><property name="vendorSap" expression="//TransactionData/vendor_sap" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="transGuId" expression="//Header/TransGuID" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:transGuId) = 0">
+        <then><property name="transGuId" expression="//TransGuID" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:transGuId) = 0">
+        <then><property name="transGuId" expression="//Header/trans_guid" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:transGuId) = 0">
+        <then><property name="transGuId" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="key1" expression="//Header/Key1" scope="default" type="STRING"/>
+
+    <!-- 2. Validasi Mandatory: Vendor_ID -->
+    <filter xpath="string-length($ctx:vendorId) = 0">
+        <then>
+            <property name="SET_ROLLBACK_ONLY" value="true" scope="axis2"/>
+            <property name="SET_ROLLBACK_ONLY" value="true" scope="default"/>
+            <log level="custom">
+                <property name="VENDOR_CALLBACK_ERROR" value="Vendor_ID kosong pada file XML balikan SAP"/>
+            </log>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- 3. Transaction ID untuk Idempotency berbasis ISI XML -->
+    <property name="transactionId" expression="fn:concat($ctx:vendorId, '|', $ctx:transGuId)" scope="default" type="STRING"/>
+
+    <!-- 4. Idempotency Guard via api_transaction -->
+    <property name="existingStatus" value="" scope="default" type="STRING"/>
+    <dblookup>
+        <connection><pool>
+            <driver key="conf:/repository/assa/db/driver"/>
+            <url key="conf:/repository/assa/db/url"/>
+            <user key="conf:/repository/assa/db/username"/>
+            <password key="conf:/repository/assa/db/password"/>
+        </pool></connection>
+        <statement>
+            <sql>SELECT status FROM api_transaction WHERE transaction_id = ?</sql>
+            <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+            <result name="existingStatus" column="status"/>
+        </statement>
+    </dblookup>
+
+    <filter xpath="$ctx:existingStatus = 'SUCCESS'">
+        <then>
+            <log level="custom">
+                <property name="VENDOR_CALLBACK_REPLAY" expression="fn:concat('Transaction ', $ctx:transactionId, ' already SUCCESS in api_transaction. Skipping ATLAS call.')"/>
+            </log>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- 5. Catat ke api_transaction (Status PROCESSING) -->
+    <filter xpath="string-length($ctx:existingStatus) = 0">
+        <then>
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>INSERT INTO api_transaction (transaction_id, idempotency_key, endpoint, http_method, request_payload, status, attempt_count, max_attempts, retry_interval_seconds, created_at) VALUES (?, ?, '/callback/vendor', 'POST', ?, 'PROCESSING', 1, 3, 60, NOW())</sql>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                    <parameter expression="$ctx:originalXmlPayload" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+        </then>
+        <else>
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>UPDATE api_transaction SET status = 'PROCESSING', updated_at = NOW() WHERE transaction_id = ?</sql>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+        </else>
+    </filter>
+
+    <!-- 6. Resolve URL ATLAS & API Key -->
+    <property name="atlasBaseUrl" expression="get-property('env', 'ATLAS_VENDOR_CALLBACK_URL')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+        <then><property name="atlasBaseUrl" expression="get-property('system', 'atlas.vendor.callback.base.url')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+        <then><property name="atlasBaseUrl" expression="get-property('file', 'atlas.vendor.callback.base.url')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+        <then><property name="atlasBaseUrl" value="https://fe.atlas-dev.assa.id" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="atlasPath" expression="get-property('env', 'ATLAS_VENDOR_CALLBACK_PATH')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasPath) = 0">
+        <then><property name="atlasPath" expression="get-property('system', 'atlas.vendor.callback.path')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasPath) = 0">
+        <then><property name="atlasPath" expression="get-property('file', 'atlas.vendor.callback.path')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasPath) = 0">
+        <then><property name="atlasPath" value="/api/vendor/public/callback" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="uri.var.atlasVendorCallbackUrl" expression="fn:concat($ctx:atlasBaseUrl, $ctx:atlasPath)" scope="default" type="STRING"/>
+
+    <property name="atlasApiKey" expression="get-property('env', 'ATLAS_VENDOR_CALLBACK_APIKEY')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = '__USE_SECURE_VAULT__'">
+        <then><property name="atlasApiKey" expression="get-property('system', 'atlas.vendor.callback.apikey')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasApiKey) = 0 or $ctx:atlasApiKey = '__USE_SECURE_VAULT__'">
+        <then><property name="atlasApiKey" expression="get-property('file', 'atlas.vendor.callback.apikey')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <!-- 7. Payload Callback ke ATLAS: vendor_code = Vendor_SAP -->
+    <payloadFactory media-type="json">
+        <format>{"vendor_id":"$1","vendor_code":"$2","trans_guid":"$3","status":"SUCCESS"}</format>
+        <args>
+            <arg evaluator="xml" expression="$ctx:vendorId"/>
+            <arg evaluator="xml" expression="$ctx:vendorSap"/>
+            <arg evaluator="xml" expression="$ctx:transGuId"/>
+        </args>
+    </payloadFactory>
+    <property name="callbackPayload" expression="json-eval($)" scope="default" type="STRING"/>
+
+    <!-- 8. Transport Headers -->
+    <header name="Authorization" action="remove" scope="transport"/>
+    <header name="X-API-Key" action="remove" scope="transport"/>
+    <header name="x-api-key" action="remove" scope="transport"/>
+    <header name="Origin" action="remove" scope="transport"/>
+    <header name="origin" action="remove" scope="transport"/>
+    <filter xpath="string-length($ctx:atlasApiKey) &gt; 0">
+        <then><header name="X-API-Key" expression="$ctx:atlasApiKey" scope="transport"/></then>
+    </filter>
+    <header name="Content-Type" value="application/json" scope="transport"/>
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+    <property name="HTTP_METHOD" value="POST" scope="axis2"/>
+    <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+
+    <log level="custom">
+        <property name="ATLAS_CALLBACK_OUTBOUND" expression="fn:concat('Target: ', $ctx:uri.var.atlasVendorCallbackUrl, ' | Payload: ', $ctx:callbackPayload)"/>
+    </log>
+
+    <!-- 9. Panggil ATLAS Outbound -->
+    <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+    <call>
+        <endpoint key="AtlasVendorCallbackEndpoint"/>
+    </call>
+    <property name="callEndTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+    <property name="rawDurationMs" expression="number($ctx:callEndTime) - number($ctx:callStartTime)" scope="default" type="STRING"/>
+    <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0">
+        <then><property name="durationMs" value="0" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="responseStatus" expression="$axis2:HTTP_SC" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:responseStatus) = 0">
+        <then><property name="responseStatus" value="200" scope="default" type="STRING"/></then>
+    </filter>
+    <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:responseBody) = 0">
+        <then><property name="responseBody" value="{}" scope="default" type="STRING"/></then>
+    </filter>
+    <log level="custom">
+        <property name="ATLAS_CALLBACK_RESPONSE" expression="fn:concat('HTTP ', $ctx:responseStatus, ' | Body: ', $ctx:responseBody)"/>
+    </log>
+
+    <!-- 10. Evaluasi Respon ATLAS: 2xx -> SUCCESS, selain itu FAILED -->
+    <filter xpath="number($ctx:responseStatus) &gt;= 200 and number($ctx:responseStatus) &lt; 300">
+        <then>
+            <!-- SUCCESS -->
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>UPDATE api_transaction SET status = 'SUCCESS', response_payload = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                    <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>INSERT INTO api_transaction_log (transaction_id, attempt_number, endpoint, request_payload, response_status, response_body, error_message, duration_ms, created_at) VALUES (?, 1, '/callback/vendor', ?, ?, ?, 'Success delivered to ATLAS', ?, NOW())</sql>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                    <parameter expression="$ctx:callbackPayload" type="VARCHAR"/>
+                    <parameter expression="$ctx:responseStatus" type="INTEGER"/>
+                    <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                    <parameter expression="$ctx:durationMs" type="INTEGER"/>
+                </statement>
+            </dbreport>
+        </then>
+        <else>
+            <!-- FAILED: jadwalkan reprocess via next_retry_at -->
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>UPDATE api_transaction SET status = 'FAILED', next_retry_at = DATE_ADD(NOW(), INTERVAL 300 SECOND), response_payload = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                    <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>INSERT INTO api_transaction_log (transaction_id, attempt_number, endpoint, request_payload, response_status, response_body, error_message, duration_ms, created_at) VALUES (?, 1, '/callback/vendor', ?, ?, ?, 'Callback to ATLAS failed', ?, NOW())</sql>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                    <parameter expression="$ctx:callbackPayload" type="VARCHAR"/>
+                    <parameter expression="$ctx:responseStatus" type="INTEGER"/>
+                    <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                    <parameter expression="$ctx:durationMs" type="INTEGER"/>
+                </statement>
+            </dbreport>
+            <log level="custom">
+                <property name="ATLAS_CALLBACK_FAILED" expression="fn:concat('Call to ATLAS returned HTTP ', $ctx:responseStatus, ' for transaction: ', $ctx:transactionId)"/>
+            </log>
+            <property name="SET_ROLLBACK_ONLY" value="true" scope="axis2"/>
+            <property name="SET_ROLLBACK_ONLY" value="true" scope="default"/>
+            <drop/>
+        </else>
+    </filter>
+</sequence>

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <api context="/api/worker" name="WorkerAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- Trigger Background Worker Manually or via External Scheduler -->
     <resource methods="POST GET" uri-template="/retry">
         <inSequence>
             <sequence key="RetryWorkerSeq"/>

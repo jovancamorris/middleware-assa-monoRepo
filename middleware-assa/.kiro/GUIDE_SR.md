@@ -276,7 +276,7 @@ Tambahkan ke `src/main/wso2mi/resources/conf/config.properties`:
 # --- Target 2: ASSA External Services (DEV) ---
 # Base URL dev sudah ada: assa.ext.base.url.dev=https://assa-ext-services.assa.id/dev
 assa.api.path.service_request=/service/input_service_request
-assa.ext.sr.apikey=DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs   # pindahkan ke Secure Vault untuk produksi
+assa.ext.sr.apikey=__USE_SECURE_VAULT__   # isi lewat environment ASSA_EXT_SR_APIKEY, jangan simpan di repo
 
 # --- Target 1: API ATLAS (dalam pengembangan) ---
 sr.target.atlas.enabled=false                 # toggle: aktifkan saat ATLAS siap
@@ -390,7 +390,7 @@ Uji dengan toggle ATLAS `false` dulu (hanya external service aktif), lalu `true`
 ### Uji langsung ke Target 2 (verifikasi kredensial)
 ```bash
 curl -X POST "https://assa-ext-services.assa.id/dev/service/input_service_request" \
-  -H "x-api-key: DDtCZNeoPN27TWpHJdk9zaFwivxXrqQs2r1hbiKs" \
+  -H "x-api-key: ${ASSA_EXT_SR_APIKEY}" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "app_id=sr_app_id" \
   --data-urlencode "reff_number=sr_reff_number" \

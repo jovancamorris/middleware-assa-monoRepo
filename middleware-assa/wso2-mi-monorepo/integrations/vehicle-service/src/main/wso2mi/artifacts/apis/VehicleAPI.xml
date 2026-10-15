@@ -1,17 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <api context="/api/vehicles" name="VehicleAPI" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Vehicle / Operations Domain API (Vehicle Atlas Integration)       -->
-    <!-- Referensi: panduan-get-vehicleatlas-ver1.md                       -->
-    <!-- ================================================================= -->
-    <!-- Legacy / Convenient Endpoint -->
+    <!-- Vehicle / Operations Domain API (Vehicle Atlas Integration) -->
     <resource methods="GET" uri-template="/getByLicensePlate">
         <inSequence>
-            <!-- 1. Mandatory Token Authentication (Auth Guard) -->
+            <property name="api.endpoint" value="/api/vehicles/getByLicensePlate" scope="default" type="STRING"/>
             <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
             <sequence key="AuthGuardSeq"/>
-
-            <!-- 2. Orchestration Sequence -->
             <sequence key="VehicleGetByLicensePlateSeq"/>
         </inSequence>
         <faultSequence>
@@ -19,14 +13,35 @@
         </faultSequence>
     </resource>
 
-    <!-- Standard Vehicle Atlas Endpoint -->
     <resource methods="GET" uri-template="/vehicleatlas">
         <inSequence>
-            <!-- 1. Mandatory Token Authentication (Auth Guard) -->
+            <property name="api.endpoint" value="/api/vehicles/vehicleatlas" scope="default" type="STRING"/>
             <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
             <sequence key="AuthGuardSeq"/>
+            <sequence key="VehicleGetByLicensePlateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
 
-            <!-- 2. Orchestration Sequence -->
+    <resource methods="GET" uri-template="/">
+        <inSequence>
+            <property name="api.endpoint" value="/api/vehicles" scope="default" type="STRING"/>
+            <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+            <sequence key="VehicleGetByLicensePlateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+
+    <resource methods="GET" uri-template="/{plateNo}">
+        <inSequence>
+            <property name="api.endpoint" value="/api/vehicles/getByLicensePlate" scope="default" type="STRING"/>
+            <property name="requiredScope" value="vehicles" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
             <sequence key="VehicleGetByLicensePlateSeq"/>
         </inSequence>
         <faultSequence>

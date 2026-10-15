@@ -1,87 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sequence name="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- 1. Ensure error properties have sensible defaults -->
-    <filter xpath="boolean($ctx:ERROR_CODE)">
-        <then/>
-        <else>
-            <property name="ERROR_CODE" value="500" scope="default" type="STRING"/>
-        </else>
-    </filter>
-    <filter xpath="boolean($ctx:ERROR_MESSAGE)">
-        <then/>
-        <else>
-            <property name="ERROR_MESSAGE" value="Internal Server Error" scope="default" type="STRING"/>
-        </else>
-    </filter>
+    <filter xpath="boolean($ctx:ERROR_CODE)"><then/><else><property name="ERROR_CODE" value="500" scope="default" type="STRING"/></else></filter>
+    <filter xpath="boolean($ctx:ERROR_MESSAGE)"><then/><else><property name="ERROR_MESSAGE" value="Internal Server Error" scope="default" type="STRING"/></else></filter>
     <filter xpath="boolean($ctx:ERROR_DETAIL)">
         <then/>
         <else>
             <property name="ERROR_DETAIL" expression="get-property('ERROR_EXCEPTION')" scope="default" type="STRING"/>
-            <filter xpath="boolean($ctx:ERROR_DETAIL)">
-                <then/>
-                <else>
-                    <property name="ERROR_DETAIL" value="An unexpected error occurred during request processing." scope="default" type="STRING"/>
-                </else>
-            </filter>
+            <filter xpath="boolean($ctx:ERROR_DETAIL)"><then/><else><property name="ERROR_DETAIL" value="An unexpected error occurred during request processing." scope="default" type="STRING"/></else></filter>
         </else>
     </filter>
-
-    <!-- 2. Set HTTP Response Code & Media Type -->
-    <!-- Map Synapse internal error codes (101xxx) to standard HTTP status codes (100-599) -->
     <property name="httpStatusCode" value="500" scope="default" type="STRING"/>
     <filter xpath="number($ctx:ERROR_CODE) &gt;= 100 and number($ctx:ERROR_CODE) &lt;= 599">
-        <then>
-            <property name="httpStatusCode" expression="$ctx:ERROR_CODE" scope="default" type="STRING"/>
-        </then>
+        <then><property name="httpStatusCode" expression="$ctx:ERROR_CODE" scope="default" type="STRING"/></then>
         <else>
             <filter xpath="$ctx:ERROR_CODE = '101503' or $ctx:ERROR_CODE = '101505' or $ctx:ERROR_CODE = '101506' or $ctx:ERROR_CODE = '101507'">
                 <then>
                     <property name="httpStatusCode" value="502" scope="default" type="STRING"/>
                     <property name="ERROR_MESSAGE" value="Bad Gateway" scope="default" type="STRING"/>
-                    <property name="ERROR_DETAIL" value="Gagal terhubung ke backend SAP Core / External Service (Connection Refused/Host Unresolved)." scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" value="Backend connection failed." scope="default" type="STRING"/>
                 </then>
                 <else>
                     <filter xpath="$ctx:ERROR_CODE = '101504' or $ctx:ERROR_CODE = '101508'">
                         <then>
                             <property name="httpStatusCode" value="504" scope="default" type="STRING"/>
                             <property name="ERROR_MESSAGE" value="Gateway Timeout" scope="default" type="STRING"/>
-                            <property name="ERROR_DETAIL" value="Koneksi ke backend SAP Core / External Service melebihi batas waktu (Timeout)." scope="default" type="STRING"/>
+                            <property name="ERROR_DETAIL" value="Backend request timed out." scope="default" type="STRING"/>
                         </then>
-                        <else>
-                            <property name="httpStatusCode" value="500" scope="default" type="STRING"/>
-                        </else>
                     </filter>
                 </else>
             </filter>
         </else>
     </filter>
-
     <property name="HTTP_SC" expression="$ctx:httpStatusCode" scope="axis2" type="STRING"/>
     <property name="messageType" value="application/json" scope="axis2"/>
     <property name="ContentType" value="application/json" scope="axis2"/>
-
-    <!-- 3. Construct Standard ASSA JSON Error Payload -->
     <payloadFactory media-type="json">
-        <format>
-            {
-                "error": true,
-                "message": "$1",
-                "detail": "$2"
-            }
-        </format>
+        <format>{"error": true, "message": "$1", "detail": "$2"}</format>
         <args>
             <arg evaluator="xml" expression="$ctx:ERROR_MESSAGE"/>
             <arg evaluator="xml" expression="$ctx:ERROR_DETAIL"/>
         </args>
     </payloadFactory>
-
-    <!-- 4. Echo Correlation ID in response header if present -->
-    <filter xpath="boolean($ctx:correlationId)">
-        <then>
-            <header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/>
-        </then>
-    </filter>
-
-    <!-- 5. Return immediate response to caller -->
+    <filter xpath="boolean($ctx:correlationId)"><then><header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/></then></filter>
     <respond/>
 </sequence>

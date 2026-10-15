@@ -1,0 +1,8 @@
+.wso2mi/
+.env
+target/
+.mvn/timing.properties
+.mvn/wrapper/
+mvnw
+mvnw.cmd
+*.log

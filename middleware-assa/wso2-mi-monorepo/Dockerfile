@@ -1,77 +1,98 @@
-# ==============================================================================
-# ASSA Middleware — Monorepo Single Image
-# Build all integration CARs, then package into one WSO2 MI runtime.
-# ==============================================================================
+# Multi-target Dockerfile for WSO2 MI Monorepo
+# Supports both unified single image (all-in-one) and per-service microservice containers.
 ARG BASE_IMAGE=wso2/wso2mi:4.6.0
-# ---- Stage 1: Build all CAR files ----
+
 FROM maven:3.9-eclipse-temurin-11 AS build
-
 WORKDIR /app
-
 COPY . .
+RUN mvn -q clean package -DskipTests && \
+    mkdir -p /app/libs && \
+    curl -fsSL -o /app/libs/mariadb-java-client-3.3.3.jar https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/3.3.3/mariadb-java-client-3.3.3.jar
 
-# Build shared module and all integration services
-RUN mvn -q -pl shared -am install -DskipTests && \
-    mvn -q package -DskipTests
-
-# ---- Stage 2: One WSO2 MI runtime ----
-FROM ${BASE_IMAGE}
-
+# Base WSO2 MI runtime with common shared components
+FROM ${BASE_IMAGE} AS base-runtime
 USER root
 
-# Copy all service CAR files
-COPY --from=build /app/shared/target/*.car \
+# Selalu salin shared artifacts CAR ke runtime dengan ownership yang tepat
+COPY --chown=wso2carbon:wso2 --from=build /app/shared/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-
-COPY --from=build /app/integrations/branch-service/target/*.car \
-    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-
-COPY --from=build /app/integrations/customer-service/target/*.car \
-    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-
-COPY --from=build /app/integrations/vehicle-service/target/*.car \
-    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-
-COPY --from=build /app/integrations/vendor-service/target/*.car \
-    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-
-COPY --from=build /app/integrations/spk-service/target/*.car \
-    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-
-COPY --from=build /app/integrations/service-request-service/target/*.car \
-    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
-
-# Copy JDBC drivers from all services
-COPY --from=build /app/integrations/branch-service/deployment/libs/*.jar \
+# The shared DB sequences use the MariaDB driver at runtime.
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/branch-service/deployment/docker/libs/mariadb-java-client-*.jar \
     ${WSO2_SERVER_HOME}/lib/
 
-COPY --from=build /app/integrations/customer-service/deployment/libs/*.jar \
-    ${WSO2_SERVER_HOME}/lib/
-
-COPY --from=build /app/integrations/vehicle-service/deployment/libs/*.jar \
-    ${WSO2_SERVER_HOME}/lib/
-
-COPY --from=build /app/integrations/vendor-service/deployment/libs/*.jar \
-    ${WSO2_SERVER_HOME}/lib/
-
-COPY --from=build /app/integrations/spk-service/deployment/libs/*.jar \
-    ${WSO2_SERVER_HOME}/lib/
-
-COPY --from=build /app/integrations/service-request-service/deployment/libs/*.jar \
-    ${WSO2_SERVER_HOME}/lib/
-
-# Entrypoint
-COPY platform/docker/entrypoint.sh /home/wso2carbon/entrypoint.sh
-
-RUN sed -i 's/\r$//' /home/wso2carbon/entrypoint.sh && \
-    chmod +x /home/wso2carbon/entrypoint.sh && \
-    chown -R wso2carbon:wso2 \
-        /home/wso2carbon/entrypoint.sh \
-        ${WSO2_SERVER_HOME}/lib/ \
-        ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+# Salin SSL certificates, entrypoint forwarder & skema SQL
+COPY --chown=wso2carbon:wso2 --from=build /app/platform/docker/resources/*.jks ${WSO2_SERVER_HOME}/repository/resources/security/
+COPY --chown=wso2carbon:wso2 --chmod=755 platform/docker/entrypoint.sh /home/wso2carbon/entrypoint.sh
+COPY --chown=wso2carbon:wso2 --chmod=755 platform/docker/render-registry-secrets.sh /home/wso2carbon/render-registry-secrets.sh
+COPY --chown=wso2carbon:wso2 --from=build /app/scripts/db/init_mariadb_schema.sql /docker-entrypoint-initdb.d/01_init.sql
+COPY --chown=wso2carbon:wso2 --from=build /app/docs /app/docs
 
 USER wso2carbon
-
 EXPOSE 8290 8253 9164
-
 ENTRYPOINT ["/home/wso2carbon/entrypoint.sh"]
+
+# ----------------------------------------------------
+# Microservice Targets (Per Service untuk Local Dev)
+# ----------------------------------------------------
+FROM base-runtime AS branch-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/branch-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
+FROM base-runtime AS customer-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/customer-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
+FROM base-runtime AS vehicle-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/vehicle-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
+FROM base-runtime AS vendor-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/vendor-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
+FROM base-runtime AS spk-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/spk-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
+FROM base-runtime AS service-request-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/service-request-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
+FROM base-runtime AS payments-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/payments-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
+FROM base-runtime AS auth-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/auth-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
+# ----------------------------------------------------
+# Unified Target (Default jika build tanpa --target)
+# ----------------------------------------------------
+FROM base-runtime AS all-in-one
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/branch-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/customer-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/vehicle-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/vendor-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/spk-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/service-request-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/payments-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/auth-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon

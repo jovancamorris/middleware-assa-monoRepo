@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <endpoint name="ExtServiceDynamicEndpoint" xmlns="http://ws.apache.org/ns/synapse">
-    <!-- ================================================================= -->
-    <!-- Dynamic Endpoint for ASSA External Services Calls                 -->
-    <!-- Operator '+' mencegah double-encoding query parameters (RFC 6570) -->
-    <!-- ================================================================= -->
+    <!-- Operator '+' prevents double-encoding query parameters (RFC 6570). -->
     <http method="GET" uri-template="{+uri.var.extBackendUrl}">
         <suspendOnFailure>
             <initialDuration>0</initialDuration>

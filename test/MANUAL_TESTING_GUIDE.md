@@ -42,13 +42,16 @@ Ada 3 cara menjalankan WSO2 MI dengan CAR ini:
 
 ## 2. Kredensial & Token Aplikasi (App Registry)
 
-Berdasarkan konfigurasi `config.properties`, gunakan token berikut untuk pengujian:
+Berdasarkan konfigurasi `config.properties` dan `notes/DAFTAR_TOKEN_DAN_AUTENTIKASI.md`, gunakan token berikut untuk pengujian:
 
-| Aplikasi (`appId`) | Nama Aplikasi | Scopes yang Diizinkan | Token Bearer |
+| Aplikasi (`appId`) | Nama Aplikasi | Scopes yang Diizinkan | Token Header / Bearer |
 | :--- | :--- | :--- | :--- |
-| `app_a` | Customer & Branch Consumer | `branches, customers, vehicles` | `Bearer 3e378f890332c2eaefd0f7405a74fbdc03c28d95fa8abaa38f2fbdb2a8885013` |
+| `app_a` | Super Client ASSA Internal | `branches, customers, vehicles, vendors, service_requests, spk` | `Bearer c220fbfbc7e4c925eb662d85be47ee5ab017d23d9b04f7c22df6cb7efb6dfdbd` |
 | `app_b` | Operations & Fleet Consumer | `vehicles` | `Bearer 988316b38c88b941600c40aae26ed8429a64d0c1c9a73b596f044da40c911881` |
-| `app_qa` | QA Automation Consumer | `branches, customers, vehicles` | `Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
+| `app_qa` | QA Automation Consumer | `branches, customers, vehicles, vendors, service_requests, spk` | `Bearer e20b33b006bc229d49dd701c385f8abfbe6a24726fb51db11624bce3766627be` |
+| `app_omnichannel` | Omnichannel Internal | `service_requests` | `Bearer 14066ba5b0f51e031a9feaae644fc13f2ada2fb4be9ee054f96b8865fb7a6f12` |
+| `app_barantum` | Barantum CRM Public Gateway | `service_requests` | `X-API-Key umk_2d35d5538f25624fc716958934d1751889cb7f6a0b0f1df18667032272eb86fd` |
+| `app_atlas` | ATLAS Vendor Client | `vendors` | `Bearer ik4lcTGsZx1hARMWOoy613tAkI7Mcj7q1g7PRq3d` |
 
 ---
 

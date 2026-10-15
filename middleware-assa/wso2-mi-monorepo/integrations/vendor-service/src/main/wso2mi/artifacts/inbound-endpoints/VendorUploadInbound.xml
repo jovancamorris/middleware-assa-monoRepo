@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inboundEndpoint name="VendorUploadInbound" protocol="file" sequence="VendorInboundCallbackSeq" onError="VendorInboundFaultSeq" suspend="false" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- Vendor Upload Inbound Endpoint (FTP VFS Poller for SAP Responses) -->
+    <!-- Referensi: notes/GUIDE_IMPL_VENDOR_CALLBACK_INBOUND.md            -->
+    <!-- ================================================================= -->
+    <parameters>
+        <parameter name="interval">60000</parameter>
+        <parameter name="sequential">true</parameter>
+        <parameter name="coordination">true</parameter>
+        <parameter name="transport.vfs.FileURI">ftp://middlewaredev:Gu34S5a%23*232@devqaxmlpool.assa.id:21/vmd/upload?vfs.passive=true</parameter>
+        <parameter name="transport.vfs.ContentType">application/xml</parameter>
+        <parameter name="transport.vfs.FileNamePattern">.*\.xml</parameter>
+        <parameter name="transport.vfs.ActionAfterProcess">MOVE</parameter>
+        <parameter name="transport.vfs.MoveAfterProcess">ftp://middlewaredev:Gu34S5a%23*232@devqaxmlpool.assa.id:21/vmd/upload/success?vfs.passive=true</parameter>
+        <parameter name="transport.vfs.ActionAfterFailure">MOVE</parameter>
+        <parameter name="transport.vfs.MoveAfterFailure">ftp://middlewaredev:Gu34S5a%23*232@devqaxmlpool.assa.id:21/vmd/upload/failed?vfs.passive=true</parameter>
+        <parameter name="transport.vfs.AutoLockRelease">true</parameter>
+        <parameter name="transport.vfs.LockReleaseSameNode">true</parameter>
+    </parameters>
+</inboundEndpoint>

@@ -112,7 +112,7 @@ Invoke-RestMethod -Uri "http://localhost:8290/api/vendors/create" -Method Post -
   "success": true,
   "message": "Vendor (VMD) accepted and delivered to FTP",
   "transactionId": "TRX-VENDOR-...",
-  "fileName": "VMD_20260917..._TRX-VENDOR-....xml",
+  "fileName": "VMD_20260925042649.xml",
   "documentNumber": "VENDOR-ATLAS-000123"
 }
 ```

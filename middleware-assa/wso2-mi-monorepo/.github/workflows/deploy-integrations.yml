@@ -1,29 +1,22 @@
-name: Build & Deploy Integrations
-
-# ==============================================================================
-# CI/CD Monorepo WSO2 MI
-# - Build parent (shared + semua service) sekali untuk validasi.
-# - Build & push image Docker per service (matrix).
-# - (Opsional) deploy ke Kubernetes memakai platform/k8s/base-deployment.yaml.
-# ==============================================================================
+name: Build and Deploy Integrations
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - "shared/**"
       - "integrations/**"
       - "platform/**"
+      - "scripts/**"
       - "pom.xml"
       - ".github/workflows/deploy-integrations.yml"
   workflow_dispatch:
 
 env:
-  REGISTRY: ${{ vars.REGISTRY }}         # mis. registryassa.azurecr.io
+  REGISTRY: ${{ vars.REGISTRY }}
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  # 1) Validasi build seluruh monorepo (shared + integrations)
   build:
     runs-on: ubuntu-latest
     steps:
@@ -33,10 +26,9 @@ jobs:
           distribution: temurin
           java-version: "11"
           cache: maven
-      - name: Build all modules (aggregator)
+      - name: Build existing integrations project
         run: mvn -B -ntp clean install -DskipTests
 
-  # 2) Build & push image per service (paralel)
   docker:
     needs: build
     runs-on: ubuntu-latest
@@ -52,23 +44,32 @@ jobs:
           - service-request-service
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "11"
+          cache: maven
+      - name: Build shared CAR
+        run: mvn -B -ntp -pl shared -am install -DskipTests
+      - name: Build CAR files for ${{ matrix.service }}
+        run: mvn -B -ntp -pl integrations/${{ matrix.service }} -am package -DskipTests
       - name: Login to registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
-      - name: Build & push ${{ matrix.service }}
+      - name: Build and push ${{ matrix.service }}
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: integrations/${{ matrix.service }}/Dockerfile
+          context: integrations/${{ matrix.service }}/deployment/docker
+          file: integrations/${{ matrix.service }}/deployment/docker/Dockerfile
+          build-args: BASE_IMAGE=wso2/wso2mi:4.6.0
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ matrix.service }}:${{ env.IMAGE_TAG }}
             ${{ env.REGISTRY }}/${{ matrix.service }}:latest
 
-  # 3) (Opsional) Deploy ke Kubernetes
   deploy:
     needs: docker
     runs-on: ubuntu-latest
@@ -88,7 +89,7 @@ jobs:
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets.KUBECONFIG_B64 }}" | base64 -d > ~/.kube/config
-      - name: Render & apply manifest
+      - name: Render and apply manifest
         run: |
           sed "s/__SERVICE_NAME__/${{ matrix.service }}/g; s#__IMAGE__#${{ env.REGISTRY }}/${{ matrix.service }}:${{ env.IMAGE_TAG }}#g" \
             platform/k8s/base-deployment.yaml | kubectl apply -f -
