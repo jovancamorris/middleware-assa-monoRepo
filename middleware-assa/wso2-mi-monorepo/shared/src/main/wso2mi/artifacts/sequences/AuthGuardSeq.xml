@@ -53,7 +53,7 @@
         <then>
             <property name="ERROR_CODE" value="401" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Unauthorized" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" value="Authentication required. Please provide 'Authorization: Bearer &lt;token&gt;' or 'X-API-Key: &lt;token&gt;'." scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Invalid or expired Bearer token" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
@@ -151,7 +151,7 @@
                                                 <else>
                                                     <property name="ERROR_CODE" value="401" scope="default" type="STRING"/>
                                                     <property name="ERROR_MESSAGE" value="Unauthorized" scope="default" type="STRING"/>
-                                                    <property name="ERROR_DETAIL" value="Token is invalid or unknown." scope="default" type="STRING"/>
+                                                    <property name="ERROR_DETAIL" value="Invalid or expired Bearer token" scope="default" type="STRING"/>
                                                     <sequence key="ErrorResponseSeq"/>
                                                     <drop/>
                                                 </else>
@@ -173,7 +173,7 @@
                 <then>
                     <property name="ERROR_CODE" value="403" scope="default" type="STRING"/>
                     <property name="ERROR_MESSAGE" value="Forbidden" scope="default" type="STRING"/>
-                    <property name="ERROR_DETAIL" expression="fn:concat('Application (', $ctx:appId, ') does not have scope: ', $ctx:requiredScope)" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" value="Insufficient scope permissions" scope="default" type="STRING"/>
                     <sequence key="ErrorResponseSeq"/>
                     <drop/>
                 </then>

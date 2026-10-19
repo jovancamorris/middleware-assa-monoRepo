@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="ApDueListCreateSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- 1. Extract JSON Payload & Save Original Copy                      -->
+    <!-- Referensi: notes/GUIDE_AP_DUE_LIST_XML_FTP.md                     -->
+    <!-- ================================================================= -->
+    <property name="originalPayload" expression="json-eval($)" scope="default" type="STRING"/>
+
+    <property name="billingNumber" expression="json-eval($.header.billing_number)" scope="default" type="STRING"/>
+    <property name="invoiceNumber" expression="json-eval($.header.invoice_number)" scope="default" type="STRING"/>
+    <property name="invoiceDate" expression="json-eval($.header.invoice_date)" scope="default" type="STRING"/>
+    <property name="invoiceType" expression="json-eval($.header.invoice_type)" scope="default" type="STRING"/>
+    <property name="memo" expression="json-eval($.header.memo)" scope="default" type="STRING"/>
+    <property name="vendorCode" expression="json-eval($.header.vendor_code)" scope="default" type="STRING"/>
+    <property name="vendorName" expression="json-eval($.header.vendor_name)" scope="default" type="STRING"/>
+    <property name="companyCode" expression="json-eval($.header.company_code)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:companyCode) = 0">
+        <then>
+            <property name="companyCode" value="1000" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <property name="tenantId" expression="json-eval($.header.tenant_id)" scope="default" type="STRING"/>
+    <property name="taxInvoiceNumber" expression="json-eval($.header.tax_invoice_number)" scope="default" type="STRING"/>
+    <property name="taxInvoiceDate" expression="json-eval($.header.tax_invoice_date)" scope="default" type="STRING"/>
+    <property name="currency" expression="json-eval($.header.currency)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:currency) = 0">
+        <then>
+            <property name="currency" value="IDR" scope="default" type="STRING"/>
+        </then>
+    </filter>
+    <property name="totalSubtotalAmount" expression="json-eval($.header.total_subtotal_amount)" scope="default" type="STRING"/>
+    <property name="totalTaxAmount" expression="json-eval($.header.total_tax_amount)" scope="default" type="STRING"/>
+    <property name="totalInvoiceAmount" expression="json-eval($.header.total_invoice_amount)" scope="default" type="STRING"/>
+
+    <!-- ================================================================= -->
+    <!-- 2. Business Validation & Automated G/L Account Mapping Script     -->
+    <!-- Referensi: notes/GUIDE_AP_DUE_LIST_XML_FTP.md Bab 4               -->
+    <!-- ================================================================= -->
+    <script language="js"><![CDATA[
+        var payload = mc.getPayloadJSON();
+        var validationError = "";
+
+        if (!payload || !payload.header || !payload.spk_list) {
+            validationError = "Missing required 'header' or 'spk_list' in request payload";
+        } else {
+            var h = payload.header;
+            var spkList = payload.spk_list;
+
+            // 1. Validasi Jumlah SPK (1 s/d 50 SPK)
+            if (!Array.isArray(spkList) || spkList.length < 1 || spkList.length > 50) {
+                validationError = "spk_list must contain between 1 and 50 SPKs";
+            }
+
+            // 2. Validasi Format Tanggal YYYY-MM-DD
+            var dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!validationError) {
+                if (!h.invoice_date || !dateRegex.test(String(h.invoice_date).trim()) || 
+                    !h.tax_invoice_date || !dateRegex.test(String(h.tax_invoice_date).trim())) {
+                    validationError = "Invalid date format, expected YYYY-MM-DD";
+                }
+            }
+
+            // 3. Validasi Format Faktur Pajak 16 Digit: XXX.XXX-XX.XXXXXXXX
+            var taxInvoiceRegex = /^\d{3}\.\d{3}-\d{2}\.\d{8}$/;
+            if (!validationError) {
+                if (!h.tax_invoice_number || !taxInvoiceRegex.test(String(h.tax_invoice_number).trim())) {
+                    validationError = "Invalid tax_invoice_number format";
+                }
+            }
+
+            // 4. Validasi Perhitungan Matematika & Mapping G/L
+            var sumSpkSubtotal = 0;
+            var sumSpkTax = 0;
+
+            if (!validationError) {
+                for (var s = 0; s < spkList.length; s++) {
+                    var spk = spkList[s];
+                    if (!spk) {
+                        validationError = "Invalid SPK object at index " + s;
+                        break;
+                    }
+
+                    var spkSubtotal = Number(spk.spk_subtotal);
+                    var spkTax = Number(spk.spk_tax_amount);
+                    var spkGrandTotal = Number(spk.spk_grand_total);
+
+                    if (isNaN(spkSubtotal) || isNaN(spkTax) || isNaN(spkGrandTotal)) {
+                        validationError = "Invalid numerical values in SPK " + (spk.spk_number || s);
+                        break;
+                    }
+
+                    sumSpkSubtotal += spkSubtotal;
+                    sumSpkTax += spkTax;
+
+                    // Setiap SPK wajib memiliki minimal 1 item
+                    if (!Array.isArray(spk.items) || spk.items.length === 0) {
+                        validationError = "SPK subtotal does not match sum of item amounts";
+                        break;
+                    }
+
+                    var sumItemAmount = 0;
+                    for (var it = 0; it < spk.items.length; it++) {
+                        var item = spk.items[it];
+                        if (!item) {
+                            validationError = "Invalid item in SPK " + (spk.spk_number || s);
+                            break;
+                        }
+                        var qty = Number(item.qty);
+                        var unitPrice = Number(item.unit_price);
+                        var totalAmount = Number(item.total_amount);
+
+                        if (isNaN(qty) || isNaN(unitPrice) || isNaN(totalAmount) || Math.abs((qty * unitPrice) - totalAmount) > 0.000001) {
+                            validationError = "Item total_amount must equal qty * unit_price";
+                            break;
+                        }
+
+                        sumItemAmount += totalAmount;
+
+                        // Otomasi Mapping G/L Account SAP (Bab 4.2)
+                        var comp = String(item.component || "").trim().toLowerCase();
+                        if (comp === "jasa") {
+                            item.gl_number = "5000000007";
+                        } else if (comp === "part") {
+                            item.gl_number = "5000000008";
+                        } else {
+                            item.gl_number = item.gl_number || "5000000007";
+                        }
+                    }
+
+                    if (validationError) break;
+
+                    if (Math.abs(sumItemAmount - spkSubtotal) > 0.000001) {
+                        validationError = "SPK subtotal does not match sum of item amounts";
+                        break;
+                    }
+                }
+            }
+
+            // Validasi Korelasi Header Subtotal, Tax, dan Grand Total
+            if (!validationError) {
+                var totalSubtotal = Number(h.total_subtotal_amount);
+                var totalTax = Number(h.total_tax_amount);
+                var totalInvoice = Number(h.total_invoice_amount);
+
+                if (Math.abs(sumSpkSubtotal - totalSubtotal) > 0.000001) {
+                    validationError = "total_subtotal_amount does not match sum of SPK subtotals";
+                } else if (Math.abs(sumSpkTax - totalTax) > 0.000001) {
+                    validationError = "total_tax_amount does not match sum of SPK tax amounts";
+                } else if (Math.abs((totalSubtotal + totalTax) - totalInvoice) > 0.000001) {
+                    validationError = "total_invoice_amount does not match subtotal + tax amount";
+                }
+            }
+
+            // Jika valid, generate dokumen XML target <INVOICE_INBOUND_REQUEST>
+            if (!validationError) {
+                function esc(v) {
+                    if (v === null || v === undefined) return "";
+                    return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+                }
+
+                var xml = '<?xml version="1.0" encoding="UTF-8"?>\n<INVOICE_INBOUND_REQUEST>\n';
+                xml += '  <HEADER>\n';
+                xml += '    <BILLING_NUMBER>' + esc(h.billing_number) + '</BILLING_NUMBER>\n';
+                xml += '    <INVOICE_NUMBER>' + esc(h.invoice_number) + '</INVOICE_NUMBER>\n';
+                xml += '    <INVOICE_DATE>' + esc(h.invoice_date) + '</INVOICE_DATE>\n';
+                xml += '    <INVOICE_TYPE>' + esc(h.invoice_type || 'spk') + '</INVOICE_TYPE>\n';
+                xml += '    <MEMO>' + esc(h.memo || '') + '</MEMO>\n';
+                xml += '    <VENDOR_CODE>' + esc(h.vendor_code) + '</VENDOR_CODE>\n';
+                xml += '    <VENDOR_NAME>' + esc(h.vendor_name) + '</VENDOR_NAME>\n';
+                xml += '    <COMPANY_CODE>' + esc(h.company_code || '1000') + '</COMPANY_CODE>\n';
+                xml += '    <TENANT_ID>' + esc(h.tenant_id) + '</TENANT_ID>\n';
+                xml += '    <TAX_INVOICE_NUMBER>' + esc(h.tax_invoice_number) + '</TAX_INVOICE_NUMBER>\n';
+                xml += '    <TAX_INVOICE_DATE>' + esc(h.tax_invoice_date) + '</TAX_INVOICE_DATE>\n';
+                xml += '    <CURRENCY>' + esc(h.currency || 'IDR') + '</CURRENCY>\n';
+                xml += '    <TOTAL_SUBTOTAL_AMOUNT>' + Math.round(Number(h.total_subtotal_amount)) + '</TOTAL_SUBTOTAL_AMOUNT>\n';
+                xml += '    <TOTAL_TAX_AMOUNT>' + Math.round(Number(h.total_tax_amount)) + '</TOTAL_TAX_AMOUNT>\n';
+                xml += '    <TOTAL_INVOICE_AMOUNT>' + Math.round(Number(h.total_invoice_amount)) + '</TOTAL_INVOICE_AMOUNT>\n';
+                xml += '  </HEADER>\n';
+                xml += '  <SPK_LIST>\n';
+                for (var s = 0; s < spkList.length; s++) {
+                    var spkObj = spkList[s];
+                    xml += '    <SPK>\n';
+                    xml += '      <SPK_NUMBER>' + esc(spkObj.spk_number) + '</SPK_NUMBER>\n';
+                    xml += '      <SR_NUMBER>' + esc(spkObj.sr_number) + '</SR_NUMBER>\n';
+                    xml += '      <LICENSE_PLATE>' + esc(spkObj.license_plate) + '</LICENSE_PLATE>\n';
+                    xml += '      <CATEGORY>' + esc(spkObj.category) + '</CATEGORY>\n';
+                    xml += '      <SUB_CATEGORY>' + esc(spkObj.sub_category) + '</SUB_CATEGORY>\n';
+                    xml += '      <SPK_SUBTOTAL>' + Math.round(Number(spkObj.spk_subtotal)) + '</SPK_SUBTOTAL>\n';
+                    xml += '      <SPK_TAX_AMOUNT>' + Math.round(Number(spkObj.spk_tax_amount)) + '</SPK_TAX_AMOUNT>\n';
+                    xml += '      <SPK_GRAND_TOTAL>' + Math.round(Number(spkObj.spk_grand_total)) + '</SPK_GRAND_TOTAL>\n';
+                    xml += '      <ITEMS>\n';
+                    for (var it = 0; it < spkObj.items.length; it++) {
+                        var itemObj = spkObj.items[it];
+                        xml += '        <ITEM>\n';
+                        xml += '          <ITEM_NO>' + itemObj.item_no + '</ITEM_NO>\n';
+                        xml += '          <COMPONENT>' + esc(itemObj.component) + '</COMPONENT>\n';
+                        xml += '          <GL_NUMBER>' + esc(itemObj.gl_number) + '</GL_NUMBER>\n';
+                        xml += '          <ITEM_NAME>' + esc(itemObj.item_name) + '</ITEM_NAME>\n';
+                        xml += '          <METHOD>' + esc(itemObj.method || '') + '</METHOD>\n';
+                        xml += '          <QTY>' + itemObj.qty + '</QTY>\n';
+                        xml += '          <UOM>' + esc(itemObj.uom) + '</UOM>\n';
+                        xml += '          <UNIT_PRICE>' + Math.round(Number(itemObj.unit_price)) + '</UNIT_PRICE>\n';
+                        xml += '          <TOTAL_AMOUNT>' + Math.round(Number(itemObj.total_amount)) + '</TOTAL_AMOUNT>\n';
+                        xml += '        </ITEM>\n';
+                    }
+                    xml += '      </ITEMS>\n';
+                    xml += '    </SPK>\n';
+                }
+                xml += '  </SPK_LIST>\n</INVOICE_INBOUND_REQUEST>';
+
+                try {
+                    var om = org.apache.axiom.om.util.AXIOMUtil.stringToOM(xml);
+                    mc.setPayloadXML(om);
+                } catch (ex) {
+                    mc.setPayloadXML(new XML(xml));
+                }
+            }
+        }
+
+        mc.setProperty("AP_VALIDATION_ERROR", validationError);
+    ]]></script>
+
+    <!-- Filter Jika Terdapat Kesalahan Validasi Bisnis (HTTP 400 Bad Request) -->
+    <filter xpath="string-length($ctx:AP_VALIDATION_ERROR) &gt; 0">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" expression="$ctx:AP_VALIDATION_ERROR" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- ================================================================= -->
+    <!-- 3. Observability Logging & Idempotency Guard                      -->
+    <!-- ================================================================= -->
+    <property name="api.endpoint" value="/api/ap-due-list/create" scope="default" type="STRING"/>
+    <property name="api.params" expression="$ctx:originalPayload" scope="default" type="STRING"/>
+    <sequence key="LogRequestSeq"/>
+    <sequence key="IdempotencyGuardSeq"/>
+
+    <!-- ================================================================= -->
+    <!-- 4. Deterministic File Name Resolution (Bab 6.2)                   -->
+    <!-- Format: AP_DUELIST_<COMPANY_CODE>_<BILLING_NO>_<TIMESTAMP>_<TRX_ID>.xml -->
+    <!-- Contoh: AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml -->
+    <!-- ================================================================= -->
+    <script language="js"><![CDATA[
+        var billingNo = String(mc.getProperty("billingNumber") || "BIL");
+        var cleanBilling = billingNo.replace(/\//g, "-").replace(/\s+/g, "_");
+        mc.setProperty("cleanBillingNumber", cleanBilling);
+    ]]></script>
+
+    <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
+    <property name="fileName" expression="fn:concat('AP_DUELIST_', $ctx:companyCode, '_', $ctx:cleanBillingNumber, '_', $ctx:fileTimestamp, '_', $ctx:transactionId, '.xml')" scope="default" type="STRING"/>
+
+    <!-- Response JSON yang Diharapkan (Bab 9) -->
+    <property name="customSuccessResponse" expression="fn:concat('{&quot;success&quot;:true,&quot;message&quot;:&quot;AP Due List successfully generated and delivered to FTP&quot;,&quot;billingNumber&quot;:&quot;', $ctx:billingNumber, '&quot;,&quot;fileName&quot;:&quot;', $ctx:fileName, '&quot;,&quot;transactionId&quot;:&quot;', $ctx:transactionId, '&quot;}')" scope="default" type="STRING"/>
+
+    <!-- ================================================================= -->
+    <!-- 5. Resolve Dynamic VFS FTP Destination ke /apduelist/download     -->
+    <!-- ================================================================= -->
+    <property name="ftpHost" expression="get-property('env', 'FTP_APDUELIST_HOST')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then><property name="ftpHost" expression="get-property('env', 'FTP_PAYMENTS_HOST')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then><property name="ftpHost" expression="get-property('env', 'FTP_SAP_HOST')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then><property name="ftpHost" expression="get-property('system', 'ftp.apduelist.host')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then><property name="ftpHost" expression="get-property('file', 'ftp.apduelist.host')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="ftpPort" expression="get-property('env', 'FTP_APDUELIST_PORT')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" expression="get-property('env', 'FTP_PAYMENTS_PORT')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" expression="get-property('env', 'FTP_SAP_PORT')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" expression="get-property('system', 'ftp.apduelist.port')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" expression="get-property('file', 'ftp.apduelist.port')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" value="21" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="ftpUsername" expression="get-property('env', 'FTP_APDUELIST_USERNAME')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then><property name="ftpUsername" expression="get-property('env', 'FTP_PAYMENTS_USERNAME')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then><property name="ftpUsername" expression="get-property('env', 'FTP_SAP_USERNAME')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then><property name="ftpUsername" expression="get-property('system', 'ftp.apduelist.username')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then><property name="ftpUsername" expression="get-property('file', 'ftp.apduelist.username')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="ftpPassword" expression="get-property('env', 'FTP_APDUELIST_PASSWORD')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then><property name="ftpPassword" expression="get-property('env', 'FTP_PAYMENTS_PASSWORD')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then><property name="ftpPassword" expression="get-property('env', 'FTP_SAP_PASSWORD')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then><property name="ftpPassword" expression="get-property('system', 'ftp.apduelist.password')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then><property name="ftpPassword" expression="get-property('file', 'ftp.apduelist.password')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <!-- Target Directory resmi: /apduelist/download (Bab 6.1) -->
+    <property name="ftpTargetDir" expression="get-property('env', 'FTP_APDUELIST_TARGET')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then><property name="ftpTargetDir" expression="get-property('system', 'ftp.apduelist.remote.dir')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then><property name="ftpTargetDir" expression="get-property('file', 'ftp.apduelist.remote.dir')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <!-- Fail closed jika konfigurasi FTP kosong -->
+    <filter xpath="string-length($ctx:ftpHost) = 0 or string-length($ctx:ftpPort) = 0 or string-length($ctx:ftpUsername) = 0 or string-length($ctx:ftpPassword) = 0 or string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ERROR_CODE" value="500" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="FTP Configuration Error" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="AP Due List FTP upload configuration is incomplete" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Bersihkan leading slash dari directory -->
+    <filter xpath="fn:starts-with($ctx:ftpTargetDir, '/')">
+        <then><property name="cleanFtpDir" expression="fn:substring($ctx:ftpTargetDir, 2)" scope="default" type="STRING"/></then>
+        <else><property name="cleanFtpDir" expression="$ctx:ftpTargetDir" scope="default" type="STRING"/></else>
+    </filter>
+
+    <!-- URL-encode karakter '#' menjadi '%23' -->
+    <filter xpath="fn:contains($ctx:ftpPassword, '#')">
+        <then><property name="ftpPasswordEncoded" expression="fn:concat(fn:substring-before($ctx:ftpPassword, '#'), '%23', fn:substring-after($ctx:ftpPassword, '#'))" scope="default" type="STRING"/></then>
+        <else><property name="ftpPasswordEncoded" expression="$ctx:ftpPassword" scope="default" type="STRING"/></else>
+    </filter>
+
+    <!-- Format final VFS URI -->
+    <property name="ftpTargetUrl" expression="fn:concat('vfs:ftp://', $ctx:ftpUsername, ':', $ctx:ftpPasswordEncoded, '@', $ctx:ftpHost, ':', $ctx:ftpPort, '/', $ctx:cleanFtpDir, '?vfs.passive=true')" scope="default" type="STRING"/>
+
+    <!-- Set VFS Transport Parameters -->
+    <header name="To" expression="$ctx:ftpTargetUrl" scope="default"/>
+    <property name="transport.vfs.ReplyFileName" expression="$ctx:fileName" scope="transport"/>
+    <property name="OUT_ONLY" value="true" scope="default"/>
+    <property name="FORCE_SC_ACCEPTED" value="false" scope="axis2"/>
+    <property name="SC_ACCEPTED" value="false" scope="axis2"/>
+    <property name="messageType" value="application/xml" scope="axis2"/>
+    <property name="ContentType" value="application/xml" scope="axis2"/>
+    <property name="NO_SOAP_ENVELOPE" value="true" scope="axis2"/>
+
+    <!-- ================================================================= -->
+    <!-- 6. Panggil SafeApiCallWithRetrySeq dengan ApDueListFtpEndpoint    -->
+    <!-- ================================================================= -->
+    <property name="maxAttempts" value="1" scope="default" type="STRING"/>
+    <property name="retryIntervalSec" value="1" scope="default" type="STRING"/>
+    <property name="targetEndpointKey" value="ApDueListFtpEndpoint" scope="default" type="STRING"/>
+    <sequence key="SafeApiCallWithRetrySeq"/>
+</sequence>

@@ -6,7 +6,7 @@
     <property name="customRetryInterval" expression="$trp:X-Retry-Interval-Seconds" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:customRetryInterval) &gt; 0"><then><property name="retryIntervalSec" expression="$ctx:customRetryInterval" scope="default" type="STRING"/></then></filter>
 
-    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint'">
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint' or $ctx:targetEndpointKey = 'ApDueListFtpEndpoint'">
         <then>
             <header name="To" expression="$ctx:ftpTargetUrl" scope="default"/>
             <property name="transport.vfs.ReplyFileName" expression="$ctx:fileName" scope="transport"/>
@@ -22,13 +22,18 @@
         </else>
     </filter>
     <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
-    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint'">
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint' or $ctx:targetEndpointKey = 'ApDueListFtpEndpoint'">
         <then>
             <filter xpath="$ctx:targetEndpointKey = 'SpkFtpEndpoint'">
                 <then><call><endpoint key="SpkFtpEndpoint"/></call></then>
                 <else>
-                    <filter xpath="$ctx:targetEndpointKey = 'PaymentsFtpEndpoint'">
-                        <then><call><endpoint key="PaymentsFtpEndpoint"/></call></then>
+                    <filter xpath="$ctx:targetEndpointKey = 'PaymentsFtpEndpoint' or $ctx:targetEndpointKey = 'ApDueListFtpEndpoint'">
+                        <then>
+                            <filter xpath="$ctx:targetEndpointKey = 'ApDueListFtpEndpoint'">
+                                <then><call><endpoint key="ApDueListFtpEndpoint"/></call></then>
+                                <else><call><endpoint key="PaymentsFtpEndpoint"/></call></else>
+                            </filter>
+                        </then>
                         <else><call><endpoint key="VendorFtpEndpoint"/></call></else>
                     </filter>
                 </else>
@@ -47,14 +52,24 @@
     <property name="durationMs" expression="fn:substring-before(fn:concat($ctx:rawDurationMs, '.'), '.')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:durationMs) = 0 or number($ctx:durationMs) &lt; 0"><then><property name="durationMs" value="0" scope="default" type="STRING"/></then></filter>
 
-    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint'">
+    <filter xpath="$ctx:targetEndpointKey = 'VendorFtpEndpoint' or $ctx:targetEndpointKey = 'SpkFtpEndpoint' or $ctx:targetEndpointKey = 'PaymentsFtpEndpoint' or $ctx:targetEndpointKey = 'ApDueListFtpEndpoint'">
         <then>
             <property name="responseStatus" value="201" scope="default" type="STRING"/>
             <property name="errorMessage" value="None" scope="default" type="STRING"/>
-            <payloadFactory media-type="json">
-                <format>{"success": true, "message": "Payload accepted and delivered", "transactionId": "$1", "fileName": "$2"}</format>
-                <args><arg evaluator="xml" expression="$ctx:transactionId"/><arg evaluator="xml" expression="$ctx:fileName"/></args>
-            </payloadFactory>
+            <filter xpath="string-length($ctx:customSuccessResponse) &gt; 0">
+                <then>
+                    <payloadFactory media-type="json">
+                        <format>$1</format>
+                        <args><arg evaluator="xml" expression="$ctx:customSuccessResponse"/></args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <payloadFactory media-type="json">
+                        <format>{"success": true, "message": "Payload accepted and delivered", "transactionId": "$1", "fileName": "$2"}</format>
+                        <args><arg evaluator="xml" expression="$ctx:transactionId"/><arg evaluator="xml" expression="$ctx:fileName"/></args>
+                    </payloadFactory>
+                </else>
+            </filter>
             <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
             <sequence key="DbRecordAttemptLogSeq"/>
             <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>

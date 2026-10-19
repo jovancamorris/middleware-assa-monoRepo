@@ -84,6 +84,30 @@ def update_shared_car():
     if os.path.exists(src_gps):
         shutil.copy2(src_gps, dest_gps)
         print("  -> Updated GenericPaginationSeq-1.0.0.xml")
+
+    src_sac = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/SafeApiCallWithRetrySeq.xml")
+    dest_sac = os.path.join(extract_dir, "SafeApiCallWithRetrySeq_1.0.0/SafeApiCallWithRetrySeq-1.0.0.xml")
+    if os.path.exists(src_sac):
+        shutil.copy2(src_sac, dest_sac)
+        print("  -> Updated SafeApiCallWithRetrySeq-1.0.0.xml")
+
+    src_err = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/ErrorResponseSeq.xml")
+    dest_err = os.path.join(extract_dir, "ErrorResponseSeq_1.0.0/ErrorResponseSeq-1.0.0.xml")
+    if os.path.exists(src_err):
+        shutil.copy2(src_err, dest_err)
+        print("  -> Updated ErrorResponseSeq-1.0.0.xml")
+
+    src_ace = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/ApiCallErrorHandlerSeq.xml")
+    dest_ace = os.path.join(extract_dir, "ApiCallErrorHandlerSeq_1.0.0/ApiCallErrorHandlerSeq-1.0.0.xml")
+    if os.path.exists(src_ace):
+        shutil.copy2(src_ace, dest_ace)
+        print("  -> Updated ApiCallErrorHandlerSeq-1.0.0.xml")
+
+    src_idm = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/IdempotencyGuardSeq.xml")
+    dest_idm = os.path.join(extract_dir, "IdempotencyGuardSeq_1.0.0/IdempotencyGuardSeq-1.0.0.xml")
+    if os.path.exists(src_idm):
+        shutil.copy2(src_idm, dest_idm)
+        print("  -> Updated IdempotencyGuardSeq-1.0.0.xml")
     
     # Fix database URLs for docker networking
     fix_db_urls(extract_dir)
@@ -419,6 +443,126 @@ def update_vendor_car():
     repack_car(car_src, extract_dir, out_car)
     print(f"  -> Generated {out_car}")
 
+def update_payments_car():
+    print("[7/7] Updating payments-service_1.0.0.car (AP Due List)...")
+    pay_dir = os.path.join(REPO_ROOT, "integrations", "payments-service")
+    car_src = os.path.join(pay_dir, "target", "payments-service_1.0.0.car")
+    if not os.path.exists(car_src) or "PaymentsAPI_1.0.0/PaymentsAPI-1.0.0.xml" not in zipfile.ZipFile(car_src).namelist():
+        car_src = os.path.join(DIST_DIR, "payments-service_1.0.0.car")
+    if not os.path.exists(car_src):
+        return
+    extract_dir = os.path.join(TMP_DIR, "payments")
+    if os.path.exists(extract_dir):
+        shutil.rmtree(extract_dir)
+    os.makedirs(extract_dir, exist_ok=True)
+    with zipfile.ZipFile(car_src, 'r') as z:
+        z.extractall(extract_dir)
+
+    # 1. Add/Update ApDueListAPI
+    api_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/apis/ApDueListAPI.xml")
+    if os.path.exists(api_src):
+        dest_dir = os.path.join(extract_dir, "ApDueListAPI_1.0.0")
+        os.makedirs(dest_dir, exist_ok=True)
+        shutil.copy2(api_src, os.path.join(dest_dir, "ApDueListAPI-1.0.0.xml"))
+        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="ApDueListAPI" version="1.0.0" type="synapse/api" serverRole="EnterpriseIntegrator"><file>ApDueListAPI-1.0.0.xml</file></artifact>')
+        print("  -> Added ApDueListAPI-1.0.0.xml")
+
+    # 2. Add/Update ApDueListCreateSeq
+    seq_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/sequences/ApDueListCreateSeq.xml")
+    if os.path.exists(seq_src):
+        dest_dir = os.path.join(extract_dir, "ApDueListCreateSeq_1.0.0")
+        os.makedirs(dest_dir, exist_ok=True)
+        shutil.copy2(seq_src, os.path.join(dest_dir, "ApDueListCreateSeq-1.0.0.xml"))
+        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="ApDueListCreateSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>ApDueListCreateSeq-1.0.0.xml</file></artifact>')
+        print("  -> Added ApDueListCreateSeq-1.0.0.xml")
+
+    # 3. Add/Update ApDueListFtpEndpoint
+    ep_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/endpoints/ApDueListFtpEndpoint.xml")
+    if os.path.exists(ep_src):
+        dest_dir = os.path.join(extract_dir, "ApDueListFtpEndpoint_1.0.0")
+        os.makedirs(dest_dir, exist_ok=True)
+        shutil.copy2(ep_src, os.path.join(dest_dir, "ApDueListFtpEndpoint-1.0.0.xml"))
+        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="ApDueListFtpEndpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseIntegrator"><file>ApDueListFtpEndpoint-1.0.0.xml</file></artifact>')
+        print("  -> Added ApDueListFtpEndpoint-1.0.0.xml")
+
+    # 4. Add/Update AtlasReconciliationEndpoint
+    recon_ep_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/endpoints/AtlasReconciliationEndpoint.xml")
+    if os.path.exists(recon_ep_src):
+        dest_dir = os.path.join(extract_dir, "AtlasReconciliationEndpoint_1.0.0")
+        os.makedirs(dest_dir, exist_ok=True)
+        shutil.copy2(recon_ep_src, os.path.join(dest_dir, "AtlasReconciliationEndpoint-1.0.0.xml"))
+        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="AtlasReconciliationEndpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseIntegrator"><file>AtlasReconciliationEndpoint-1.0.0.xml</file></artifact>')
+        print("  -> Added AtlasReconciliationEndpoint-1.0.0.xml")
+
+    # 5. Add/Update ApDueListUploadInbound
+    inbound_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/inbound-endpoints/ApDueListUploadInbound.xml")
+    if os.path.exists(inbound_src):
+        dest_dir = os.path.join(extract_dir, "ApDueListUploadInbound_1.0.0")
+        os.makedirs(dest_dir, exist_ok=True)
+        shutil.copy2(inbound_src, os.path.join(dest_dir, "ApDueListUploadInbound-1.0.0.xml"))
+        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="ApDueListUploadInbound" version="1.0.0" type="synapse/inbound-endpoint" serverRole="EnterpriseIntegrator"><file>ApDueListUploadInbound-1.0.0.xml</file></artifact>')
+        print("  -> Added ApDueListUploadInbound-1.0.0.xml")
+
+    # 6. Add/Update ApDueListInboundCallbackSeq
+    cb_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/sequences/ApDueListInboundCallbackSeq.xml")
+    if os.path.exists(cb_src):
+        dest_dir = os.path.join(extract_dir, "ApDueListInboundCallbackSeq_1.0.0")
+        os.makedirs(dest_dir, exist_ok=True)
+        shutil.copy2(cb_src, os.path.join(dest_dir, "ApDueListInboundCallbackSeq-1.0.0.xml"))
+        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="ApDueListInboundCallbackSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>ApDueListInboundCallbackSeq-1.0.0.xml</file></artifact>')
+        print("  -> Added ApDueListInboundCallbackSeq-1.0.0.xml")
+
+    # 7. Add/Update ApDueListInboundFaultSeq
+    fault_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/sequences/ApDueListInboundFaultSeq.xml")
+    if os.path.exists(fault_src):
+        dest_dir = os.path.join(extract_dir, "ApDueListInboundFaultSeq_1.0.0")
+        os.makedirs(dest_dir, exist_ok=True)
+        shutil.copy2(fault_src, os.path.join(dest_dir, "ApDueListInboundFaultSeq-1.0.0.xml"))
+        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="ApDueListInboundFaultSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>ApDueListInboundFaultSeq-1.0.0.xml</file></artifact>')
+        print("  -> Added ApDueListInboundFaultSeq-1.0.0.xml")
+
+    # 8. Update config.properties
+    config_src = os.path.join(pay_dir, "src/main/wso2mi/resources/conf/config.properties")
+    config_dest = os.path.join(extract_dir, "config_1.0.0/config.properties")
+    if os.path.exists(config_dest) and os.path.exists(config_src):
+        shutil.copy2(config_src, config_dest)
+        print("  -> Updated config.properties")
+
+    # Update dependencies in artifacts.xml and metadata.xml
+    new_dependencies = [
+        "ApDueListAPI",
+        "ApDueListCreateSeq",
+        "ApDueListFtpEndpoint",
+        "AtlasReconciliationEndpoint",
+        "ApDueListUploadInbound",
+        "ApDueListInboundCallbackSeq",
+        "ApDueListInboundFaultSeq",
+    ]
+    for meta_file in ["artifacts.xml", "metadata.xml"]:
+        artifacts_xml_path = os.path.join(extract_dir, meta_file)
+        if os.path.exists(artifacts_xml_path):
+            tree = ET.parse(artifacts_xml_path)
+            root = tree.getroot()
+            main_art = root.find("artifact")
+            deps = [d.attrib.get("artifact") for d in main_art.findall("dependency")]
+            for art_name in new_dependencies:
+                if art_name not in deps:
+                    elem = ET.SubElement(main_art, "dependency")
+                    elem.attrib = {"artifact": art_name, "version": "1.0.0", "include": "true", "serverRole": "EnterpriseIntegrator"}
+            tree.write(artifacts_xml_path, encoding="UTF-8", xml_declaration=True)
+
+    fix_db_urls(extract_dir)
+    out_car = os.path.join(DIST_DIR, "payments-service_1.0.0.car")
+    repack_car(car_src, extract_dir, out_car)
+    print(f"  -> Generated {out_car}")
+
 def stage_service_car(car_src):
     if os.path.exists(car_src):
         out_car = os.path.join(DIST_DIR, os.path.basename(car_src))
@@ -432,9 +576,11 @@ if __name__ == "__main__":
     update_customer_car()
     update_branch_car()
     update_vendor_car()
+    update_payments_car()
     for s in OTHER_SERVICES:
-        if s in ["customer-service", "branch-service", "vendor-service"]:
+        if s in ["customer-service", "branch-service", "vendor-service", "payments-service"]:
             continue
         car_path = os.path.join(REPO_ROOT, "integrations", s, "target", f"{s}_1.0.0.car")
         stage_service_car(car_path)
     print("Done! All CAR packages staged successfully.")
+

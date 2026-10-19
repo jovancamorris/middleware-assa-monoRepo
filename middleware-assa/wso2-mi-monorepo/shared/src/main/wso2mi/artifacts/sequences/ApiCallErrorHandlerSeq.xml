@@ -40,9 +40,18 @@
             <property name="currentAttempt" expression="$ctx:cleanMaxAttempts" scope="default" type="STRING"/>
             <property name="trxStatus" value="FAILED" scope="default" type="STRING"/>
             <sequence key="DbRecordTransactionSeq"/>
-            <property name="ERROR_CODE" value="502" scope="default" type="STRING"/>
-            <property name="ERROR_MESSAGE" value="Bad Gateway - Max Retries Exhausted" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" expression="fn:concat('External API failed after ', $ctx:maxAttempts, ' attempts.')" scope="default" type="STRING"/>
+            <filter xpath="$ctx:targetEndpointKey = 'ApDueListFtpEndpoint' or fn:contains($ctx:ERROR_DETAIL, 'FTP') or fn:contains($ctx:ERROR_EXCEPTION, 'FTP') or fn:contains($ctx:ERROR_MESSAGE, 'FTP')">
+                <then>
+                    <property name="ERROR_CODE" value="502" scope="default" type="STRING"/>
+                    <property name="ERROR_MESSAGE" value="Bad Gateway" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" value="Failed to connect to SAP FTP server" scope="default" type="STRING"/>
+                </then>
+                <else>
+                    <property name="ERROR_CODE" value="502" scope="default" type="STRING"/>
+                    <property name="ERROR_MESSAGE" value="Bad Gateway - Max Retries Exhausted" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" expression="fn:concat('External API failed after ', $ctx:maxAttempts, ' attempts.')" scope="default" type="STRING"/>
+                </else>
+            </filter>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </else>

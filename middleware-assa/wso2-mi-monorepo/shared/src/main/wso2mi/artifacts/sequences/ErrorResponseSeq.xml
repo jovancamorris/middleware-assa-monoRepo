@@ -9,6 +9,8 @@
             <filter xpath="boolean($ctx:ERROR_DETAIL)"><then/><else><property name="ERROR_DETAIL" value="An unexpected error occurred during request processing." scope="default" type="STRING"/></else></filter>
         </else>
     </filter>
+
+    <!-- 2. Set HTTP Response Code & Media Type -->
     <property name="httpStatusCode" value="500" scope="default" type="STRING"/>
     <filter xpath="number($ctx:ERROR_CODE) &gt;= 100 and number($ctx:ERROR_CODE) &lt;= 599">
         <then><property name="httpStatusCode" expression="$ctx:ERROR_CODE" scope="default" type="STRING"/></then>
@@ -31,16 +33,53 @@
             </filter>
         </else>
     </filter>
+
+    <!-- Map FTP Errors to 502 Bad Gateway for AP Due List -->
+    <filter xpath="$ctx:targetEndpointKey = 'ApDueListFtpEndpoint' or fn:contains($ctx:ERROR_DETAIL, 'FTP') or fn:contains($ctx:ERROR_EXCEPTION, 'FTP') or fn:contains($ctx:ERROR_MESSAGE, 'FTP')">
+        <then>
+            <property name="httpStatusCode" value="502" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Gateway" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Failed to connect to SAP FTP server" scope="default" type="STRING"/>
+        </then>
+    </filter>
+
+    <!-- Record FAILED transaction status in MariaDB api_transaction -->
+    <filter xpath="boolean($ctx:transactionId) and boolean($ctx:httpStatusCode) and number($ctx:httpStatusCode) &gt;= 500">
+        <then>
+            <property name="trxStatus" value="FAILED" scope="default" type="STRING"/>
+            <property name="responsePayload" expression="$ctx:ERROR_DETAIL" scope="default" type="STRING"/>
+            <sequence key="DbRecordTransactionSeq"/>
+        </then>
+    </filter>
+
+    <property name="OUT_ONLY" value="false" scope="default"/>
+    <property name="SC_ACCEPTED" value="false" scope="axis2"/>
     <property name="HTTP_SC" expression="$ctx:httpStatusCode" scope="axis2" type="STRING"/>
     <property name="messageType" value="application/json" scope="axis2"/>
     <property name="ContentType" value="application/json" scope="axis2"/>
-    <payloadFactory media-type="json">
-        <format>{"error": true, "message": "$1", "detail": "$2"}</format>
-        <args>
-            <arg evaluator="xml" expression="$ctx:ERROR_MESSAGE"/>
-            <arg evaluator="xml" expression="$ctx:ERROR_DETAIL"/>
-        </args>
-    </payloadFactory>
+
+    <!-- Format JSON error payload sesuai Section 9 GUIDE_AP_DUE_LIST_XML_FTP.md jika ap-due-list -->
+    <filter xpath="fn:contains($ctx:api.endpoint, 'ap-due-list') or fn:contains(get-property('To'), 'ap-due-list') or fn:contains($axis2:REST_URL_POSTFIX, 'ap-due-list') or $ctx:targetEndpointKey = 'ApDueListFtpEndpoint'">
+        <then>
+            <payloadFactory media-type="json">
+                <format>{"error": "$1", "detail": "$2"}</format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:ERROR_MESSAGE"/>
+                    <arg evaluator="xml" expression="$ctx:ERROR_DETAIL"/>
+                </args>
+            </payloadFactory>
+        </then>
+        <else>
+            <payloadFactory media-type="json">
+                <format>{"error": true, "message": "$1", "detail": "$2"}</format>
+                <args>
+                    <arg evaluator="xml" expression="$ctx:ERROR_MESSAGE"/>
+                    <arg evaluator="xml" expression="$ctx:ERROR_DETAIL"/>
+                </args>
+            </payloadFactory>
+        </else>
+    </filter>
+
     <filter xpath="boolean($ctx:correlationId)"><then><header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/></then></filter>
     <respond/>
 </sequence>

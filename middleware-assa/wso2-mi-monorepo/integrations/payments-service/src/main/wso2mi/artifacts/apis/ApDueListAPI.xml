@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/ap-due-list" name="ApDueListAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- AP Due List Domain API (Multi-SPK Invoice XML over FTP)           -->
+    <!-- Referensi: notes/GUIDE_AP_DUE_LIST_XML_FTP.md                     -->
+    <!-- ================================================================= -->
+    <resource methods="POST" url-mapping="/create">
+        <inSequence>
+            <property name="api.endpoint" value="/api/ap-due-list/create" scope="default" type="STRING"/>
+            <!-- 1. Mandatory Token Authentication (Auth Guard with scope: ap_due_list or payments) -->
+            <sequence key="AuthGuardSeq"/>
+            <filter xpath="not(fn:contains($ctx:appScopes, 'ap_due_list')) and not(fn:contains($ctx:appScopes, 'payments')) and not(fn:contains($ctx:appScopes, '*'))">
+                <then>
+                    <property name="ERROR_CODE" value="403" scope="default" type="STRING"/>
+                    <property name="ERROR_MESSAGE" value="Forbidden" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" value="Insufficient scope permissions" scope="default" type="STRING"/>
+                    <sequence key="ErrorResponseSeq"/>
+                    <drop/>
+                </then>
+            </filter>
+
+            <!-- 2. Domain Orchestration Sequence -->
+            <sequence key="ApDueListCreateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+
+    <!-- Support POST /api/ap-due-list fallback mapping -->
+    <resource methods="POST" url-mapping="/*">
+        <inSequence>
+            <property name="api.endpoint" value="/api/ap-due-list/create" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+            <filter xpath="not(fn:contains($ctx:appScopes, 'ap_due_list')) and not(fn:contains($ctx:appScopes, 'payments')) and not(fn:contains($ctx:appScopes, '*'))">
+                <then>
+                    <property name="ERROR_CODE" value="403" scope="default" type="STRING"/>
+                    <property name="ERROR_MESSAGE" value="Forbidden" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" value="Insufficient scope permissions" scope="default" type="STRING"/>
+                    <sequence key="ErrorResponseSeq"/>
+                    <drop/>
+                </then>
+            </filter>
+            <sequence key="ApDueListCreateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+</api>

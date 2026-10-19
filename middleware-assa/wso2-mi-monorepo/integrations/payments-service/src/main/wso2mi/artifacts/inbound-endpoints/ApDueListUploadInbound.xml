@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inboundEndpoint name="ApDueListUploadInbound" protocol="file" sequence="ApDueListInboundCallbackSeq" onError="ApDueListInboundFaultSeq" suspend="false" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- AP Due List Upload Inbound Endpoint (FTP VFS Poller for SAP RESP) -->
+    <!-- Referensi: notes/GUIDE_AP_DUE_LIST_XML_FTP.md Bab 6.1 & 8.3       -->
+    <!-- ================================================================= -->
+    <parameters>
+        <parameter name="interval">60000</parameter>
+        <parameter name="sequential">true</parameter>
+        <parameter name="coordination">true</parameter>
+        <parameter name="transport.vfs.FileURI">ftp://middlewaredev:Gu34S5a%23*232@devqaxmlpool.assa.id:21/apduelist/upload?vfs.passive=true</parameter>
+        <parameter name="transport.vfs.ContentType">application/xml</parameter>
+        <parameter name="transport.vfs.FileNamePattern">.*\.xml</parameter>
+        <parameter name="transport.vfs.ActionAfterProcess">MOVE</parameter>
+        <parameter name="transport.vfs.MoveAfterProcess">ftp://middlewaredev:Gu34S5a%23*232@devqaxmlpool.assa.id:21/apduelist/upload/success?vfs.passive=true</parameter>
+        <parameter name="transport.vfs.ActionAfterFailure">MOVE</parameter>
+        <parameter name="transport.vfs.MoveAfterFailure">ftp://middlewaredev:Gu34S5a%23*232@devqaxmlpool.assa.id:21/apduelist/upload/failed?vfs.passive=true</parameter>
+        <parameter name="transport.vfs.AutoLockRelease">true</parameter>
+        <parameter name="transport.vfs.LockReleaseSameNode">true</parameter>
+    </parameters>
+</inboundEndpoint>
