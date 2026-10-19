@@ -16,7 +16,8 @@ if [ "$#" -lt 1 ]; then
   exit 1
 fi
 TAG="$1"
-IMAGE_NAME="registry.assa.id/nobi.sumariga/middleware-assa:${TAG}"
+REGISTRY_REPO="${REGISTRY_REPO:-registry.assa.id/atlas/middleware-assa}"
+IMAGE_NAME="${REGISTRY_REPO}:${TAG}"
 
 echo "=========================================================="
 echo " [1/2] Packaging WSO2 CAR Artifacts..."
