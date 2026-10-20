@@ -58,8 +58,8 @@
     <property name="messageType" value="application/json" scope="axis2"/>
     <property name="ContentType" value="application/json" scope="axis2"/>
 
-    <!-- Format JSON error payload sesuai Section 9 GUIDE_AP_DUE_LIST_XML_FTP.md jika ap-due-list -->
-    <filter xpath="fn:contains($ctx:api.endpoint, 'ap-due-list') or fn:contains(get-property('To'), 'ap-due-list') or fn:contains($axis2:REST_URL_POSTFIX, 'ap-due-list') or $ctx:targetEndpointKey = 'ApDueListFtpEndpoint'">
+    <!-- Use the AP Due List error contract for both AP Due List and SPK Final create routes. -->
+    <filter xpath="fn:contains($ctx:api.endpoint, 'ap-due-list') or fn:contains($ctx:api.endpoint, 'spk-final') or fn:contains(get-property('To'), 'ap-due-list') or fn:contains($axis2:REST_URL_POSTFIX, 'ap-due-list') or $ctx:targetEndpointKey = 'ApDueListFtpEndpoint'">
         <then>
             <payloadFactory media-type="json">
                 <format>{"error": "$1", "detail": "$2"}</format>

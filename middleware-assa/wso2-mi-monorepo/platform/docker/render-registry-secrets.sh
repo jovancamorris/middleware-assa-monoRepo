@@ -42,3 +42,50 @@ chmod 600 "$REGISTRY_DIR/username" "$REGISTRY_DIR/password"
 chmod 644 "$REGISTRY_DIR/driver" "$REGISTRY_DIR/url"
 
 echo "[ENTRYPOINT] Registry secrets rendered to $REGISTRY_DIR (driver, url, username, password)"
+
+# Render Inbound VFS URLs to file.properties so $SYSTEM: lookups in inbound-endpoints resolve
+CONF_DIR="$MI_HOME/conf"
+FILE_PROP="$CONF_DIR/file.properties"
+mkdir -p "$CONF_DIR"
+touch "$FILE_PROP"
+
+SAP_USER="${FTP_SAP_USERNAME:-middlewaredev}"
+SAP_PASS_ENC=$(printf '%s' "${FTP_SAP_PASSWORD:-}" | sed 's/#/%23/g')
+SAP_HOST="${FTP_SAP_HOST:-devqaxmlpool.assa.id}"
+SAP_PORT="${FTP_SAP_PORT:-21}"
+
+if [ -z "${FTP_VENDOR_INBOUND_FILE_URI:-}" ] && [ -n "$SAP_PASS_ENC" ]; then
+    FTP_VENDOR_INBOUND_FILE_URI="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload?vfs.passive=true"
+fi
+if [ -z "${FTP_VENDOR_INBOUND_MOVE_SUCCESS:-}" ] && [ -n "$SAP_PASS_ENC" ]; then
+    FTP_VENDOR_INBOUND_MOVE_SUCCESS="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload/success?vfs.passive=true"
+fi
+if [ -z "${FTP_VENDOR_INBOUND_MOVE_FAILED:-}" ] && [ -n "$SAP_PASS_ENC" ]; then
+    FTP_VENDOR_INBOUND_MOVE_FAILED="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload/failed?vfs.passive=true"
+fi
+
+AP_USER="${FTP_APDUELIST_USERNAME:-${FTP_SAP_USERNAME:-middlewaredev}}"
+AP_PASS_RAW="${FTP_APDUELIST_PASSWORD:-${FTP_SAP_PASSWORD:-}}"
+AP_PASS_ENC=$(printf '%s' "$AP_PASS_RAW" | sed 's/#/%23/g')
+AP_HOST="${FTP_APDUELIST_HOST:-${FTP_SAP_HOST:-devqaxmlpool.assa.id}}"
+AP_PORT="${FTP_APDUELIST_PORT:-${FTP_SAP_PORT:-21}}"
+
+if [ -z "${FTP_APDUELIST_INBOUND_FILE_URI:-}" ] && [ -n "$AP_PASS_ENC" ]; then
+    FTP_APDUELIST_INBOUND_FILE_URI="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload?vfs.passive=true"
+fi
+if [ -z "${FTP_APDUELIST_INBOUND_MOVE_SUCCESS:-}" ] && [ -n "$AP_PASS_ENC" ]; then
+    FTP_APDUELIST_INBOUND_MOVE_SUCCESS="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload/success?vfs.passive=true"
+fi
+if [ -z "${FTP_APDUELIST_INBOUND_MOVE_FAILED:-}" ] && [ -n "$AP_PASS_ENC" ]; then
+    FTP_APDUELIST_INBOUND_MOVE_FAILED="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload/failed?vfs.passive=true"
+fi
+
+for vfs_var in FTP_VENDOR_INBOUND_FILE_URI FTP_VENDOR_INBOUND_MOVE_SUCCESS FTP_VENDOR_INBOUND_MOVE_FAILED \
+               FTP_APDUELIST_INBOUND_FILE_URI FTP_APDUELIST_INBOUND_MOVE_SUCCESS FTP_APDUELIST_INBOUND_MOVE_FAILED; do
+    eval vfs_val=\${$vfs_var:-}
+    if [ -n "$vfs_val" ]; then
+        sed -i "/^${vfs_var}=/d" "$FILE_PROP" 2>/dev/null || true
+        printf '%s=%s\n' "$vfs_var" "$vfs_val" >> "$FILE_PROP"
+    fi
+done
+echo "[ENTRYPOINT] Inbound VFS URLs registered in $FILE_PROP"

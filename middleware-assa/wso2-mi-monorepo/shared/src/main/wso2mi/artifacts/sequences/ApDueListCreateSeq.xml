@@ -236,7 +236,6 @@
     <!-- ================================================================= -->
     <!-- 3. Observability Logging & Idempotency Guard                      -->
     <!-- ================================================================= -->
-    <property name="api.endpoint" value="/api/ap-due-list/create" scope="default" type="STRING"/>
     <property name="api.params" expression="$ctx:originalPayload" scope="default" type="STRING"/>
     <sequence key="LogRequestSeq"/>
     <sequence key="IdempotencyGuardSeq"/>

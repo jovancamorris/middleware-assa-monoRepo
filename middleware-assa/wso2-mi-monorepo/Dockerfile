@@ -69,6 +69,11 @@ USER root
 COPY --chown=wso2carbon:wso2 --from=build /app/integrations/payments-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 USER wso2carbon
 
+FROM base-runtime AS spk-final-service
+USER root
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/spk-final-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+USER wso2carbon
+
 FROM base-runtime AS auth-service
 USER root
 COPY --chown=wso2carbon:wso2 --from=build /app/integrations/auth-service/target/*.car ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
@@ -92,6 +97,8 @@ COPY --chown=wso2carbon:wso2 --from=build /app/integrations/spk-service/target/*
 COPY --chown=wso2carbon:wso2 --from=build /app/integrations/service-request-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 COPY --chown=wso2carbon:wso2 --from=build /app/integrations/payments-service/target/*.car \
+    ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
+COPY --chown=wso2carbon:wso2 --from=build /app/integrations/spk-final-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 COPY --chown=wso2carbon:wso2 --from=build /app/integrations/auth-service/target/*.car \
     ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/

@@ -53,10 +53,10 @@ services:
       AUTH_APP_ATLAS_TOKEN: "${AUTH_APP_ATLAS_TOKEN:?set AUTH_APP_ATLAS_TOKEN in .env}"
       AUTH_APP_OMNICHANNEL_TOKEN: "${AUTH_APP_OMNICHANNEL_TOKEN:?set AUTH_APP_OMNICHANNEL_TOKEN in .env}"
       AUTH_APP_BARANTUM_TOKEN: "${AUTH_APP_BARANTUM_TOKEN:?set AUTH_APP_BARANTUM_TOKEN in .env}"
-      AUTH_APP_A_SCOPES: "${AUTH_APP_A_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}"
+      AUTH_APP_A_SCOPES: "${AUTH_APP_A_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees,spk_final}"
       AUTH_APP_B_SCOPES: "${AUTH_APP_B_SCOPES:-vehicles}"
-      AUTH_APP_QA_SCOPES: "${AUTH_APP_QA_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees}"
-      AUTH_APP_ATLAS_SCOPES: "${AUTH_APP_ATLAS_SCOPES:-vendors,service_requests,spk}"
+      AUTH_APP_QA_SCOPES: "${AUTH_APP_QA_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,employees,spk_final}"
+      AUTH_APP_ATLAS_SCOPES: "${AUTH_APP_ATLAS_SCOPES:-vendors,service_requests,spk,spk_final}"
       AUTH_APP_OMNICHANNEL_SCOPES: "${AUTH_APP_OMNICHANNEL_SCOPES:-service_requests}"
       AUTH_APP_BARANTUM_SCOPES: "${AUTH_APP_BARANTUM_SCOPES:-service_requests}"
     healthcheck:
@@ -129,6 +129,9 @@ services:
       ATLAS_VENDOR_CALLBACK_URL: ${ATLAS_VENDOR_CALLBACK_URL:-https://fe.atlas-dev.assa.id}
       ATLAS_VENDOR_CALLBACK_PATH: ${ATLAS_VENDOR_CALLBACK_PATH:-/api/vendor/public/callback}
       ATLAS_VENDOR_CALLBACK_APIKEY: "${ATLAS_VENDOR_CALLBACK_APIKEY:-}"
+      FTP_VENDOR_INBOUND_FILE_URI: "${FTP_VENDOR_INBOUND_FILE_URI:-}"
+      FTP_VENDOR_INBOUND_MOVE_SUCCESS: "${FTP_VENDOR_INBOUND_MOVE_SUCCESS:-}"
+      FTP_VENDOR_INBOUND_MOVE_FAILED: "${FTP_VENDOR_INBOUND_MOVE_FAILED:-}"
 
   spk-service:
     build:
@@ -197,8 +200,33 @@ services:
       FTP_APDUELIST_TARGET: ${FTP_APDUELIST_TARGET:-/apduelist/download}
       FTP_APDUELIST_USERNAME: ${FTP_APDUELIST_USERNAME:-middlewaredev}
       FTP_APDUELIST_PASSWORD: "${FTP_APDUELIST_PASSWORD:-}"
+      FTP_APDUELIST_INBOUND_FILE_URI: "${FTP_APDUELIST_INBOUND_FILE_URI:-}"
+      FTP_APDUELIST_INBOUND_MOVE_SUCCESS: "${FTP_APDUELIST_INBOUND_MOVE_SUCCESS:-}"
+      FTP_APDUELIST_INBOUND_MOVE_FAILED: "${FTP_APDUELIST_INBOUND_MOVE_FAILED:-}"
       ATLAS_CORE_BASE_URL: ${ATLAS_CORE_BASE_URL:-https://fe.atlas-dev.assa.id}
       ATLAS_INTERNAL_APP_TOKEN: "${ATLAS_INTERNAL_APP_TOKEN:-}"
+
+  spk-final-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: spk-final-service
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-wso2/wso2mi:4.6.0}
+    image: assa/spk-final-service:1.0.0
+    container_name: spk-final-service
+    restart: unless-stopped
+    depends_on:
+      mariadb: { condition: service_healthy }
+    ports:
+      - "8298:8290"
+    environment:
+      <<: *common-env
+      FTP_APDUELIST_HOST: ${FTP_APDUELIST_HOST:-devqaxmlpool.assa.id}
+      FTP_APDUELIST_PORT: ${FTP_APDUELIST_PORT:-21}
+      FTP_APDUELIST_TARGET: ${FTP_APDUELIST_TARGET:-/apduelist/download}
+      FTP_APDUELIST_USERNAME: ${FTP_APDUELIST_USERNAME:-middlewaredev}
+      FTP_APDUELIST_PASSWORD: "${FTP_APDUELIST_PASSWORD:-}"
 
   auth-service:
     build:
@@ -221,18 +249,16 @@ services:
       HC_FINDEMP_PATH: ${HC_FINDEMP_PATH:-/userldap/getbyusername}
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: .
+      dockerfile: platform/docker/nginx.Dockerfile
+    image: assa/middleware-wso2-nginx:1.0.0
     container_name: middleware-wso2-nginx
     restart: unless-stopped
-    entrypoint: ["/bin/sh", "/usr/local/bin/nginx-entrypoint.sh"]
     ports:
       - "${NGINX_HTTP_PORT:-6031}:80"
     environment:
       SWAGGER_SERVER_URL: ${SWAGGER_SERVER_URL:-http://localhost:6031}
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./docs:/usr/share/nginx/html/docs:ro
-      - ./platform/docker/nginx-entrypoint.sh:/usr/local/bin/nginx-entrypoint.sh:ro
     depends_on:
       - branch-service
       - customer-service
@@ -241,6 +267,7 @@ services:
       - spk-service
       - service-request-service
       - payments-service
+      - spk-final-service
       - auth-service
 
   # ---- WSO2 API Manager (APIM 4.3.0 - Low-Code GUI & API Gateway) ----

@@ -11,8 +11,8 @@
         <module>branch-service</module>
         <module>customer-service</module>
         <module>service-request-service</module>
-        <!-- Deprecated: spk-service dihilangkan, digantikan oleh ap-due-list pada payments-service -->
-        <!-- <module>spk-service</module> -->
+        <module>spk-final-service</module>
+        <module>spk-service</module>
         <module>vehicle-service</module>
         <module>vendor-service</module>
         <module>payments-service</module>

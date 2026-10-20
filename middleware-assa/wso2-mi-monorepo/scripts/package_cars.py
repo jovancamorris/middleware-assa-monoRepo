@@ -18,6 +18,7 @@ OTHER_SERVICES = [
     "spk-service",
     "vendor-service",
     "payments-service",
+    "spk-final-service",
     "auth-service",
 ]
 os.makedirs(DIST_DIR, exist_ok=True)
@@ -108,6 +109,20 @@ def update_shared_car():
     if os.path.exists(src_idm):
         shutil.copy2(src_idm, dest_idm)
         print("  -> Updated IdempotencyGuardSeq-1.0.0.xml")
+
+    src_adlc = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/ApDueListCreateSeq.xml")
+    dest_adlc = os.path.join(extract_dir, "ApDueListCreateSeq_1.0.0/ApDueListCreateSeq-1.0.0.xml")
+    if os.path.exists(src_adlc):
+        os.makedirs(os.path.dirname(dest_adlc), exist_ok=True)
+        shutil.copy2(src_adlc, dest_adlc)
+        print("  -> Updated ApDueListCreateSeq-1.0.0.xml")
+
+    src_adlep = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/endpoints/ApDueListFtpEndpoint.xml")
+    dest_adlep = os.path.join(extract_dir, "ApDueListFtpEndpoint_1.0.0/ApDueListFtpEndpoint-1.0.0.xml")
+    if os.path.exists(src_adlep):
+        os.makedirs(os.path.dirname(dest_adlep), exist_ok=True)
+        shutil.copy2(src_adlep, dest_adlep)
+        print("  -> Updated ApDueListFtpEndpoint-1.0.0.xml")
     
     # Fix database URLs for docker networking
     fix_db_urls(extract_dir)
@@ -480,26 +495,6 @@ def update_payments_car():
             f.write('<artifact name="ApDueListAPI" version="1.0.0" type="synapse/api" serverRole="EnterpriseIntegrator"><file>ApDueListAPI-1.0.0.xml</file></artifact>')
         print("  -> Added ApDueListAPI-1.0.0.xml")
 
-    # 2. Add/Update ApDueListCreateSeq
-    seq_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/sequences/ApDueListCreateSeq.xml")
-    if os.path.exists(seq_src):
-        dest_dir = os.path.join(extract_dir, "ApDueListCreateSeq_1.0.0")
-        os.makedirs(dest_dir, exist_ok=True)
-        shutil.copy2(seq_src, os.path.join(dest_dir, "ApDueListCreateSeq-1.0.0.xml"))
-        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
-            f.write('<artifact name="ApDueListCreateSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>ApDueListCreateSeq-1.0.0.xml</file></artifact>')
-        print("  -> Added ApDueListCreateSeq-1.0.0.xml")
-
-    # 3. Add/Update ApDueListFtpEndpoint
-    ep_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/endpoints/ApDueListFtpEndpoint.xml")
-    if os.path.exists(ep_src):
-        dest_dir = os.path.join(extract_dir, "ApDueListFtpEndpoint_1.0.0")
-        os.makedirs(dest_dir, exist_ok=True)
-        shutil.copy2(ep_src, os.path.join(dest_dir, "ApDueListFtpEndpoint-1.0.0.xml"))
-        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
-            f.write('<artifact name="ApDueListFtpEndpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseIntegrator"><file>ApDueListFtpEndpoint-1.0.0.xml</file></artifact>')
-        print("  -> Added ApDueListFtpEndpoint-1.0.0.xml")
-
     # 4. Add/Update AtlasReconciliationEndpoint
     recon_ep_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/endpoints/AtlasReconciliationEndpoint.xml")
     if os.path.exists(recon_ep_src):
@@ -548,10 +543,9 @@ def update_payments_car():
         print("  -> Updated config.properties")
 
     # Update dependencies in artifacts.xml and metadata.xml
+    # Note: ApDueListCreateSeq & ApDueListFtpEndpoint are in shared-artifacts_1.0.0.car, NOT here.
     new_dependencies = [
         "ApDueListAPI",
-        "ApDueListCreateSeq",
-        "ApDueListFtpEndpoint",
         "AtlasReconciliationEndpoint",
         "ApDueListUploadInbound",
         "ApDueListInboundCallbackSeq",
@@ -565,7 +559,7 @@ def update_payments_car():
             main_art = root.find("artifact")
             # Remove legacy dependencies
             for d in list(main_art.findall("dependency")):
-                if d.attrib.get("artifact") in ["PaymentsAPI", "PaymentsCreateSeq", "PaymentsFtpEndpoint", "PaymentsAPI_metadata"]:
+                if d.attrib.get("artifact") in ["PaymentsAPI", "PaymentsCreateSeq", "PaymentsFtpEndpoint", "PaymentsAPI_metadata", "ApDueListCreateSeq", "ApDueListFtpEndpoint"]:
                     main_art.remove(d)
             deps = [d.attrib.get("artifact") for d in main_art.findall("dependency")]
             for art_name in new_dependencies:
@@ -670,4 +664,3 @@ if __name__ == "__main__":
         car_path = os.path.join(REPO_ROOT, "integrations", s, "target", f"{s}_1.0.0.car")
         stage_service_car(car_path)
     print("Done! All CAR packages staged successfully.")
-

@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: SPK Final API
+  description: |
+    POST integration for creating an AP Due List multi-SPK invoice through the SPK Final integrator.
+    The operation accepts the same JSON invoice payload as the AP Due List PUT operation, validates
+    and transforms it to `<INVOICE_INBOUND_REQUEST>`, then uploads the XML to SAP FTP `/apduelist/download/`.
+  version: 1.0.0
+
+servers:
+  - url: /
+    description: Gateway URL configured by SWAGGER_SERVER_URL
+
+tags:
+  - name: SPK Final
+    description: POST submission of a multi-SPK AP Due List invoice
+
+paths:
+  /api/spk-final/create:
+    post:
+      tags:
+        - SPK Final
+      operationId: createSpkFinal
+      summary: Create and upload an AP Due List invoice using POST
+      description: |
+        This POST route is hosted by the separate SPK Final integrator and requires the `spk_final`
+        application scope. The AP Due List PUT operation remains available at
+        `/api/ap-due-list/create` in the AP Due List service and continues to require `ap_due_list`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: X-Transaction-Id
+          in: header
+          required: true
+          description: Stable transaction identifier used for idempotency and replay detection.
+          schema:
+            type: string
+            example: c5a1e2f8-2895-4eb8-a72a-19e9559c5d12
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Identifier for distributed tracing.
+          schema:
+            type: string
+            example: corr-20260630-143000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './ap-due-list.yaml#/components/schemas/ApDueListRequest'
+      responses:
+        '201':
+          description: XML invoice successfully generated and uploaded to SAP FTP.
+          content:
+            application/json:
+              schema:
+                $ref: './ap-due-list.yaml#/components/schemas/ApDueListSuccessResponse'
+        '200':
+          description: Successful idempotency replay.
+          content:
+            application/json:
+              schema:
+                $ref: './ap-due-list.yaml#/components/schemas/ApDueListSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      $ref: './ap-due-list.yaml#/components/schemas/ErrorResponse'
+  responses:
+    BadRequest:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Missing or invalid authentication token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Token does not have the `spk_final` scope.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Transaction is already being processed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadGateway:
+      description: SAP FTP target could not be reached or timed out.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

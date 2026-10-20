@@ -48,6 +48,14 @@
     "scope": "ap_due_list"
   },
   {
+    "id": "spk-final",
+    "name": "SPK Final",
+    "port": 8298,
+    "description": "POST AP Due List multi-SPK invoice submission through the SPK Final integrator.",
+    "specUrl": "/docs/openapi/spk-final-service.yaml",
+    "scope": "spk_final"
+  },
+  {
     "id": "auth-service",
     "name": "Auth Service",
     "port": 8297,

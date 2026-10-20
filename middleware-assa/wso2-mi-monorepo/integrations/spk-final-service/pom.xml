@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.microintegrator.projects</groupId>
+        <artifactId>integrators</artifactId>
+        <version>1.0.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>spk-final-service</artifactId>
+    <packaging>pom</packaging>
+    <name>spk-final-service</name>
+    <description>SPK Final AP Due List POST integration</description>
+
+    <repositories>
+        <repository>
+            <id>wso2-nexus</id>
+            <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
+        </repository>
+        <repository>
+            <id>wso2-releases</id>
+            <url>https://maven.wso2.org/nexus/content/repositories/releases/</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>wso2-nexus</id>
+            <url>https://maven.wso2.org/nexus/content/groups/wso2-public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.wso2.maven</groupId>
+                <artifactId>vscode-car-plugin</artifactId>
+                <version>${car.plugin.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals><goal>car</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <properties>
+        <projectType>integration-project</projectType>
+        <versionedDeployment>false</versionedDeployment>
+        <uuid>4b3428d9-96d3-4df2-9640-2f33933ec24f</uuid>
+        <project.runtime.version>4.6.0</project.runtime.version>
+        <car.plugin.version>5.4.18</car.plugin.version>
+        <dockerfile.base.image>wso2/wso2mi:${project.runtime.version}</dockerfile.base.image>
+        <dockerfile.name>spk-final-service:1.0.0</dockerfile.name>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.wso2.integration.connector</groupId>
+            <artifactId>mi-connector-http</artifactId>
+            <version>0.1.14</version>
+            <type>zip</type>
+            <exclusions>
+                <exclusion><groupId>*</groupId><artifactId>*</artifactId></exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <version>3.3.3</version>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<api context="/api/spk-final" name="SpkFinalAPI" xmlns="http://ws.apache.org/ns/synapse">
+    <resource methods="POST" url-mapping="/create">
+        <inSequence>
+            <property name="api.endpoint" value="/api/spk-final/create" scope="default" type="STRING"/>
+            <sequence key="AuthGuardSeq"/>
+            <filter xpath="not(fn:contains($ctx:appScopes, 'spk_final')) and not(fn:contains($ctx:appScopes, '*'))">
+                <then>
+                    <property name="ERROR_CODE" value="403" scope="default" type="STRING"/>
+                    <property name="ERROR_MESSAGE" value="Forbidden" scope="default" type="STRING"/>
+                    <property name="ERROR_DETAIL" value="Insufficient scope permissions" scope="default" type="STRING"/>
+                    <sequence key="ErrorResponseSeq"/>
+                    <drop/>
+                </then>
+            </filter>
+            <sequence key="ApDueListCreateSeq"/>
+        </inSequence>
+        <faultSequence>
+            <sequence key="ErrorResponseSeq"/>
+        </faultSequence>
+    </resource>
+</api>

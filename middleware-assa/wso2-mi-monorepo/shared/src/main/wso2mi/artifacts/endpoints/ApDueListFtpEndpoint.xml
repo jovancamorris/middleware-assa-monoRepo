@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <endpoint name="ApDueListFtpEndpoint" xmlns="http://ws.apache.org/ns/synapse">
     <!-- ================================================================= -->
-    <!-- Dynamic VFS FTP Endpoint for AP Due List XML File Delivery        -->
+    <!-- Shared dynamic VFS endpoint for AP Due List XML file delivery     -->
     <!-- Destination is dynamically driven by message 'To' header          -->
     <!-- Referensi: notes/GUIDE_AP_DUE_LIST_XML_FTP.md                     -->
     <!-- ================================================================= -->
