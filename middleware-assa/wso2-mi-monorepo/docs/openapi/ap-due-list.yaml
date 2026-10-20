@@ -29,12 +29,15 @@ tags:
 
 paths:
   /api/ap-due-list/create:
-    post:
+    put:
       tags:
         - AP Due List
-      operationId: createApDueList
-      summary: Membuat dokumen AP Due List Multi-SPK dan mengunggah XML ke FTP SAP
+      operationId: updateApDueList
+      summary: Memperbarui / membuat dokumen AP Due List Multi-SPK (PUT — Idempotent Inbound Invoice)
       description: |
+        **Standar v2.0**: Menggunakan HTTP Method `PUT` (`PUT /api/ap-due-list/create` atau `PUT /api/v1/ap-due-list`)
+        untuk menjamin semantik idempotency penggantian status invoice vendor dan pencegahan double-booking di SAP ERP (FB60/MIRO).
+
         Menerima payload JSON Multi-SPK (1 s/d 50 SPK), melakukan validasi korelasi nominal subtotal, pajak, dan grand total,
         memetakan akun G/L secara otomatis (jasa: 5000000007, part: 5000000008), membentuk dokumen XML `<INVOICE_INBOUND_REQUEST>`,
         dan mengunggah file XML ke direktori FTP SAP `/apduelist/download/`.
@@ -42,6 +45,53 @@ paths:
         **Format Penamaan Berkas XML**:
         `AP_DUELIST_<COMPANY_CODE>_<CLEAN_BILLING_NUMBER>_<YYYYMMDDHHmmss>_<TRANSACTION_ID>.xml`
         Contoh: `AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml`
+      security:
+        - bearerAuth:
+            - ap_due_list
+      parameters:
+        - name: X-Transaction-Id
+          in: header
+          required: true
+          description: Idempotency Key / UUID unik untuk mencegah duplikasi pengunggahan berkas XML
+          schema:
+            type: string
+            example: c5a1e2f8-2895-4eb8-a72a-19e9559c5d12
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Identifier untuk distributed tracing end-to-end
+          schema:
+            type: string
+            example: corr-20260630-143000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApDueListRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '200':
+          $ref: '#/components/responses/IdempotentReplay'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+    post:
+      tags:
+        - AP Due List
+      operationId: createApDueList
+      summary: Membuat dokumen AP Due List Multi-SPK (Fallback POST)
+      description: |
+        Fallback method POST untuk kompatibilitas ke belakang. Disarankan menggunakan method `PUT` sesuai standar v2.0.
       security:
         - bearerAuth:
             - ap_due_list

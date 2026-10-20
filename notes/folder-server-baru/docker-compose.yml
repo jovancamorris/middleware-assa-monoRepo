@@ -81,6 +81,7 @@ services:
       FTP_APDUELIST_TARGET: ${FTP_APDUELIST_TARGET:-/apduelist/download}
       FTP_APDUELIST_USERNAME: ${FTP_APDUELIST_USERNAME:-middlewaredev}
       FTP_APDUELIST_PASSWORD: "${FTP_APDUELIST_PASSWORD:-}"
+      FTP_SPK_FINAL_TARGET: ${FTP_SPK_FINAL_TARGET:-spk/download}
       ATLAS_CORE_BASE_URL: ${ATLAS_CORE_BASE_URL:-https://fe.atlas-dev.assa.id}
       ATLAS_INTERNAL_APP_TOKEN: "${ATLAS_INTERNAL_APP_TOKEN:-}"
     volumes:

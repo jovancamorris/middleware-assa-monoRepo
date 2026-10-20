@@ -149,6 +149,7 @@ services:
       FTP_SPK_HOST: ${FTP_SPK_HOST:-devqaxmlpool.assa.id}
       FTP_SPK_PORT: ${FTP_SPK_PORT:-21}
       FTP_SPK_TARGET: ${FTP_SPK_TARGET:-/duelist}
+      FTP_SPK_FINAL_TARGET: ${FTP_SPK_FINAL_TARGET:-spk/download}
       FTP_SPK_USERNAME: ${FTP_SPK_USERNAME:-middlewaredev}
       FTP_SPK_PASSWORD: ${FTP_SPK_PASSWORD:-}
 

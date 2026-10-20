@@ -184,7 +184,9 @@
                     xml += '      <SR_NUMBER>' + esc(spkObj.sr_number) + '</SR_NUMBER>\n';
                     xml += '      <LICENSE_PLATE>' + esc(spkObj.license_plate) + '</LICENSE_PLATE>\n';
                     xml += '      <CATEGORY>' + esc(spkObj.category) + '</CATEGORY>\n';
-                    xml += '      <SUB_CATEGORY>' + esc(spkObj.sub_category) + '</SUB_CATEGORY>\n';
+                    if (String(spkObj.category).toLowerCase() !== 'body_repair' && spkObj.sub_category) {
+                        xml += '      <SUB_CATEGORY>' + esc(spkObj.sub_category) + '</SUB_CATEGORY>\n';
+                    }
                     xml += '      <SPK_SUBTOTAL>' + Math.round(Number(spkObj.spk_subtotal)) + '</SPK_SUBTOTAL>\n';
                     xml += '      <SPK_TAX_AMOUNT>' + Math.round(Number(spkObj.spk_tax_amount)) + '</SPK_TAX_AMOUNT>\n';
                     xml += '      <SPK_GRAND_TOTAL>' + Math.round(Number(spkObj.spk_grand_total)) + '</SPK_GRAND_TOTAL>\n';

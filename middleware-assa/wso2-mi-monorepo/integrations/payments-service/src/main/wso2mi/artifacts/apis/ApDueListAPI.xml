@@ -4,7 +4,7 @@
     <!-- AP Due List Domain API (Multi-SPK Invoice XML over FTP)           -->
     <!-- Referensi: notes/GUIDE_AP_DUE_LIST_XML_FTP.md                     -->
     <!-- ================================================================= -->
-    <resource methods="POST" url-mapping="/create">
+    <resource methods="PUT POST" url-mapping="/create">
         <inSequence>
             <property name="api.endpoint" value="/api/ap-due-list/create" scope="default" type="STRING"/>
             <!-- 1. Mandatory Token Authentication (Auth Guard with scope: ap_due_list) -->
@@ -27,8 +27,8 @@
         </faultSequence>
     </resource>
 
-    <!-- Support POST /api/ap-due-list fallback mapping -->
-    <resource methods="POST" url-mapping="/*">
+    <!-- Support PUT/POST /api/ap-due-list fallback mapping -->
+    <resource methods="PUT POST" url-mapping="/*">
         <inSequence>
             <property name="api.endpoint" value="/api/ap-due-list/create" scope="default" type="STRING"/>
             <sequence key="AuthGuardSeq"/>

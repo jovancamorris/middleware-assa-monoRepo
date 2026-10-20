@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="SpkFinalSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- SPK Final XML Generator & FTP Dispatcher Sequence                 -->
+    <!-- Referensi: notes/GUIDE_SPK_FINAL_XML_DAN_AP_DUE_LIST_PUT.md       -->
+    <!-- ================================================================= -->
+    <property name="api.endpoint" value="/api/spk/final" scope="default" type="STRING"/>
+    <property name="originalPayload" expression="json-eval($)" scope="default" type="STRING"/>
+    <property name="api.params" expression="$ctx:originalPayload" scope="default" type="STRING"/>
+
+    <!-- 1. Audit & Idempotency Key Validation -->
+    <sequence key="LogRequestSeq"/>
+    <sequence key="IdempotencyGuardSeq"/>
+
+    <!-- 2. Parse & Validate Payload (Supporting 4 Business Scenarios) -->
+    <script language="js"><![CDATA[
+        var payload = mc.getPayloadJSON();
+        var validationError = "";
+
+        if (!payload || typeof payload !== "object") {
+            validationError = "Request payload must be a valid JSON object";
+        } else {
+            var h = payload.header || payload;
+            var party = payload.party_info || payload.partyInfo || {};
+            var catDetail = payload.category_detail || payload.categoryDetail || {};
+            var totals = payload.tax_and_totals || payload.taxAndTotals || {};
+            var items = payload.line_items || payload.lineItems || payload.items || payload.details || [];
+
+            // Extract & Normalize Core Header Fields
+            var spkNumber = h.spk_number || h.spkNumber || h.noSpk || "";
+            var srNumber = h.sr_number || h.srNumber || "";
+            var spkType = (h.spk_type || h.spkType || h.type || "").toUpperCase();
+            var category = (h.category || "").toUpperCase();
+            var subCategory = h.sub_category || h.subCategory || "";
+            var companyCode = h.company_code || h.companyCode || "1000";
+            var branchCode = h.branch_code || h.branchCode || "";
+            var branchName = h.branch_name || h.branchName || "";
+            var licensePlate = h.license_plate || h.licensePlate || h.noPolisi || "";
+            var startServiceAt = h.start_service_at || h.startServiceAt || "";
+            var endServiceAt = h.end_service_at || h.endServiceAt || "";
+            var status = h.status || "APPROVED";
+            var isRework = h.is_rework === true || h.isRework === true ? "true" : "false";
+            var isBackCharge = h.is_back_charge === true || h.isBackCharge === true ? "true" : "false";
+
+            // Validasi Mandatory Header
+            if (!spkNumber) {
+                validationError = "Field 'spk_number' is required";
+            } else if (spkType !== "EKSTERNAL" && spkType !== "INTERNAL") {
+                validationError = "Field 'spk_type' must be either 'EKSTERNAL' or 'INTERNAL'";
+            } else if (category !== "MAINTENANCE" && category !== "BODY_REPAIR") {
+                validationError = "Field 'category' must be either 'MAINTENANCE' or 'BODY_REPAIR'";
+            }
+
+            // Aturan Kategori: Sub-Category hanya boleh untuk MAINTENANCE
+            if (!validationError) {
+                if (category === "BODY_REPAIR" && subCategory && String(subCategory).trim().length > 0) {
+                    validationError = "Invalid category structure: 'subCategory' is not applicable for BODY_REPAIR";
+                } else if (category === "MAINTENANCE" && (!subCategory || String(subCategory).trim().length === 0)) {
+                    validationError = "Field 'sub_category' is required for MAINTENANCE (e.g. PB, PBTT, ADHOC)";
+                }
+            }
+
+            // Aturan Party Info (Eksternal vs Internal)
+            var vendorCode = party.vendor_code || party.vendorCode || h.vendor_code || h.vendorReferensi || "";
+            var vendorName = party.vendor_name || party.vendorName || h.vendor_name || "";
+            var vendorTaxNumber = party.vendor_tax_number || party.vendorTaxNumber || h.vendor_tax_number || "";
+            var workshopType = party.workshop_type || party.workshopType || h.workshop_type || "INTERNAL_POOL";
+            var picServiceCode = party.pic_service_code || party.pic_service_code || h.pic_service_code || "TS_POOL";
+            var picServiceName = party.pic_service_name || party.pic_service_name || h.pic_service_name || "Teknisi Internal";
+
+            if (!validationError) {
+                if (spkType === "INTERNAL") {
+                    if (vendorCode && String(vendorCode).trim().length > 0) {
+                        validationError = "Internal SPK cannot contain vendor party info";
+                    }
+                } else if (spkType === "EKSTERNAL") {
+                    if (!vendorCode) {
+                        validationError = "External SPK requires 'vendor_code'";
+                    }
+                }
+            }
+
+            // Validasi Line Items
+            if (!validationError) {
+                if (!Array.isArray(items) || items.length === 0) {
+                    validationError = "line_items must contain at least one item";
+                }
+            }
+
+            // Build XML Dokumen SPK Final
+            if (!validationError) {
+                function esc(v) {
+                    if (v === null || v === undefined) return "";
+                    return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+                }
+
+                var cleanSpk = spkNumber.replace(/[^A-Za-z0-9_-]/g, "");
+                var cleanCompany = companyCode.replace(/[^A-Za-z0-9]/g, "");
+                mc.setProperty("spkNumber", spkNumber);
+                mc.setProperty("cleanSpkNumber", cleanSpk);
+                mc.setProperty("companyCode", companyCode);
+                mc.setProperty("cleanCompanyCode", cleanCompany);
+
+                var xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+                xml += '<SPK_DOCUMENT xmlns="http://assa.id/atlas/spk/v1">\n';
+
+                // <HEADER>
+                xml += '  <HEADER>\n';
+                xml += '    <SPK_NUMBER>' + esc(spkNumber) + '</SPK_NUMBER>\n';
+                xml += '    <SR_NUMBER>' + esc(srNumber) + '</SR_NUMBER>\n';
+                xml += '    <SPK_TYPE>' + esc(spkType) + '</SPK_TYPE>\n';
+                xml += '    <CATEGORY>' + esc(category) + '</CATEGORY>\n';
+                if (category === "MAINTENANCE") {
+                    xml += '    <SUB_CATEGORY>' + esc(subCategory) + '</SUB_CATEGORY>\n';
+                }
+                xml += '    <STATUS>' + esc(status) + '</STATUS>\n';
+                xml += '    <IS_REWORK>' + isRework + '</IS_REWORK>\n';
+                xml += '    <IS_BACK_CHARGE>' + isBackCharge + '</IS_BACK_CHARGE>\n';
+                xml += '    <LICENSE_PLATE>' + esc(licensePlate) + '</LICENSE_PLATE>\n';
+                xml += '    <BRANCH_CODE>' + esc(branchCode) + '</BRANCH_CODE>\n';
+                xml += '    <BRANCH_NAME>' + esc(branchName) + '</BRANCH_NAME>\n';
+                xml += '    <COMPANY_CODE>' + esc(companyCode) + '</COMPANY_CODE>\n';
+                xml += '    <START_SERVICE_AT>' + esc(startServiceAt) + '</START_SERVICE_AT>\n';
+                xml += '    <END_SERVICE_AT>' + esc(endServiceAt) + '</END_SERVICE_AT>\n';
+                xml += '  </HEADER>\n';
+
+                // <PARTY_INFO>
+                xml += '  <PARTY_INFO>\n';
+                if (spkType === "EKSTERNAL") {
+                    xml += '    <VENDOR_CODE>' + esc(vendorCode) + '</VENDOR_CODE>\n';
+                    xml += '    <VENDOR_NAME>' + esc(vendorName) + '</VENDOR_NAME>\n';
+                    xml += '    <VENDOR_TAX_NUMBER>' + esc(vendorTaxNumber) + '</VENDOR_TAX_NUMBER>\n';
+                } else {
+                    xml += '    <WORKSHOP_TYPE>' + esc(workshopType) + '</WORKSHOP_TYPE>\n';
+                    xml += '    <PIC_SERVICE_CODE>' + esc(picServiceCode) + '</PIC_SERVICE_CODE>\n';
+                    xml += '    <PIC_SERVICE_NAME>' + esc(picServiceName) + '</PIC_SERVICE_NAME>\n';
+                }
+                xml += '  </PARTY_INFO>\n';
+
+                // <CATEGORY_DETAIL>
+                xml += '  <CATEGORY_DETAIL>\n';
+                if (category === "MAINTENANCE") {
+                    var mDetail = catDetail.maintenance_detail || catDetail.maintenanceDetail || catDetail;
+                    xml += '    <MAINTENANCE_DETAIL>\n';
+                    xml += '      <KM_SERVICE>' + esc(mDetail.km_service || mDetail.kmService || 0) + '</KM_SERVICE>\n';
+                    if (spkType === "INTERNAL") {
+                        xml += '      <PIC_SERVICE>' + esc(mDetail.pic_service || picServiceCode) + '</PIC_SERVICE>\n';
+                        xml += '      <PIC_SERVICE_NAME>' + esc(mDetail.pic_service_name || picServiceName) + '</PIC_SERVICE_NAME>\n';
+                    }
+                    xml += '    </MAINTENANCE_DETAIL>\n';
+                } else {
+                    var bDetail = catDetail.body_repair_detail || catDetail.bodyRepairDetail || catDetail;
+                    xml += '    <BODY_REPAIR_DETAIL>\n';
+                    xml += '      <ITEM_CODE>' + esc(bDetail.item_code || bDetail.itemCode || 'own_risk') + '</ITEM_CODE>\n';
+                    xml += '      <REPAIR_TYPE>' + esc(bDetail.repair_type || bDetail.repairType || 'SEDANG') + '</REPAIR_TYPE>\n';
+                    xml += '      <TOTAL_COST_AMOUNT>' + esc(bDetail.total_cost_amount || bDetail.totalCostAmount || totals.grand_total || 0) + '</TOTAL_COST_AMOUNT>\n';
+                    if (bDetail.claim_number || bDetail.claimNumber) {
+                        xml += '      <CLAIM_NUMBER>' + esc(bDetail.claim_number || bDetail.claimNumber) + '</CLAIM_NUMBER>\n';
+                    }
+                    if (spkType === "INTERNAL") {
+                        xml += '      <PIC_SERVICE>' + esc(bDetail.pic_service || picServiceCode) + '</PIC_SERVICE>\n';
+                        xml += '      <PIC_SERVICE_NAME>' + esc(bDetail.pic_service_name || picServiceName) + '</PIC_SERVICE_NAME>\n';
+                    }
+                    xml += '      <INCIDENT_CHRONOLOGY>' + esc(bDetail.incident_chronology || bDetail.incidentChronology || '') + '</INCIDENT_CHRONOLOGY>\n';
+                    xml += '    </BODY_REPAIR_DETAIL>\n';
+                }
+                xml += '  </CATEGORY_DETAIL>\n';
+
+                // <TAX_AND_TOTALS>
+                var isPpn = spkType === "EKSTERNAL";
+                var ppnRate = isPpn ? 11.00 : 0.00;
+                var subtotal = Number(totals.subtotal || totals.totalPrice || 0);
+                var ppnAmount = isPpn ? Math.round(subtotal * (ppnRate / 100)) : 0;
+                if (totals.ppn_amount || totals.ppnAmount) ppnAmount = Number(totals.ppn_amount || totals.ppnAmount);
+                var grandTotal = subtotal + ppnAmount;
+                if (totals.grand_total || totals.grandTotal) grandTotal = Number(totals.grand_total || totals.grandTotal);
+
+                xml += '  <TAX_AND_TOTALS>\n';
+                xml += '    <CURRENCY>' + esc(totals.currency || 'IDR') + '</CURRENCY>\n';
+                xml += '    <IS_PPN>' + (isPpn ? 'true' : 'false') + '</IS_PPN>\n';
+                xml += '    <PPN_RATE>' + ppnRate.toFixed(2) + '</PPN_RATE>\n';
+                xml += '    <SUBTOTAL>' + Math.round(subtotal) + '</SUBTOTAL>\n';
+                xml += '    <PPN_AMOUNT>' + Math.round(ppnAmount) + '</PPN_AMOUNT>\n';
+                xml += '    <GRAND_TOTAL>' + Math.round(grandTotal) + '</GRAND_TOTAL>\n';
+                xml += '  </TAX_AND_TOTALS>\n';
+
+                // <LINE_ITEMS>
+                xml += '  <LINE_ITEMS>\n';
+                for (var i = 0; i < items.length; i++) {
+                    var it = items[i];
+                    var itemNo = it.item_no || it.itemNo || (i + 1);
+                    var itemGroup = it.item_group || it.itemGroup || (category === "BODY_REPAIR" ? "BODY_REPAIR_PANEL" : "OH_ENGINE");
+                    var itemType = it.item_type || it.itemType || (it.jenis === "Parts" ? "PART" : (it.jenis === "Ban" ? "BAN" : "JASA"));
+                    var comp = (it.component || (itemType === "JASA" ? "jasa" : "part")).toLowerCase();
+                    var gl = it.gl_number || it.glNumber || (comp === "jasa" ? "5000000007" : "5000000008");
+                    var method = (it.method || (comp === "jasa" ? "REPAIR" : "GANTI")).toUpperCase();
+                    var desc = it.description || it.item_name || it.itemName || "";
+                    var qty = Number(it.qty || 1);
+                    var uom = it.uom || (comp === "jasa" ? "UNT" : "PC");
+                    var unitPrice = Number(it.unit_price || it.unitPrice || it.price || 0);
+                    var totalAmount = Number(it.total_amount || it.totalAmount || (qty * unitPrice));
+
+                    xml += '    <ITEM>\n';
+                    xml += '      <ITEM_NO>' + itemNo + '</ITEM_NO>\n';
+                    xml += '      <ITEM_GROUP>' + esc(itemGroup) + '</ITEM_GROUP>\n';
+                    xml += '      <ITEM_TYPE>' + esc(itemType) + '</ITEM_TYPE>\n';
+                    xml += '      <COMPONENT>' + esc(comp) + '</COMPONENT>\n';
+                    xml += '      <GL_NUMBER>' + esc(gl) + '</GL_NUMBER>\n';
+                    xml += '      <METHOD>' + esc(method) + '</METHOD>\n';
+                    xml += '      <DESCRIPTION>' + esc(desc) + '</DESCRIPTION>\n';
+                    xml += '      <QTY>' + qty + '</QTY>\n';
+                    xml += '      <UOM>' + esc(uom) + '</UOM>\n';
+                    xml += '      <UNIT_PRICE>' + Math.round(unitPrice) + '</UNIT_PRICE>\n';
+                    xml += '      <TOTAL_AMOUNT>' + Math.round(totalAmount) + '</TOTAL_AMOUNT>\n';
+
+                    var tm = it.tire_metadata || it.tireMetadata;
+                    if (tm || itemType === "BAN") {
+                        tm = tm || {};
+                        xml += '      <TIRE_METADATA>\n';
+                        xml += '        <POSITION>' + esc(tm.position || 'DEPAN_KANAN') + '</POSITION>\n';
+                        xml += '        <TIRE_TYPE>' + esc(tm.tire_type || tm.tireType || 'RADIAL') + '</TIRE_TYPE>\n';
+                        xml += '        <BRAND>' + esc(tm.brand || 'Bridgestone') + '</BRAND>\n';
+                        xml += '        <SIZE>' + esc(tm.size || '185/65 R15') + '</SIZE>\n';
+                        xml += '        <TIRE_CODE>' + esc(tm.tire_code || tm.tireCode || '') + '</TIRE_CODE>\n';
+                        xml += '      </TIRE_METADATA>\n';
+                    }
+                    xml += '    </ITEM>\n';
+                }
+                xml += '  </LINE_ITEMS>\n';
+                xml += '</SPK_DOCUMENT>';
+
+                try {
+                    var om = org.apache.axiom.om.util.AXIOMUtil.stringToOM(xml);
+                    mc.setPayloadXML(om);
+                } catch (e) {
+                    mc.setPayloadXML(new XML(xml));
+                }
+            }
+        }
+
+        mc.setProperty("SPK_FINAL_VALIDATION_ERROR", validationError);
+    ]]></script>
+
+    <!-- 3. Handle Validation Error -->
+    <filter xpath="string-length($ctx:SPK_FINAL_VALIDATION_ERROR) &gt; 0">
+        <then>
+            <property name="ERROR_CODE" value="400" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Bad Request" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" expression="$ctx:SPK_FINAL_VALIDATION_ERROR" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- 4. Construct File Name & Response Properties -->
+    <!-- Pola resmi: SPK_FINAL_<COMPANY>_<SPK_NUMBER>_<YYYYMMDDHHmmss>.xml -->
+    <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
+    <property name="fileName" expression="fn:concat('SPK_FINAL_', $ctx:cleanCompanyCode, '_', $ctx:cleanSpkNumber, '_', $ctx:fileTimestamp, '.xml')" scope="default" type="STRING"/>
+
+    <property name="customSuccessResponse" expression="fn:concat('{&quot;success&quot;:true,&quot;message&quot;:&quot;SPK Final XML successfully generated and delivered to FTP&quot;,&quot;spkNumber&quot;:&quot;', $ctx:spkNumber, '&quot;,&quot;fileName&quot;:&quot;', $ctx:fileName, '&quot;,&quot;transactionId&quot;:&quot;', $ctx:transactionId, '&quot;,&quot;targetDirectory&quot;:&quot;spk/download&quot;}')" scope="default" type="STRING"/>
+
+    <!-- 5. Resolve Dynamic VFS FTP Destination (Target Folder: spk/download) -->
+    <property name="ftpHost" expression="get-property('env', 'FTP_SPK_HOST')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then><property name="ftpHost" expression="get-property('env', 'FTP_SAP_HOST')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then><property name="ftpHost" expression="get-property('system', 'ftp.spk.host')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpHost) = 0">
+        <then><property name="ftpHost" expression="get-property('file', 'ftp.spk.host')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="ftpPort" expression="get-property('env', 'FTP_SPK_PORT')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" expression="get-property('env', 'FTP_SAP_PORT')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" expression="get-property('system', 'ftp.spk.port')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" expression="get-property('file', 'ftp.spk.port')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPort) = 0">
+        <then><property name="ftpPort" value="21" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="ftpUsername" expression="get-property('env', 'FTP_SPK_USERNAME')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then><property name="ftpUsername" expression="get-property('env', 'FTP_SAP_USERNAME')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then><property name="ftpUsername" expression="get-property('system', 'ftp.spk.username')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpUsername) = 0">
+        <then><property name="ftpUsername" expression="get-property('file', 'ftp.spk.username')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="ftpPassword" expression="get-property('env', 'FTP_SPK_PASSWORD')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then><property name="ftpPassword" expression="get-property('env', 'FTP_SAP_PASSWORD')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then><property name="ftpPassword" expression="get-property('system', 'ftp.spk.password')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpPassword) = 0">
+        <then><property name="ftpPassword" expression="get-property('file', 'ftp.spk.password')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <!-- Folder Target SPK Final: spk/download -->
+    <property name="ftpTargetDir" expression="get-property('env', 'FTP_SPK_FINAL_TARGET')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then><property name="ftpTargetDir" expression="get-property('system', 'ftp.spk.final.target')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then><property name="ftpTargetDir" expression="get-property('file', 'ftp.spk.final.target')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:ftpTargetDir) = 0">
+        <then><property name="ftpTargetDir" value="spk/download" scope="default" type="STRING"/></then>
+    </filter>
+
+    <!-- Fail closed jika konfigurasi FTP tidak lengkap -->
+    <filter xpath="string-length($ctx:ftpHost) = 0 or string-length($ctx:ftpPort) = 0 or string-length($ctx:ftpUsername) = 0 or string-length($ctx:ftpPassword) = 0 or string-length($ctx:ftpTargetDir) = 0">
+        <then>
+            <property name="ERROR_CODE" value="500" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="FTP Configuration Error" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="SPK Final FTP upload configuration is incomplete" scope="default" type="STRING"/>
+            <sequence key="ErrorResponseSeq"/>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Normalize clean FTP directory (remove leading slash if any) -->
+    <filter xpath="fn:starts-with($ctx:ftpTargetDir, '/')">
+        <then><property name="cleanFtpDir" expression="fn:substring($ctx:ftpTargetDir, 2)" scope="default" type="STRING"/></then>
+        <else><property name="cleanFtpDir" expression="$ctx:ftpTargetDir" scope="default" type="STRING"/></else>
+    </filter>
+
+    <!-- URL-encode '#' character in password if present -->
+    <filter xpath="fn:contains($ctx:ftpPassword, '#')">
+        <then><property name="ftpPasswordEncoded" expression="fn:concat(fn:substring-before($ctx:ftpPassword, '#'), '%23', fn:substring-after($ctx:ftpPassword, '#'))" scope="default" type="STRING"/></then>
+        <else><property name="ftpPasswordEncoded" expression="$ctx:ftpPassword" scope="default" type="STRING"/></else>
+    </filter>
+
+    <!-- Construct final VFS URI -->
+    <property name="ftpTargetUrl" expression="fn:concat('vfs:ftp://', $ctx:ftpUsername, ':', $ctx:ftpPasswordEncoded, '@', $ctx:ftpHost, ':', $ctx:ftpPort, '/', $ctx:cleanFtpDir, '?vfs.passive=true')" scope="default" type="STRING"/>
+
+    <header name="To" expression="$ctx:ftpTargetUrl" scope="default"/>
+    <property name="transport.vfs.ReplyFileName" expression="$ctx:fileName" scope="transport"/>
+    <property name="OUT_ONLY" value="true" scope="default"/>
+    <property name="messageType" value="application/xml" scope="axis2"/>
+    <property name="ContentType" value="application/xml" scope="axis2"/>
+    <property name="NO_SOAP_ENVELOPE" value="true" scope="axis2"/>
+
+    <!-- 6. Safe API Call to VFS Endpoint -->
+    <property name="targetEndpointKey" value="SpkFtpEndpoint" scope="default" type="STRING"/>
+    <sequence key="SafeApiCallWithRetrySeq"/>
+</sequence>

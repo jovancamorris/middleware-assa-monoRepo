@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panduan Produk & Integrasi: SPK Final (POST XML) & AP Due List (PUT) v2.0 — ASSA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0F172A;
+      --primary-light: #1E293B;
+      --accent: #2563EB;
+      --accent-hover: #1D4ED8;
+      --accent-glow: rgba(37, 99, 235, 0.25);
+      --teal: #0D9488;
+      --emerald: #059669;
+      --amber: #D97706;
+      --rose: #E11D48;
+      --purple: #7C3AED;
+      --slate-50: #F8FAFC;
+      --slate-100: #F1F5F9;
+      --slate-200: #E2E8F0;
+      --slate-300: #CBD5E1;
+      --slate-400: #94A3B8;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1E293B;
+      --slate-900: #0F172A;
+      --bg-page: #F8FAFC;
+      --bg-card: #FFFFFF;
+      --border-card: #E2E8F0;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    body.dark-theme {
+      --primary: #020617;
+      --primary-light: #0B132B;
+      --bg-page: #0B0F19;
+      --bg-card: #111827;
+      --border-card: #1F2937;
+      --text-main: #F3F4F6;
+      --text-muted: #9CA3AF;
+      --slate-50: #0F172A;
+      --slate-100: #1E293B;
+      --slate-200: #374151;
+      --slate-300: #4B5563;
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation Bar */
+    header.hero-header {
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #0F284E 100%);
+      color: #FFFFFF;
+      padding: 36px 40px;
+      position: relative;
+      border-bottom: 4px solid var(--accent);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .brand-badge span.pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #10B981;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #10B981;
+    }
+
+    .action-controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-toggle-theme {
+      background: rgba(255, 255, 255, 0.12);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-toggle-theme:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .hero-title-area h1 {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .hero-title-area p.subtitle {
+      font-size: 16px;
+      color: #94A3B8;
+      max-width: 960px;
+      line-height: 1.5;
+    }
+
+    .meta-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .pill {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #E2E8F0;
+    }
+
+    .pill.highlight {
+      background: rgba(37, 99, 235, 0.25);
+      border-color: #3B82F6;
+      color: #93C5FD;
+    }
+
+    .pill.version-badge {
+      background: rgba(13, 148, 136, 0.25);
+      border-color: #14B8A6;
+      color: #5EEAD4;
+      font-weight: 700;
+    }
+
+    /* Sticky Navigation */
+    nav.quick-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-card);
+      padding: 0 40px;
+      display: flex;
+      gap: 24px;
+      overflow-x: auto;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      backdrop-filter: blur(8px);
+    }
+
+    nav.quick-nav a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 16px 4px;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    nav.quick-nav a:hover,
+    nav.quick-nav a.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* Main Container Layout */
+    .container {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Executive Value Grid */
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .value-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .value-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--accent);
+    }
+
+    .value-card.teal::before { background: var(--teal); }
+    .value-card.emerald::before { background: var(--emerald); }
+    .value-card.amber::before { background: var(--amber); }
+    .value-card.purple::before { background: var(--purple); }
+
+    .value-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: var(--slate-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+
+    .value-card h3 {
+      font-size: 16.5px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .value-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Section Styling */
+    section.doc-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .section-header {
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-card);
+      padding-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .section-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title .section-number {
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--accent);
+      color: #FFFFFF;
+      padding: 2px 10px;
+      border-radius: 6px;
+    }
+
+    .section-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Comparison Table (Before vs After) */
+    .compare-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    @media (max-width: 860px) {
+      .compare-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .compare-box {
+      border-radius: var(--radius-sm);
+      padding: 20px;
+      border: 1px solid var(--border-card);
+    }
+
+    .compare-box.old-way {
+      background: rgba(225, 29, 72, 0.03);
+      border-color: rgba(225, 29, 72, 0.2);
+    }
+
+    .compare-box.new-way {
+      background: rgba(13, 148, 136, 0.04);
+      border-color: rgba(13, 148, 136, 0.3);
+    }
+
+    .compare-tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .compare-box.old-way .compare-tag {
+      background: #FFE4E6;
+      color: #BE123C;
+    }
+
+    .compare-box.new-way .compare-tag {
+      background: #CCFBF1;
+      color: #0F766E;
+    }
+
+    .compare-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .compare-list {
+      list-style: none;
+    }
+
+    .compare-list li {
+      position: relative;
+      padding-left: 24px;
+      margin-bottom: 8px;
+      font-size: 13.5px;
+      color: var(--text-main);
+    }
+
+    .compare-box.old-way .compare-list li::before {
+      content: '✕';
+      position: absolute;
+      left: 0;
+      color: #E11D48;
+      font-weight: bold;
+    }
+
+    .compare-box.new-way .compare-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #0D9488;
+      font-weight: bold;
+    }
+
+    /* Diagram Area */
+    .diagram-container {
+      background: var(--slate-100);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      margin: 20px 0;
+      overflow-x: auto;
+      text-align: center;
+    }
+
+    .mermaid {
+      font-family: inherit !important;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Process Step Cards */
+    .steps-timeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin: 24px 0;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      padding: 18px;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .step-number-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .step-number-badge.purple { background: var(--purple); }
+    .step-number-badge.teal { background: var(--teal); }
+
+    .step-card h4 {
+      font-size: 14.5px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .step-card p {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Interactive Code Viewer with Tabs */
+    .code-viewer {
+      background: #0F172A;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin: 20px 0;
+      border: 1px solid #1E293B;
+      box-shadow: var(--shadow-md);
+    }
+
+    .code-tabs {
+      display: flex;
+      background: #090D16;
+      border-bottom: 1px solid #1E293B;
+      overflow-x: auto;
+      padding: 4px 6px 0;
+    }
+
+    .code-tab-btn {
+      background: transparent;
+      border: none;
+      color: #94A3B8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 11px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .code-tab-btn:hover {
+      color: #F8FAFC;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .code-tab-btn.active {
+      color: #38BDF8;
+      background: rgba(56, 189, 248, 0.1);
+      border-bottom-color: #38BDF8;
+      font-weight: 600;
+    }
+
+    .code-body-wrapper {
+      position: relative;
+    }
+
+    .btn-copy {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #E2E8F0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      z-index: 10;
+    }
+
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    pre.code-content {
+      margin: 0;
+      padding: 22px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      color: #E2E8F0;
+      max-height: 520px;
+    }
+
+    .code-panel {
+      display: none;
+    }
+
+    .code-panel.active {
+      display: block;
+    }
+
+    /* Tables */
+    .data-table-wrapper {
+      overflow-x: auto;
+      margin: 18px 0;
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: var(--slate-100);
+      color: var(--text-main);
+      padding: 12px 16px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-card);
+      white-space: nowrap;
+    }
+
+    table.data-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-card);
+      color: var(--text-main);
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table.data-table tr:hover {
+      background: rgba(0, 0, 0, 0.015);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-primary { background: #DBEAFE; color: #1D4ED8; }
+    .badge-success { background: #D1FAE5; color: #047857; }
+    .badge-warning { background: #FEF3C7; color: #B45309; }
+    .badge-danger { background: #FFE4E6; color: #BE123C; }
+    .badge-purple { background: #EDE9FE; color: #6D28D9; }
+    .badge-teal { background: #CCFBF1; color: #0F766E; }
+
+    /* Directory Card Visualizer */
+    .dir-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .dir-card {
+      background: var(--slate-100);
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      border-left: 4px solid var(--accent);
+    }
+
+    .dir-card.upload { border-left-color: var(--emerald); }
+    .dir-card.success { border-left-color: #10B981; }
+    .dir-card.failed { border-left-color: var(--rose); }
+
+    .dir-card .dir-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .dir-card .dir-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Checklist Section */
+    .team-checklist-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .checklist-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      padding: 20px;
+    }
+
+    .checklist-card h4 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .checklist-card ul {
+      list-style: none;
+    }
+
+    .checklist-card li {
+      font-size: 12.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: var(--text-main);
+      line-height: 1.45;
+    }
+
+    .checklist-card li input[type="checkbox"] {
+      margin-top: 3px;
+      accent-color: var(--accent);
+    }
+
+    /* Callout Note */
+    .callout-box {
+      background: rgba(37, 99, 235, 0.05);
+      border-left: 4px solid var(--accent);
+      padding: 14px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--text-main);
+      margin: 16px 0;
+    }
+
+    .callout-box.amber {
+      background: rgba(217, 119, 6, 0.05);
+      border-left-color: var(--amber);
+    }
+
+    .callout-box.emerald {
+      background: rgba(5, 150, 105, 0.05);
+      border-left-color: var(--emerald);
+    }
+
+    /* Footer */
+    footer.page-footer {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border-card);
+      background: var(--bg-card);
+    }
+
+    /* Print styles */
+    @media print {
+      nav.quick-nav, .btn-toggle-theme, .btn-copy { display: none !important; }
+      body { background: #fff !important; color: #000 !important; }
+      section.doc-section { box-shadow: none !important; border: 1px solid #ccc !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Hero Header -->
+  <header class="hero-header">
+    <div class="header-top">
+      <div class="brand-badge">
+        <span class="pulse-dot"></span>
+        PT ADI SARANA ARMADA TBK (ASSA) • ATLAS & MIDDLEWARE INTEGRATION
+      </div>
+      <div class="action-controls">
+        <button class="btn-toggle-theme" id="themeToggleBtn">
+          <span id="themeIcon">🌙</span> <span id="themeText">Dark Mode</span>
+        </button>
+      </div>
+    </div>
+    
+    <div class="hero-title-area">
+      <h1>Panduan Produk & Integrasi: SPK Final (POST XML) & AP Due List (PUT) v2.0</h1>
+      <p class="subtitle">
+        Spesifikasi teknis implementasi endpoint baru <strong>SPK Final (POST)</strong> untuk generate dokumen XML multi-skenario (Eksternal/Internal × Maintenance/Body Repair) dan migrasi arsitektur <strong>AP Due List (PUT)</strong> konsolidasi multi-SPK ke SAP ERP.
+      </p>
+      
+      <div class="meta-pills">
+        <span class="pill version-badge">Versi: 2.0 (Active Standard)</span>
+        <span class="pill highlight">Status: Approved / Production Ready</span>
+        <span class="pill">Presenter: Nobi Sumariga</span>
+        <span class="pill">Dokumen Acuan: GUIDE_SPK_FINAL_XML_DAN_AP_DUE_LIST_PUT.md</span>
+        <span class="pill">Stack: WSO2 MI • SAP FICO • ATLAS (Vendor Portal)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky Quick Navigation -->
+  <nav class="quick-nav" id="quickNav">
+    <a href="#overview" class="active">01. Ringkasan v2.0</a>
+    <a href="#flow">02. Alur Integrasi End-to-End</a>
+    <a href="#spk-final-matrix">03. Matriks SPK Final (POST)</a>
+    <a href="#ap-due-list-put">04. Migrasi AP Due List (PUT)</a>
+    <a href="#code-explorer">05. Explorer Dokumen XML</a>
+    <a href="#gl-mapping">06. Pemetaan G/L SAP</a>
+    <a href="#ftp-recon">07. FTP & Rekonsiliasi</a>
+    <a href="#action-items">08. Checklist Tim</a>
+  </nav>
+
+  <main class="container">
+
+    <!-- Value Cards (Metrics / Core Highlights) -->
+    <div class="value-grid">
+      <div class="value-card">
+        <div class="card-icon">⚡</div>
+        <h3>SPK Final XML Engine (POST)</h3>
+        <p>Endpoint baru <code>POST /api/v1/spk/final</code> membentuk XML resmi <code>xmlns="http://assa.id/atlas/spk/v1"</code> mencakup 4 kombinasi tipe & kategori.</p>
+      </div>
+      <div class="value-card teal">
+        <div class="card-icon">🛡️</div>
+        <h3>AP Due List Idempotency (PUT)</h3>
+        <p>Migrasi method dari <strong>POST</strong> ke <strong>PUT</strong> menjamin status mutasi tagihan bersifat idempotent dan mencegah <em>double posting</em> di SAP FB60.</p>
+      </div>
+      <div class="value-card emerald">
+        <div class="card-icon">⚙️</div>
+        <h3>Auto-Routing G/L Account SAP</h3>
+        <p>Pemisahan akuntansi presisi: Jasa ke <strong>G/L 5000000007</strong> dan Suku Cadang / Ban ke <strong>G/L 5000000008</strong> tanpa input manual.</p>
+      </div>
+      <div class="value-card purple">
+        <div class="card-icon">📦</div>
+        <h3>Multi-SPK Consolidation</h3>
+        <p>Satu lembar Invoice Vendor menaungi <strong>1 s/d 50 SPK</strong> (Maintenance & Body Repair) dalam schema <code>&lt;INVOICE_INBOUND_REQUEST&gt;</code>.</p>
+      </div>
+    </div>
+
+    <!-- Section 1: Ringkasan Eksekutif & Perubahan v2.0 -->
+    <section class="doc-section" id="overview">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><span class="section-number">01</span> Latar Belakang & Pembaruan Arsitektur v2.0</h2>
+          <p class="section-desc">Evolusi standarisasi dokumen operasional SPK dan penyatuan siklus tagihan vendor ke SAP ERP.</p>
+        </div>
+      </div>
+
+      <p style="font-size: 14.5px; color: var(--text-main); margin-bottom: 16px;">
+        Pada versi 2.0 ini, terdapat dua evolusi penting yang diimplementasikan di seluruh platform ASSA Atlas dan WSO2 Middleware:
+      </p>
+
+      <!-- Comparison Before vs After -->
+      <div class="compare-container">
+        <div class="compare-box old-way">
+          <span class="compare-tag">Versi 1.0 (Model Lama)</span>
+          <div class="compare-title">❌ SPK & AP Due List Terpisah / Parsial</div>
+          <ul class="compare-list">
+            <li>Belum ada generator XML resmi untuk SPK Final (hanya data JSON di portal).</li>
+            <li>Pengiriman tagihan AP Due List menggunakan method <code>POST /api/spk/duelist</code> berisiko duplikasi bila network timeout.</li>
+            <li>Root schema XML AP Due List tidak seragam dan sering menimbulkan friksi di parser ABAP SAP.</li>
+            <li>SPK Body Repair dan SPK Maintenance diproses dengan skema yang kaku dan rawan salah pemetaan pajak.</li>
+          </ul>
+        </div>
+
+        <div class="compare-box new-way">
+          <span class="compare-tag">Versi 2.0 (Standar Baru Terpadu)</span>
+          <div class="compare-title">✅ SPK Final (POST) & AP Due List (PUT) v2.0</div>
+          <ul class="compare-list">
+            <li><strong>Endpoint Baru <code>POST /api/v1/spk/final</code>:</strong> Generate XML resmi mencakup 4 skenario kombinasi.</li>
+            <li><strong>Migrasi ke <code>PUT /api/v1/ap-due-list</code>:</strong> Menjamin idempotensi penggantian state invoice vendor.</li>
+            <li><strong>Root Schema Resmi <code>&lt;INVOICE_INBOUND_REQUEST&gt;</code>:</strong> Konsolidasi 1 s/d 50 SPK (MTC & Body Repair).</li>
+            <li><strong>Aturan Tegas:</strong> Sub-category hanya ada di Maintenance; di Body Repair tag <code>&lt;SUB_CATEGORY&gt;</code> wajib dihilangkan.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: Alur End-to-End -->
+    <section class="doc-section" id="flow">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><span class="section-number">02</span> Alur Integrasi End-to-End SPK Final & AP Due List</h2>
+          <p class="section-desc">Diagram visual siklus penerbitan berkas SPK Final dan penyaluran tagihan AP Due List ke SAP FICO.</p>
+        </div>
+      </div>
+
+      <!-- Step Timeline Cards -->
+      <div class="steps-timeline">
+        <div class="step-card">
+          <span class="step-number-badge">1</span>
+          <h4>SPK Approved</h4>
+          <p>SPK disetujui internal Atlas. User dapat memicu <code>POST /api/v1/spk/final</code> untuk generate dokumen XML resmi.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-number-badge purple">2</span>
+          <h4>Vendor Billing</h4>
+          <p>Vendor menyatukan 1 s/d 50 SPK approved menjadi satu tagihan invoice resmi ber-faktur pajak di portal.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-number-badge teal">3</span>
+          <h4>Submit AP Due List (PUT)</h4>
+          <p>Finance Atlas submit tagihan via <code>PUT /api/v1/ap-due-list</code> dengan idempotency key <code>X-Transaction-Id</code>.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-number-badge">4</span>
+          <h4>Middleware & FTP SAP</h4>
+          <p>Middleware memetakan G/L SAP (5000000007/8), membentuk XML <code>INVOICE_INBOUND_REQUEST</code>, dan transfer via FTP ke SAP.</p>
+        </div>
+        <div class="step-card">
+          <span class="step-number-badge emerald">5</span>
+          <h4>SAP FB60 & Closed-Loop</h4>
+          <p>SAP memposting jurnal hutang vendor (FB60/MIRO) dan menghasilkan XML balikan di FTP untuk update status di Atlas.</p>
+        </div>
+      </div>
+
+      <!-- Mermaid Diagram -->
+      <div class="diagram-container">
+        <pre class="mermaid">
+flowchart TD
+    subgraph ATLAS ["1. ATLAS Platform (Frontend & Core Service)"]
+        A_SPK["SPK Status: APPROVED"] --> A_GEN["POST /api/v1/spk/final\n(Generate XML SPK Final)"]
+        A_GEN --> A_XML["Dokumen XML SPK Final\n(xmlns=atlas/spk/v1)"]
+        
+        A_INV["Vendor Buat Invoice Multi-SPK (1-50 SPK)"] --> A_REV["Finance Internal Review & Approve"]
+        A_REV --> A_PUT["PUT /api/v1/ap-due-list\n(Header: X-Transaction-Id)"]
+    end
+
+    subgraph MW ["2. ASSA WSO2 MI Middleware"]
+        MW_GUARD["AuthGuardSeq + IdempotencyGuardSeq\n(Cek Replay / Prevent Double Submission)"]
+        MW_ROUTER["SpkApi.xml Router:\n• POST /final (SPK XML)\n• PUT /duelist (AP Due List)"]
+        MW_BUILD["Transformasi & Mapping G/L:\n• Jasa -> 5000000007\n• Part/Ban -> 5000000008"]
+        MW_FTP_SPK["VFS FTP Client: SPK Final\nTarget: spk/download"]
+        MW_FTP_AP["VFS FTP Client: AP Due List\nTarget: /apduelist/download/"]
+
+        A_GEN -.->|Push Outbound| MW_ROUTER
+        MW_ROUTER -->|POST /final| MW_FTP_SPK
+        A_PUT --> MW_GUARD --> MW_ROUTER --> MW_BUILD --> MW_FTP_AP
+    end
+
+    subgraph SAP ["3. SAP ERP Central (FICO / Service)"]
+        MW_FTP_SPK --> S_SPK["Job SAP Proses SPK Final\n(Membaca spk/download)"]
+        MW_FTP_AP --> S_READ["Job SAP Ambil XML &lt;INVOICE_INBOUND_REQUEST&gt;\n(Membaca /apduelist/download)"]
+        S_READ --> S_VAL{"Validasi SAP:\n1. Vendor Active\n2. Cek Faktur Pajak Duplikat\n3. Keselarasan Nilai Total"}
+        S_VAL -->|"Valid"| S_POST["Posting AP Invoice FB60 / MIRO\n(Doc Number 190000xxxx)"]
+        S_VAL -->|"Gagal"| S_REJ["Catat Status Error Penolakan"]
+        S_POST --> S_RESP["Bentuk XML &lt;INVOICE_INBOUND_RESPONSE&gt;"]
+        S_REJ --> S_RESP
+        S_RESP --> S_FTP["Taruh Berkas Balikan di FTP:\n/apduelist/upload/"]
+    end
+
+    subgraph RECON ["4. Rekonsiliasi Status ke ATLAS"]
+        S_FTP --> M_POLL["Middleware Inbound Poller"]
+        M_POLL --> M_CALL["HTTP Callback ke ATLAS:\nPOST /api/v1/invoices/reconciliation"]
+        M_CALL --> A_DONE["Status Tagihan Ter-update di ATLAS:\n(synced_to_sap / rejected_by_sap)"]
+    end
+        </pre>
+      </div>
+    </section>
+
+    <!-- Section 3: Matriks SPK Final (POST) -->
+    <section class="doc-section" id="spk-final-matrix">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><span class="section-number">03</span> Matriks Aturan Bisnis XML SPK Final (`POST`)</h2>
+          <p class="section-desc">Aturan serialisasi XML resmi untuk 4 kombinasi bisnis (Eksternal/Internal × Maintenance/Body Repair).</p>
+        </div>
+      </div>
+
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Komponen XML</th>
+              <th>Skenario 1: Eksternal + Maintenance</th>
+              <th>Skenario 2: Internal + Maintenance</th>
+              <th>Skenario 3: Eksternal + Body Repair</th>
+              <th>Skenario 4: Internal + Body Repair</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong><code>&lt;SPK_TYPE&gt;</code></strong></td>
+              <td><span class="badge badge-primary">EKSTERNAL</span></td>
+              <td><span class="badge badge-purple">INTERNAL</span></td>
+              <td><span class="badge badge-primary">EKSTERNAL</span></td>
+              <td><span class="badge badge-purple">INTERNAL</span></td>
+            </tr>
+            <tr>
+              <td><strong><code>&lt;CATEGORY&gt;</code></strong></td>
+              <td><span class="badge badge-teal">MAINTENANCE</span></td>
+              <td><span class="badge badge-teal">MAINTENANCE</span></td>
+              <td><span class="badge badge-warning">BODY_REPAIR</span></td>
+              <td><span class="badge badge-warning">BODY_REPAIR</span></td>
+            </tr>
+            <tr>
+              <td><strong><code>&lt;SUB_CATEGORY&gt;</code></strong></td>
+              <td><strong style="color: #059669;">Wajib Ada</strong> (<code>PB</code> / <code>PBTT</code> / <code>ADHOC</code>)</td>
+              <td><strong style="color: #059669;">Wajib Ada</strong> (<code>PB</code> / <code>PBTT</code> / <code>ADHOC</code>)</td>
+              <td><strong style="color: #E11D48;">DILARANG ADA</strong> (Omit tag)</td>
+              <td><strong style="color: #E11D48;">DILARANG ADA</strong> (Omit tag)</td>
+            </tr>
+            <tr>
+              <td><strong><code>&lt;PARTY_INFO&gt;</code></strong></td>
+              <td>Berisi Vendor:<br>• <code>VENDOR_CODE</code><br>• <code>VENDOR_NAME</code><br>• <code>VENDOR_TAX_NUMBER</code></td>
+              <td>Berisi Internal PIC:<br>• <code>WORKSHOP_TYPE: INTERNAL_POOL</code><br>• <code>PIC_SERVICE_CODE: TS_POOL</code><br>• <code>PIC_SERVICE_NAME</code></td>
+              <td>Berisi Vendor:<br>• <code>VENDOR_CODE</code><br>• <code>VENDOR_NAME</code><br>• <code>VENDOR_TAX_NUMBER</code></td>
+              <td>Berisi Internal PIC:<br>• <code>WORKSHOP_TYPE: INTERNAL_CABANG</code><br>• <code>PIC_SERVICE_CODE: TS_CABANG</code><br>• <code>PIC_SERVICE_NAME</code></td>
+            </tr>
+            <tr>
+              <td><strong><code>&lt;CATEGORY_DETAIL&gt;</code></strong></td>
+              <td><code>&lt;MAINTENANCE_DETAIL&gt;</code><br>• <code>KM_SERVICE</code></td>
+              <td><code>&lt;MAINTENANCE_DETAIL&gt;</code><br>• <code>KM_SERVICE</code><br>• <code>PIC_SERVICE</code><br>• <code>PIC_SERVICE_NAME</code></td>
+              <td><code>&lt;BODY_REPAIR_DETAIL&gt;</code><br>• <code>ITEM_CODE: own_risk</code><br>• <code>REPAIR_TYPE: SEDANG</code><br>• <code>TOTAL_COST_AMOUNT</code><br>• <code>CLAIM_NUMBER</code><br>• <code>INCIDENT_CHRONOLOGY</code></td>
+              <td><code>&lt;BODY_REPAIR_DETAIL&gt;</code><br>• <code>ITEM_CODE: own_risk</code><br>• <code>REPAIR_TYPE: RINGAN</code><br>• <code>TOTAL_COST_AMOUNT</code><br>• <code>PIC_SERVICE</code><br>• <code>PIC_SERVICE_NAME</code><br>• <code>INCIDENT_CHRONOLOGY</code></td>
+            </tr>
+            <tr>
+              <td><strong><code>&lt;TAX_AND_TOTALS&gt;</code></strong></td>
+              <td><code>IS_PPN: true</code><br><code>PPN_RATE: 11.00</code><br><code>PPN_AMOUNT: nominal</code></td>
+              <td><code>IS_PPN: false</code><br><code>PPN_RATE: 0.00</code><br><code>PPN_AMOUNT: 0</code></td>
+              <td><code>IS_PPN: true</code><br><code>PPN_RATE: 11.00</code><br><code>PPN_AMOUNT: nominal</code></td>
+              <td><code>IS_PPN: false</code><br><code>PPN_RATE: 0.00</code><br><code>PPN_AMOUNT: 0</code></td>
+            </tr>
+            <tr>
+              <td><strong>Target Folder FTP (SAP)</strong></td>
+              <td colspan="4" style="text-align: center;"><span class="badge badge-purple" style="font-size: 12px; padding: 4px 12px;">📁 spk/download</span> <span style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">(Seluruh 4 skenario XML SPK Final ditaruh di folder ini)</span></td>
+            </tr>
+            <tr>
+              <td><strong><code>&lt;LINE_ITEMS&gt;</code> -> G/L Account</strong></td>
+              <td>Jasa: <code>5000000007</code><br>Part/Ban: <code>5000000008</code></td>
+              <td>Jasa: <code>5000000007</code><br>Part: <code>5000000008</code></td>
+              <td>Jasa (Ketok/Cat): <code>5000000007</code><br>Part (Ganti): <code>5000000008</code></td>
+              <td>Jasa (Poles/Cat): <code>5000000007</code><br>Part (Compound): <code>5000000008</code></td>
+            </tr>
+            <tr>
+              <td><strong>Fitur Khusus Item</strong></td>
+              <td>Sertakan <code>&lt;TIRE_METADATA&gt;</code> jika item bertipe BAN</td>
+              <td>-</td>
+              <td><code>ITEM_TYPE = BODY_REPAIR_PANEL</code></td>
+              <td><code>ITEM_TYPE = BODY_REPAIR_PANEL</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout-box amber">
+        <strong>PENTING:</strong> Pada kategori <strong>Body Repair</strong>, tag <code>&lt;SUB_CATEGORY&gt;</code> <u>tidak boleh di-render sama sekali</u> (bukan bernilai kosong, melainkan tag dihilangkan). Kegagalan menghilangkan tag ini akan menyebabkan error validasi skema XML di sistem SAP.
+      </div>
+    </section>
+
+    <!-- Section 4: Migrasi AP Due List (PUT) -->
+    <section class="doc-section" id="ap-due-list-put">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><span class="section-number">04</span> Migrasi AP Due List ke Method `PUT`</h2>
+          <p class="section-desc">Penerapan standar RESTful Idempotency untuk penerbitan tagihan vendor ke SAP.</p>
+        </div>
+      </div>
+
+      <div class="compare-container">
+        <div class="compare-box old-way">
+          <span class="compare-tag">Lama: POST /api/spk/duelist</span>
+          <div class="compare-title">Mengapa POST Tidak Lagi Digunakan?</div>
+          <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+            Method <code>POST</code> secara spesifikasi HTTP bersifat <em>non-idempotent</em>. Ketika pengiriman tagihan mengalami jaringan timeout atau koneksi putus di tengah jalan, client yang melakukan retry <code>POST</code> berisiko membuat dokumen AP Invoice baru di SAP sehingga terjadi <strong>Double Payment Risk</strong> pada nomor faktur pajak yang sama.
+          </p>
+        </div>
+
+        <div class="compare-box new-way">
+          <span class="compare-tag">Baru: PUT /api/v1/ap-due-list</span>
+          <div class="compare-title">Mengapa Harus PUT?</div>
+          <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+            Method <code>PUT</code> bersifat <em>idempotent state mutation</em>. Dokumen billing (<code>BILLING_NUMBER</code>) sudah eksis di Atlas dan aksi ini memperbarui statusnya menjadi tagihan siap bayar (<em>Due List</em>). Jika terjadi retry, middleware dan SAP akan melakukan <em>safe state replacement / replay</em> tanpa menimbulkan duplikasi dokumen akuntansi.
+          </p>
+        </div>
+      </div>
+
+      <div class="callout-box emerald">
+        <strong>Aturan Validasi Konsolidasi Multi-SPK:</strong><br>
+        Dalam 1 dokumen tagihan <code>&lt;INVOICE_INBOUND_REQUEST&gt;</code>, sistem dapat menampung <strong>1 hingga 50 SPK</strong> sekaligus. Nilai akumulasi dari seluruh <code>SPK_SUBTOTAL</code> wajib sama persis dengan <code>TOTAL_SUBTOTAL_AMOUNT</code> pada header, dan <code>TOTAL_INVOICE_AMOUNT</code> wajib sama dengan $\text{Subtotal} + \text{PPN}$.
+      </div>
+    </section>
+
+    <!-- Section 5: Interactive Code Explorer -->
+    <section class="doc-section" id="code-explorer">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><span class="section-number">05</span> Interactive XML & Payload Explorer</h2>
+          <p class="section-desc">Pilih tab di bawah untuk melihat contoh XML resmi SPK Final (4 skenario) dan AP Due List (PUT).</p>
+        </div>
+      </div>
+
+      <div class="code-viewer">
+        <div class="code-tabs">
+          <button class="code-tab-btn active" onclick="switchTab('tab-spk-ext-mtc', this)">📄 SPK: Eksternal + MTC</button>
+          <button class="code-tab-btn" onclick="switchTab('tab-spk-int-mtc', this)">📄 SPK: Internal + MTC</button>
+          <button class="code-tab-btn" onclick="switchTab('tab-spk-ext-br', this)">📄 SPK: Eksternal + Body Repair</button>
+          <button class="code-tab-btn" onclick="switchTab('tab-spk-int-br', this)">📄 SPK: Internal + Body Repair</button>
+          <button class="code-tab-btn" onclick="switchTab('tab-ap-mtc', this)">📋 AP Due List: MTC (Multi-SPK)</button>
+          <button class="code-tab-btn" onclick="switchTab('tab-ap-kombinasi', this)">📋 AP Due List: MTC + Body Repair</button>
+          <button class="code-tab-btn" onclick="switchTab('tab-ap-response-sap', this)">✅ AP: Balikan Sukses SAP</button>
+        </div>
+
+        <div class="code-body-wrapper">
+          <button class="btn-copy" onclick="copyCode(this)">📋 Salin XML</button>
+
+          <!-- Tab 1: SPK Eksternal + MTC -->
+          <div class="code-panel active" id="tab-spk-ext-mtc">
+            <pre class="code-content"><code class="xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;SPK_DOCUMENT xmlns="http://assa.id/atlas/spk/v1"&gt;
+  &lt;!-- Identitas Dokumen SPK Final --&gt;
+  &lt;HEADER&gt;
+    &lt;SPK_NUMBER&gt;SPK20261020-01&lt;/SPK_NUMBER&gt;
+    &lt;SR_NUMBER&gt;SR20261019-0012&lt;/SR_NUMBER&gt;
+    &lt;SPK_TYPE&gt;EKSTERNAL&lt;/SPK_TYPE&gt;
+    &lt;CATEGORY&gt;MAINTENANCE&lt;/CATEGORY&gt;
+    &lt;SUB_CATEGORY&gt;PB&lt;/SUB_CATEGORY&gt;
+    &lt;STATUS&gt;APPROVED&lt;/STATUS&gt;
+    &lt;IS_REWORK&gt;false&lt;/IS_REWORK&gt;
+    &lt;IS_BACK_CHARGE&gt;false&lt;/IS_BACK_CHARGE&gt;
+    &lt;LICENSE_PLATE&gt;B 1234 ABC&lt;/LICENSE_PLATE&gt;
+    &lt;BRANCH_CODE&gt;1201&lt;/BRANCH_CODE&gt;
+    &lt;BRANCH_NAME&gt;Cabang Jakarta Barat&lt;/BRANCH_NAME&gt;
+    &lt;COMPANY_CODE&gt;1000&lt;/COMPANY_CODE&gt;
+    &lt;START_SERVICE_AT&gt;2026-10-20T08:30:00Z&lt;/START_SERVICE_AT&gt;
+    &lt;END_SERVICE_AT&gt;2026-10-20T14:00:00Z&lt;/END_SERVICE_AT&gt;
+  &lt;/HEADER&gt;
+
+  &lt;!-- Pihak Rekanan Eksternal (Vendor) --&gt;
+  &lt;PARTY_INFO&gt;
+    &lt;VENDOR_CODE&gt;VEND-00192&lt;/VENDOR_CODE&gt;
+    &lt;VENDOR_NAME&gt;PT. Sumber Jaya Motor&lt;/VENDOR_NAME&gt;
+    &lt;VENDOR_TAX_NUMBER&gt;01.234.567.8-012.000&lt;/VENDOR_TAX_NUMBER&gt;
+  &lt;/PARTY_INFO&gt;
+
+  &lt;!-- Detail Kategori Maintenance --&gt;
+  &lt;CATEGORY_DETAIL&gt;
+    &lt;MAINTENANCE_DETAIL&gt;
+      &lt;KM_SERVICE&gt;45200&lt;/KM_SERVICE&gt;
+    &lt;/MAINTENANCE_DETAIL&gt;
+  &lt;/CATEGORY_DETAIL&gt;
+
+  &lt;!-- Rincian Nilai Finansial dan Pajak --&gt;
+  &lt;TAX_AND_TOTALS&gt;
+    &lt;CURRENCY&gt;IDR&lt;/CURRENCY&gt;
+    &lt;IS_PPN&gt;true&lt;/IS_PPN&gt;
+    &lt;PPN_RATE&gt;11.00&lt;/PPN_RATE&gt;
+    &lt;SUBTOTAL&gt;2350000&lt;/SUBTOTAL&gt;
+    &lt;PPN_AMOUNT&gt;258500&lt;/PPN_AMOUNT&gt;
+    &lt;GRAND_TOTAL&gt;2608500&lt;/GRAND_TOTAL&gt;
+  &lt;/TAX_AND_TOTALS&gt;
+
+  &lt;!-- Daftar Item Pengerjaan (Jasa, Part, dan Ban) --&gt;
+  &lt;LINE_ITEMS&gt;
+    &lt;!-- Item 1: Jasa Tune Up &amp; Filter -&gt; G/L 5000000007 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;1&lt;/ITEM_NO&gt;
+      &lt;ITEM_GROUP&gt;OH_ENGINE&lt;/ITEM_GROUP&gt;
+      &lt;ITEM_TYPE&gt;JASA&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;REPAIR&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Jasa Tune Up &amp;amp; Pembersihan Throttle Body&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;UNT&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;350000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;350000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+
+    &lt;!-- Item 2: Part Oli Mesin Synthetic -&gt; G/L 5000000008 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;2&lt;/ITEM_NO&gt;
+      &lt;ITEM_GROUP&gt;OH_ENGINE&lt;/ITEM_GROUP&gt;
+      &lt;ITEM_TYPE&gt;PART&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;GANTI&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Oli Mesin Fully Synthetic 5W-30 (Galon 4 Liter)&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;PC&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;650000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;650000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+
+    &lt;!-- Item 3: Part Kampas Rem Depan -&gt; G/L 5000000008 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;3&lt;/ITEM_NO&gt;
+      &lt;ITEM_GROUP&gt;BRAKE&lt;/ITEM_GROUP&gt;
+      &lt;ITEM_TYPE&gt;PART&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;GANTI&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Brake Pad Set Depan Original&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;SET&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;450000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;450000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+
+    &lt;!-- Item 4: Ban Fisik Penggantian Depan Kanan -&gt; G/L 5000000008 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;4&lt;/ITEM_NO&gt;
+      &lt;ITEM_GROUP&gt;BAN&lt;/ITEM_GROUP&gt;
+      &lt;ITEM_TYPE&gt;BAN&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;GANTI&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Ban Bridgestone Ecopia 185/65 R15 (Depan Kanan)&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;PC&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;900000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;900000&lt;/TOTAL_AMOUNT&gt;
+      &lt;TIRE_METADATA&gt;
+        &lt;POSITION&gt;DEPAN_KANAN&lt;/POSITION&gt;
+        &lt;TIRE_TYPE&gt;RADIAL&lt;/TIRE_TYPE&gt;
+        &lt;BRAND&gt;Bridgestone&lt;/BRAND&gt;
+        &lt;SIZE&gt;185/65 R15&lt;/SIZE&gt;
+        &lt;TIRE_CODE&gt;BR-1856515-EC&lt;/TIRE_CODE&gt;
+      &lt;/TIRE_METADATA&gt;
+    &lt;/ITEM&gt;
+  &lt;/LINE_ITEMS&gt;
+&lt;/SPK_DOCUMENT&gt;</code></pre>
+          </div>
+
+          <!-- Tab 2: SPK Internal + MTC -->
+          <div class="code-panel" id="tab-spk-int-mtc">
+            <pre class="code-content"><code class="xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;SPK_DOCUMENT xmlns="http://assa.id/atlas/spk/v1"&gt;
+  &lt;HEADER&gt;
+    &lt;SPK_NUMBER&gt;SPK20261020-02&lt;/SPK_NUMBER&gt;
+    &lt;SR_NUMBER&gt;SR20261019-0015&lt;/SR_NUMBER&gt;
+    &lt;SPK_TYPE&gt;INTERNAL&lt;/SPK_TYPE&gt;
+    &lt;CATEGORY&gt;MAINTENANCE&lt;/CATEGORY&gt;
+    &lt;SUB_CATEGORY&gt;PBTT&lt;/SUB_CATEGORY&gt;
+    &lt;STATUS&gt;APPROVED&lt;/STATUS&gt;
+    &lt;IS_REWORK&gt;false&lt;/IS_REWORK&gt;
+    &lt;IS_BACK_CHARGE&gt;false&lt;/IS_BACK_CHARGE&gt;
+    &lt;LICENSE_PLATE&gt;B 5678 XYZ&lt;/LICENSE_PLATE&gt;
+    &lt;BRANCH_CODE&gt;1202&lt;/BRANCH_CODE&gt;
+    &lt;BRANCH_NAME&gt;Cabang Tangerang&lt;/BRANCH_NAME&gt;
+    &lt;COMPANY_CODE&gt;1000&lt;/COMPANY_CODE&gt;
+    &lt;START_SERVICE_AT&gt;2026-10-20T09:00:00Z&lt;/START_SERVICE_AT&gt;
+    &lt;END_SERVICE_AT&gt;2026-10-20T12:00:00Z&lt;/END_SERVICE_AT&gt;
+  &lt;/HEADER&gt;
+
+  &lt;!-- Pihak Internal (PIC Workshop Pool) - Tanpa Tag Vendor --&gt;
+  &lt;PARTY_INFO&gt;
+    &lt;WORKSHOP_TYPE&gt;INTERNAL_POOL&lt;/WORKSHOP_TYPE&gt;
+    &lt;PIC_SERVICE_CODE&gt;TS_POOL&lt;/PIC_SERVICE_CODE&gt;
+    &lt;PIC_SERVICE_NAME&gt;Bambang Sudiro (Teknisi Senior)&lt;/PIC_SERVICE_NAME&gt;
+  &lt;/PARTY_INFO&gt;
+
+  &lt;CATEGORY_DETAIL&gt;
+    &lt;MAINTENANCE_DETAIL&gt;
+      &lt;KM_SERVICE&gt;62100&lt;/KM_SERVICE&gt;
+      &lt;PIC_SERVICE&gt;ts_pool&lt;/PIC_SERVICE&gt;
+      &lt;PIC_SERVICE_NAME&gt;Bambang Sudiro (Teknisi Senior)&lt;/PIC_SERVICE_NAME&gt;
+    &lt;/MAINTENANCE_DETAIL&gt;
+  &lt;/CATEGORY_DETAIL&gt;
+
+  &lt;TAX_AND_TOTALS&gt;
+    &lt;CURRENCY&gt;IDR&lt;/CURRENCY&gt;
+    &lt;IS_PPN&gt;false&lt;/IS_PPN&gt;
+    &lt;PPN_RATE&gt;0.00&lt;/PPN_RATE&gt;
+    &lt;SUBTOTAL&gt;750000&lt;/SUBTOTAL&gt;
+    &lt;PPN_AMOUNT&gt;0&lt;/PPN_AMOUNT&gt;
+    &lt;GRAND_TOTAL&gt;750000&lt;/GRAND_TOTAL&gt;
+  &lt;/TAX_AND_TOTALS&gt;
+
+  &lt;LINE_ITEMS&gt;
+    &lt;!-- Item 1: Jasa Servis Ringan Rem Internal -&gt; G/L 5000000007 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;1&lt;/ITEM_NO&gt;
+      &lt;ITEM_GROUP&gt;BRAKE&lt;/ITEM_GROUP&gt;
+      &lt;ITEM_TYPE&gt;JASA&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;REPAIR&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Jasa Pembersihan &amp;amp; Bleeding Minyak Rem&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;UNT&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;150000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;150000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+
+    &lt;!-- Item 2: Part Penggantian Filter Udara Gudang Internal -&gt; G/L 5000000008 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;2&lt;/ITEM_NO&gt;
+      &lt;ITEM_GROUP&gt;OH_ENGINE&lt;/ITEM_GROUP&gt;
+      &lt;ITEM_TYPE&gt;PART&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;GANTI&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Filter Udara Mesin Avanza 1.3&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;PC&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;180000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;180000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+
+    &lt;!-- Item 3: Part Minyak Rem DOT 4 -&gt; G/L 5000000008 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;3&lt;/ITEM_NO&gt;
+      &lt;ITEM_GROUP&gt;BRAKE&lt;/ITEM_GROUP&gt;
+      &lt;ITEM_TYPE&gt;PART&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;GANTI&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Minyak Rem DOT 4 Seiken 1L&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;2&lt;/QTY&gt;
+      &lt;UOM&gt;PC&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;210000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;420000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+  &lt;/LINE_ITEMS&gt;
+&lt;/SPK_DOCUMENT&gt;</code></pre>
+          </div>
+
+          <!-- Tab 3: SPK Eksternal + Body Repair -->
+          <div class="code-panel" id="tab-spk-ext-br">
+            <pre class="code-content"><code class="xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;SPK_DOCUMENT xmlns="http://assa.id/atlas/spk/v1"&gt;
+  &lt;HEADER&gt;
+    &lt;SPK_NUMBER&gt;SPK20261020-03&lt;/SPK_NUMBER&gt;
+    &lt;SR_NUMBER&gt;SR20261018-0005&lt;/SR_NUMBER&gt;
+    &lt;SPK_TYPE&gt;EKSTERNAL&lt;/SPK_TYPE&gt;
+    &lt;CATEGORY&gt;BODY_REPAIR&lt;/CATEGORY&gt;
+    &lt;!-- Body Repair TIDAK MENGGUNAKAN tag SUB_CATEGORY --&gt;
+    &lt;STATUS&gt;APPROVED&lt;/STATUS&gt;
+    &lt;IS_REWORK&gt;false&lt;/IS_REWORK&gt;
+    &lt;IS_BACK_CHARGE&gt;false&lt;/IS_BACK_CHARGE&gt;
+    &lt;LICENSE_PLATE&gt;B 9876 KLM&lt;/LICENSE_PLATE&gt;
+    &lt;BRANCH_CODE&gt;1201&lt;/BRANCH_CODE&gt;
+    &lt;BRANCH_NAME&gt;Cabang Jakarta Barat&lt;/BRANCH_NAME&gt;
+    &lt;COMPANY_CODE&gt;1000&lt;/COMPANY_CODE&gt;
+    &lt;START_SERVICE_AT&gt;2026-10-20T10:00:00Z&lt;/START_SERVICE_AT&gt;
+    &lt;END_SERVICE_AT&gt;2026-10-24T16:00:00Z&lt;/END_SERVICE_AT&gt;
+  &lt;/HEADER&gt;
+
+  &lt;!-- Pihak Rekanan Eksternal --&gt;
+  &lt;PARTY_INFO&gt;
+    &lt;VENDOR_CODE&gt;VEND-00841&lt;/VENDOR_CODE&gt;
+    &lt;VENDOR_NAME&gt;PT. Auto Kilap Prima (Body Repair)&lt;/VENDOR_NAME&gt;
+    &lt;VENDOR_TAX_NUMBER&gt;02.456.789.1-013.000&lt;/VENDOR_TAX_NUMBER&gt;
+  &lt;/PARTY_INFO&gt;
+
+  &lt;!-- Detail Spesifik Body Repair --&gt;
+  &lt;CATEGORY_DETAIL&gt;
+    &lt;BODY_REPAIR_DETAIL&gt;
+      &lt;ITEM_CODE&gt;own_risk&lt;/ITEM_CODE&gt;
+      &lt;REPAIR_TYPE&gt;SEDANG&lt;/REPAIR_TYPE&gt;
+      &lt;TOTAL_COST_AMOUNT&gt;2800000&lt;/TOTAL_COST_AMOUNT&gt;
+      &lt;CLAIM_NUMBER&gt;CLM-202610-0081&lt;/CLAIM_NUMBER&gt;
+      &lt;INCIDENT_CHRONOLOGY&gt;Tertabrak tiang parkir saat mundur di area kantor klien&lt;/INCIDENT_CHRONOLOGY&gt;
+    &lt;/BODY_REPAIR_DETAIL&gt;
+  &lt;/CATEGORY_DETAIL&gt;
+
+  &lt;TAX_AND_TOTALS&gt;
+    &lt;CURRENCY&gt;IDR&lt;/CURRENCY&gt;
+    &lt;IS_PPN&gt;true&lt;/IS_PPN&gt;
+    &lt;PPN_RATE&gt;11.00&lt;/PPN_RATE&gt;
+    &lt;SUBTOTAL&gt;2800000&lt;/SUBTOTAL&gt;
+    &lt;PPN_AMOUNT&gt;308000&lt;/PPN_AMOUNT&gt;
+    &lt;GRAND_TOTAL&gt;3108000&lt;/GRAND_TOTAL&gt;
+  &lt;/TAX_AND_TOTALS&gt;
+
+  &lt;!-- Rincian Panel Pengerjaan Body Repair --&gt;
+  &lt;LINE_ITEMS&gt;
+    &lt;!-- Item 1: Jasa Ketok Pintu Depan Kanan -&gt; G/L 5000000007 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;1&lt;/ITEM_NO&gt;
+      &lt;ITEM_TYPE&gt;BODY_REPAIR_PANEL&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;KETOK&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Ketok Panel Pintu Depan Kanan (Penyok Sedang)&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;UNT&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;750000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;750000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+
+    &lt;!-- Item 2: Jasa Cat Bumper Depan &amp; Pintu -&gt; G/L 5000000007 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;2&lt;/ITEM_NO&gt;
+      &lt;ITEM_TYPE&gt;BODY_REPAIR_PANEL&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;CAT&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Pengecatan Oven Bumper Depan dan Pintu Kanan&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;2&lt;/QTY&gt;
+      &lt;UOM&gt;UNT&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;650000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;1300000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+
+    &lt;!-- Item 3: Penggantian Part Spion Kanan -&gt; G/L 5000000008 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;3&lt;/ITEM_NO&gt;
+      &lt;ITEM_TYPE&gt;BODY_REPAIR_PANEL&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;GANTI&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Penggantian Cover &amp;amp; Kaca Spion Kanan Elektrik&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;PC&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;750000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;750000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+  &lt;/LINE_ITEMS&gt;
+&lt;/SPK_DOCUMENT&gt;</code></pre>
+          </div>
+
+          <!-- Tab 4: SPK Internal + Body Repair -->
+          <div class="code-panel" id="tab-spk-int-br">
+            <pre class="code-content"><code class="xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;SPK_DOCUMENT xmlns="http://assa.id/atlas/spk/v1"&gt;
+  &lt;HEADER&gt;
+    &lt;SPK_NUMBER&gt;SPK20261020-04&lt;/SPK_NUMBER&gt;
+    &lt;SR_NUMBER&gt;SR20261019-0022&lt;/SR_NUMBER&gt;
+    &lt;SPK_TYPE&gt;INTERNAL&lt;/SPK_TYPE&gt;
+    &lt;CATEGORY&gt;BODY_REPAIR&lt;/CATEGORY&gt;
+    &lt;STATUS&gt;APPROVED&lt;/STATUS&gt;
+    &lt;IS_REWORK&gt;false&lt;/IS_REWORK&gt;
+    &lt;IS_BACK_CHARGE&gt;false&lt;/IS_BACK_CHARGE&gt;
+    &lt;LICENSE_PLATE&gt;B 2468 PQR&lt;/LICENSE_PLATE&gt;
+    &lt;BRANCH_CODE&gt;1203&lt;/BRANCH_CODE&gt;
+    &lt;BRANCH_NAME&gt;Cabang Jakarta Timur / Cakung&lt;/BRANCH_NAME&gt;
+    &lt;COMPANY_CODE&gt;1000&lt;/COMPANY_CODE&gt;
+    &lt;START_SERVICE_AT&gt;2026-10-20T11:00:00Z&lt;/START_SERVICE_AT&gt;
+    &lt;END_SERVICE_AT&gt;2026-10-21T15:00:00Z&lt;/END_SERVICE_AT&gt;
+  &lt;/HEADER&gt;
+
+  &lt;!-- Pihak Internal (Teknisi Cabang) --&gt;
+  &lt;PARTY_INFO&gt;
+    &lt;WORKSHOP_TYPE&gt;INTERNAL_CABANG&lt;/WORKSHOP_TYPE&gt;
+    &lt;PIC_SERVICE_CODE&gt;TS_CABANG&lt;/PIC_SERVICE_CODE&gt;
+    &lt;PIC_SERVICE_NAME&gt;Hendra Kurniawan (Spesialis Cat)&lt;/PIC_SERVICE_NAME&gt;
+  &lt;/PARTY_INFO&gt;
+
+  &lt;CATEGORY_DETAIL&gt;
+    &lt;BODY_REPAIR_DETAIL&gt;
+      &lt;ITEM_CODE&gt;own_risk&lt;/ITEM_CODE&gt;
+      &lt;REPAIR_TYPE&gt;RINGAN&lt;/REPAIR_TYPE&gt;
+      &lt;TOTAL_COST_AMOUNT&gt;500000&lt;/TOTAL_COST_AMOUNT&gt;
+      &lt;PIC_SERVICE&gt;ts_cabang&lt;/PIC_SERVICE&gt;
+      &lt;PIC_SERVICE_NAME&gt;Hendra Kurniawan (Spesialis Cat)&lt;/PIC_SERVICE_NAME&gt;
+      &lt;INCIDENT_CHRONOLOGY&gt;Goresan gesekan ranting pohon saat operasional unit di pool&lt;/INCIDENT_CHRONOLOGY&gt;
+    &lt;/BODY_REPAIR_DETAIL&gt;
+  &lt;/CATEGORY_DETAIL&gt;
+
+  &lt;TAX_AND_TOTALS&gt;
+    &lt;CURRENCY&gt;IDR&lt;/CURRENCY&gt;
+    &lt;IS_PPN&gt;false&lt;/IS_PPN&gt;
+    &lt;PPN_RATE&gt;0.00&lt;/PPN_RATE&gt;
+    &lt;SUBTOTAL&gt;500000&lt;/SUBTOTAL&gt;
+    &lt;PPN_AMOUNT&gt;0&lt;/PPN_AMOUNT&gt;
+    &lt;GRAND_TOTAL&gt;500000&lt;/GRAND_TOTAL&gt;
+  &lt;/TAX_AND_TOTALS&gt;
+
+  &lt;LINE_ITEMS&gt;
+    &lt;!-- Item 1: Jasa Poles &amp; Touch-Up Cat Internal -&gt; G/L 5000000007 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;1&lt;/ITEM_NO&gt;
+      &lt;ITEM_TYPE&gt;BODY_REPAIR_PANEL&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;CAT&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Spot Repair &amp;amp; Polishing Bodi Samping Kiri&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;UNT&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;350000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;350000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+
+    &lt;!-- Item 2: Bahan Cat &amp; Thinner Internal -&gt; G/L 5000000008 --&gt;
+    &lt;ITEM&gt;
+      &lt;ITEM_NO&gt;2&lt;/ITEM_NO&gt;
+      &lt;ITEM_TYPE&gt;BODY_REPAIR_PANEL&lt;/ITEM_TYPE&gt;
+      &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+      &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+      &lt;METHOD&gt;REPAIR&lt;/METHOD&gt;
+      &lt;DESCRIPTION&gt;Bahan Compound &amp;amp; Clear Coat Glossy&lt;/DESCRIPTION&gt;
+      &lt;QTY&gt;1&lt;/QTY&gt;
+      &lt;UOM&gt;SET&lt;/UOM&gt;
+      &lt;UNIT_PRICE&gt;150000&lt;/UNIT_PRICE&gt;
+      &lt;TOTAL_AMOUNT&gt;150000&lt;/TOTAL_AMOUNT&gt;
+    &lt;/ITEM&gt;
+  &lt;/LINE_ITEMS&gt;
+&lt;/SPK_DOCUMENT&gt;</code></pre>
+          </div>
+
+          <!-- Tab 5: AP Due List Maintenance (Multi-SPK) -->
+          <div class="code-panel" id="tab-ap-mtc">
+            <pre class="code-content"><code class="xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;INVOICE_INBOUND_REQUEST&gt;
+  &lt;!-- ======================================================== --&gt;
+  &lt;!-- HEADER INVOICE VENDOR                                   --&gt;
+  &lt;!-- ======================================================== --&gt;
+  &lt;HEADER&gt;
+    &lt;!-- Identitas Billing Atlas &amp; Invoice Asli Vendor --&gt;
+    &lt;BILLING_NUMBER&gt;BIL/0001/ASL/2026&lt;/BILLING_NUMBER&gt;
+    &lt;INVOICE_NUMBER&gt;INV-VENDOR-2026-001&lt;/INVOICE_NUMBER&gt;
+    &lt;INVOICE_DATE&gt;2026-06-30&lt;/INVOICE_DATE&gt;
+    &lt;INVOICE_TYPE&gt;spk&lt;/INVOICE_TYPE&gt;
+    &lt;MEMO&gt;Tagihan Servis Armada Periode Juni 2026&lt;/MEMO&gt;
+
+    &lt;!-- Data Vendor &amp; Kompeni --&gt;
+    &lt;VENDOR_CODE&gt;VEND-00192&lt;/VENDOR_CODE&gt;
+    &lt;VENDOR_NAME&gt;PT. Sumber Berkat Abadi&lt;/VENDOR_NAME&gt;
+    &lt;COMPANY_CODE&gt;1000&lt;/COMPANY_CODE&gt; &lt;!-- Company Code ASSA --&gt;
+    &lt;TENANT_ID&gt;d9804e7c-8647-495d-b0ad-54378f8cb6ee&lt;/TENANT_ID&gt;
+
+    &lt;!-- Pajak (Faktur Pajak) --&gt;
+    &lt;TAX_INVOICE_NUMBER&gt;010.000-26.00000001&lt;/TAX_INVOICE_NUMBER&gt;
+    &lt;TAX_INVOICE_DATE&gt;2026-06-30&lt;/TAX_INVOICE_DATE&gt;
+
+    &lt;!-- Total Tagihan Keseluruhan Invoice (Seluruh SPK) --&gt;
+    &lt;CURRENCY&gt;IDR&lt;/CURRENCY&gt;
+    &lt;TOTAL_SUBTOTAL_AMOUNT&gt;2500000&lt;/TOTAL_SUBTOTAL_AMOUNT&gt;
+    &lt;TOTAL_TAX_AMOUNT&gt;275000&lt;/TOTAL_TAX_AMOUNT&gt;
+    &lt;TOTAL_INVOICE_AMOUNT&gt;2775000&lt;/TOTAL_INVOICE_AMOUNT&gt;
+  &lt;/HEADER&gt;
+
+  &lt;!-- ======================================================== --&gt;
+  &lt;!-- DAFTAR SPK (Bisa 1 s/d 50 SPK per Vendor Invoice)       --&gt;
+  &lt;!-- ======================================================== --&gt;
+  &lt;SPK_LIST&gt;
+
+    &lt;!-- ==================== SPK PERTAMA ==================== --&gt;
+    &lt;SPK&gt;
+      &lt;SPK_NUMBER&gt;SPK20260630-01&lt;/SPK_NUMBER&gt;
+      &lt;SR_NUMBER&gt;SR-202606-00012&lt;/SR_NUMBER&gt;
+      &lt;LICENSE_PLATE&gt;B 1234 ABC&lt;/LICENSE_PLATE&gt;
+      &lt;CATEGORY&gt;maintenance&lt;/CATEGORY&gt;
+      &lt;SUB_CATEGORY&gt;pb&lt;/SUB_CATEGORY&gt;
+      &lt;SPK_SUBTOTAL&gt;1200000&lt;/SPK_SUBTOTAL&gt;
+      &lt;SPK_TAX_AMOUNT&gt;132000&lt;/SPK_TAX_AMOUNT&gt;
+      &lt;SPK_GRAND_TOTAL&gt;1332000&lt;/SPK_GRAND_TOTAL&gt;
+
+      &lt;ITEMS&gt;
+        &lt;!-- Item SPK 1: Jasa -&gt; G/L 5000000007 --&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;1&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Jasa Tune Up &amp;amp; Ganti Filter&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;repair&lt;/METHOD&gt;
+          &lt;QTY&gt;1&lt;/QTY&gt;
+          &lt;UOM&gt;UNT&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;200000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;200000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+
+        &lt;!-- Item SPK 1: Part -&gt; G/L 5000000008 --&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;2&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Oli Mesin Synthetic 4L&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;ganti&lt;/METHOD&gt;
+          &lt;QTY&gt;1&lt;/QTY&gt;
+          &lt;UOM&gt;PC&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;1000000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;1000000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+      &lt;/ITEMS&gt;
+    &lt;/SPK&gt;
+
+    &lt;!-- ==================== SPK KEDUA ==================== --&gt;
+    &lt;SPK&gt;
+      &lt;SPK_NUMBER&gt;SPK20260630-02&lt;/SPK_NUMBER&gt;
+      &lt;SR_NUMBER&gt;SR-202606-00015&lt;/SR_NUMBER&gt;
+      &lt;LICENSE_PLATE&gt;B 5678 XYZ&lt;/LICENSE_PLATE&gt;
+      &lt;CATEGORY&gt;maintenance&lt;/CATEGORY&gt;
+      &lt;SUB_CATEGORY&gt;adhoc&lt;/SUB_CATEGORY&gt;
+      &lt;SPK_SUBTOTAL&gt;1300000&lt;/SPK_SUBTOTAL&gt;
+      &lt;SPK_TAX_AMOUNT&gt;143000&lt;/SPK_TAX_AMOUNT&gt;
+      &lt;SPK_GRAND_TOTAL&gt;1443000&lt;/SPK_GRAND_TOTAL&gt;
+
+      &lt;ITEMS&gt;
+        &lt;!-- Item SPK 2: Jasa -&gt; G/L 5000000007 --&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;1&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Jasa Perbaikan Rem Depan&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;repair&lt;/METHOD&gt;
+          &lt;QTY&gt;1&lt;/QTY&gt;
+          &lt;UOM&gt;UNT&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;300000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;300000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+
+        &lt;!-- Item SPK 2: Part -&gt; G/L 5000000008 --&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;2&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Brake Pad Set Depan&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;ganti&lt;/METHOD&gt;
+          &lt;QTY&gt;1&lt;/QTY&gt;
+          &lt;UOM&gt;SET&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;1000000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;1000000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+      &lt;/ITEMS&gt;
+    &lt;/SPK&gt;
+
+  &lt;/SPK_LIST&gt;
+&lt;/INVOICE_INBOUND_REQUEST&gt;</code></pre>
+          </div>
+
+          <!-- Tab 6: AP Due List Kombinasi MTC & Body Repair -->
+          <div class="code-panel" id="tab-ap-kombinasi">
+            <pre class="code-content"><code class="xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;INVOICE_INBOUND_REQUEST&gt;
+  &lt;HEADER&gt;
+    &lt;BILLING_NUMBER&gt;BIL/0002/ASL/2026&lt;/BILLING_NUMBER&gt;
+    &lt;INVOICE_NUMBER&gt;INV-AUTOBODY-2026-015&lt;/INVOICE_NUMBER&gt;
+    &lt;INVOICE_DATE&gt;2026-07-05&lt;/INVOICE_DATE&gt;
+    &lt;INVOICE_TYPE&gt;spk&lt;/INVOICE_TYPE&gt;
+    &lt;MEMO&gt;Tagihan Servis Rutin dan Perbaikan Bodi Juli 2026&lt;/MEMO&gt;
+    &lt;VENDOR_CODE&gt;VEND-00841&lt;/VENDOR_CODE&gt;
+    &lt;VENDOR_NAME&gt;PT. Auto Bodi Prima&lt;/VENDOR_NAME&gt;
+    &lt;COMPANY_CODE&gt;1000&lt;/COMPANY_CODE&gt;
+    &lt;TENANT_ID&gt;d9804e7c-8647-495d-b0ad-54378f8cb6ee&lt;/TENANT_ID&gt;
+    &lt;TAX_INVOICE_NUMBER&gt;010.000-26.00000015&lt;/TAX_INVOICE_NUMBER&gt;
+    &lt;TAX_INVOICE_DATE&gt;2026-07-05&lt;/TAX_INVOICE_DATE&gt;
+    &lt;CURRENCY&gt;IDR&lt;/CURRENCY&gt;
+    &lt;TOTAL_SUBTOTAL_AMOUNT&gt;4800000&lt;/TOTAL_SUBTOTAL_AMOUNT&gt;
+    &lt;TOTAL_TAX_AMOUNT&gt;528000&lt;/TOTAL_TAX_AMOUNT&gt;
+    &lt;TOTAL_INVOICE_AMOUNT&gt;5328000&lt;/TOTAL_INVOICE_AMOUNT&gt;
+  &lt;/HEADER&gt;
+
+  &lt;SPK_LIST&gt;
+    &lt;!-- SPK 1: Kategori Maintenance --&gt;
+    &lt;SPK&gt;
+      &lt;SPK_NUMBER&gt;SPK20260701-01&lt;/SPK_NUMBER&gt;
+      &lt;SR_NUMBER&gt;SR-202607-00002&lt;/SR_NUMBER&gt;
+      &lt;LICENSE_PLATE&gt;B 1111 AAA&lt;/LICENSE_PLATE&gt;
+      &lt;CATEGORY&gt;maintenance&lt;/CATEGORY&gt;
+      &lt;SUB_CATEGORY&gt;pb&lt;/SUB_CATEGORY&gt;
+      &lt;SPK_SUBTOTAL&gt;2000000&lt;/SPK_SUBTOTAL&gt;
+      &lt;SPK_TAX_AMOUNT&gt;220000&lt;/SPK_TAX_AMOUNT&gt;
+      &lt;SPK_GRAND_TOTAL&gt;2220000&lt;/SPK_GRAND_TOTAL&gt;
+      &lt;ITEMS&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;1&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Jasa Tune Up Berkala&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;repair&lt;/METHOD&gt;
+          &lt;QTY&gt;1&lt;/QTY&gt;
+          &lt;UOM&gt;UNT&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;500000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;500000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;2&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Paket Oli &amp;amp; Filter Original&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;ganti&lt;/METHOD&gt;
+          &lt;QTY&gt;1&lt;/QTY&gt;
+          &lt;UOM&gt;SET&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;1500000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;1500000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+      &lt;/ITEMS&gt;
+    &lt;/SPK&gt;
+
+    &lt;!-- SPK 2: Kategori Body Repair --&gt;
+    &lt;SPK&gt;
+      &lt;SPK_NUMBER&gt;SPK20260702-04&lt;/SPK_NUMBER&gt;
+      &lt;SR_NUMBER&gt;SR-202607-00009&lt;/SR_NUMBER&gt;
+      &lt;LICENSE_PLATE&gt;B 2222 BBB&lt;/LICENSE_PLATE&gt;
+      &lt;CATEGORY&gt;body_repair&lt;/CATEGORY&gt;
+      &lt;!-- Sub-category null / tidak ada tag untuk body_repair --&gt;
+      &lt;SPK_SUBTOTAL&gt;2800000&lt;/SPK_SUBTOTAL&gt;
+      &lt;SPK_TAX_AMOUNT&gt;308000&lt;/SPK_TAX_AMOUNT&gt;
+      &lt;SPK_GRAND_TOTAL&gt;3108000&lt;/SPK_GRAND_TOTAL&gt;
+      &lt;ITEMS&gt;
+        &lt;!-- Panel 1: Jasa Ketok Pintu --&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;1&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Ketok Panel Pintu Depan Kanan&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;ketok&lt;/METHOD&gt;
+          &lt;QTY&gt;1&lt;/QTY&gt;
+          &lt;UOM&gt;UNT&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;750000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;750000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+        &lt;!-- Panel 2: Jasa Cat Oven Bumper &amp; Pintu --&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;2&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;jasa&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000007&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Pengecatan Oven Bumper Depan &amp;amp; Pintu Kanan&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;cat&lt;/METHOD&gt;
+          &lt;QTY&gt;2&lt;/QTY&gt;
+          &lt;UOM&gt;UNT&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;650000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;1300000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+        &lt;!-- Panel 3: Penggantian Part Spion --&gt;
+        &lt;ITEM&gt;
+          &lt;ITEM_NO&gt;3&lt;/ITEM_NO&gt;
+          &lt;COMPONENT&gt;part&lt;/COMPONENT&gt;
+          &lt;GL_NUMBER&gt;5000000008&lt;/GL_NUMBER&gt;
+          &lt;ITEM_NAME&gt;Penggantian Cover &amp;amp; Kaca Spion Kanan&lt;/ITEM_NAME&gt;
+          &lt;METHOD&gt;ganti&lt;/METHOD&gt;
+          &lt;QTY&gt;1&lt;/QTY&gt;
+          &lt;UOM&gt;PC&lt;/UOM&gt;
+          &lt;UNIT_PRICE&gt;750000&lt;/UNIT_PRICE&gt;
+          &lt;TOTAL_AMOUNT&gt;750000&lt;/TOTAL_AMOUNT&gt;
+        &lt;/ITEM&gt;
+      &lt;/ITEMS&gt;
+    &lt;/SPK&gt;
+  &lt;/SPK_LIST&gt;
+&lt;/INVOICE_INBOUND_REQUEST&gt;</code></pre>
+          </div>
+
+          <!-- Tab 7: AP Balikan Sukses SAP -->
+          <div class="code-panel" id="tab-ap-response-sap">
+            <pre class="code-content"><code class="xml">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!-- Berkas XML ini ditaruh oleh SAP di folder FTP: /apduelist/upload/ --&gt;
+&lt;INVOICE_INBOUND_RESPONSE&gt;
+  &lt;HEADER&gt;
+    &lt;BILLING_NUMBER&gt;BIL/0001/ASL/2026&lt;/BILLING_NUMBER&gt;
+    &lt;INVOICE_NUMBER&gt;INV-VENDOR-2026-001&lt;/INVOICE_NUMBER&gt;
+    &lt;COMPANY_CODE&gt;1000&lt;/COMPANY_CODE&gt;
+    &lt;STATUS&gt;SUCCESS&lt;/STATUS&gt;
+    &lt;SAP_DOCUMENT_NUMBER&gt;1900001234&lt;/SAP_DOCUMENT_NUMBER&gt;
+    &lt;FISCAL_YEAR&gt;2026&lt;/FISCAL_YEAR&gt;
+    &lt;CURRENCY&gt;IDR&lt;/CURRENCY&gt;
+    &lt;TOTAL_INVOICE_AMOUNT&gt;2775000&lt;/TOTAL_INVOICE_AMOUNT&gt;
+    &lt;POSTED_DATE&gt;2026-06-30&lt;/POSTED_DATE&gt;
+    &lt;PROCESSED_TIMESTAMP&gt;2026-06-30 15:10:22&lt;/PROCESSED_TIMESTAMP&gt;
+    &lt;MESSAGE&gt;Dokumen AP Invoice berhasil dibukukan di SAP (FB60)&lt;/MESSAGE&gt;
+  &lt;/HEADER&gt;
+  &lt;SPK_RESULTS&gt;
+    &lt;SPK&gt;
+      &lt;SPK_NUMBER&gt;SPK20260630-01&lt;/SPK_NUMBER&gt;
+      &lt;STATUS&gt;POSTED&lt;/STATUS&gt;
+    &lt;/SPK&gt;
+    &lt;SPK&gt;
+      &lt;SPK_NUMBER&gt;SPK20260630-02&lt;/SPK_NUMBER&gt;
+      &lt;STATUS&gt;POSTED&lt;/STATUS&gt;
+    &lt;/SPK&gt;
+  &lt;/SPK_RESULTS&gt;
+&lt;/INVOICE_INBOUND_RESPONSE&gt;</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 6: Pemetaan G/L SAP & Matriks Validasi -->
+    <section class="doc-section" id="gl-mapping">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><span class="section-number">06</span> Standarisasi Pemetaan G/L SAP & Error Handling</h2>
+          <p class="section-desc">Aturan rekening buku besar akuntansi SAP dan penanganan kode kesalahan transaksi.</p>
+        </div>
+      </div>
+
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Komponen Item (<code>COMPONENT</code>)</th>
+              <th>Nomor G/L SAP (<code>GL_NUMBER</code>)</th>
+              <th>Nama Akun COA SAP</th>
+              <th>Kategori SPK Terkait</th>
+              <th>Contoh Pekerjaan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge badge-primary">jasa</span></td>
+              <td><strong style="color: #2563EB; font-family: monospace; font-size: 14px;">5000000007</strong></td>
+              <td>Biaya Pemeliharaan Armada — Jasa Bengkel</td>
+              <td>Maintenance & Body Repair</td>
+              <td>Tune Up, Ganti Filter, Bleeding Rem, Ketok Panel, Pengecatan Oven</td>
+            </tr>
+            <tr>
+              <td><span class="badge badge-success">part</span></td>
+              <td><strong style="color: #059669; font-family: monospace; font-size: 14px;">5000000008</strong></td>
+              <td>Biaya Pemeliharaan Armada — Suku Cadang & Bahan</td>
+              <td>Maintenance & Body Repair</td>
+              <td>Oli Mesin Synthetic, Brake Pad Set, Ban Radial, Clear Coat / Compound, Spion</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="data-table-wrapper" style="margin-top: 24px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Kasus Error</th>
+              <th>HTTP Code</th>
+              <th>Error Message / Detail</th>
+              <th>Solusi & Tindakan Korektif</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Tag <code>&lt;SUB_CATEGORY&gt;</code> ada di Body Repair</td>
+              <td><span class="badge badge-danger">400</span></td>
+              <td><code>Invalid category structure: subCategory not allowed for BODY_REPAIR</code></td>
+              <td>Omit properti <code>subCategory</code> pada saat payload kategori <code>body_repair</code>.</td>
+            </tr>
+            <tr>
+              <td>Tag Vendor ada pada SPK Internal</td>
+              <td><span class="badge badge-danger">400</span></td>
+              <td><code>Internal SPK cannot contain vendor party info</code></td>
+              <td>Gunakan blok <code>&lt;WORKSHOP_TYPE&gt;</code> dan nama teknisi internal.</td>
+            </tr>
+            <tr>
+              <td>Selisih perhitungan $\sum (\text{Qty} \times \text{Price})$ vs Total</td>
+              <td><span class="badge badge-danger">400</span></td>
+              <td><code>sum(details[].qty * details[].price) must equal totalPrice</code></td>
+              <td>Koreksi pembulatan sen/desimal pada baris rincian item sebelum serialisasi.</td>
+            </tr>
+            <tr>
+              <td>Faktur Pajak Duplikat di SAP</td>
+              <td><span class="badge badge-danger">422 / SAP ERR</span></td>
+              <td><code>SAP_TAX_INVOICE_DUPLICATE: Nomor Faktur Pajak sudah pernah digunakan</code></td>
+              <td>Vendor wajib merevisi nomor seri faktur pajak atau finance membatalkan invoice lama.</td>
+            </tr>
+            <tr>
+              <td>Resubmit Transaksi (Replay)</td>
+              <td><span class="badge badge-success">200 OK</span></td>
+              <td><code>Transaction already processed (Idempotency Replay)</code></td>
+              <td>Middleware mengembalikan response sukses sebelumnya tanpa menduplikasi data di SAP.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Section 7: FTP & Rekonsiliasi -->
+    <section class="doc-section" id="ftp-recon">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><span class="section-number">07</span> Manajemen Direktori FTP & Rekonsiliasi Status</h2>
+          <p class="section-desc">Pemisahan folder transaksi asinkron antara Middleware dan SAP ERP.</p>
+        </div>
+      </div>
+
+      <div class="dir-grid">
+        <div class="dir-card" style="border-left-color: var(--purple);">
+          <div class="dir-path">📁 spk/download/</div>
+          <div class="dir-desc">
+            <strong>Penulis: Middleware / ATLAS | Pembaca: Job SAP SPK</strong><br>
+            Tempat meletakkan berkas XML <strong>SPK Final</strong> (4 skenario kombinasi) untuk diproses oleh modul Service & Maintenance SAP.
+          </div>
+        </div>
+
+        <div class="dir-card">
+          <div class="dir-path">📁 /apduelist/download/</div>
+          <div class="dir-desc">
+            <strong>Penulis: Middleware | Pembaca: Job SAP AP FICO</strong><br>
+            Tempat meletakkan XML <code>INVOICE_INBOUND_REQUEST</code> dari transaksi <code>PUT /api/v1/ap-due-list</code>.
+          </div>
+        </div>
+
+        <div class="dir-card upload">
+          <div class="dir-path">📁 /apduelist/upload/</div>
+          <div class="dir-desc">
+            <strong>Penulis: SAP ERP | Pembaca: Middleware Poller</strong><br>
+            Tempat SAP meletakkan XML balikan status <code>INVOICE_INBOUND_RESPONSE</code> setelah diposting/ditolak.
+          </div>
+        </div>
+
+        <div class="dir-card success">
+          <div class="dir-path">📁 /apduelist/upload/success/</div>
+          <div class="dir-desc">
+            <strong>Arsip Sukses</strong><br>
+            File balikan SAP dipindahkan ke sini setelah callback status ke Atlas sukses (HTTP 200).
+          </div>
+        </div>
+
+        <div class="dir-card failed">
+          <div class="dir-path">📁 /apduelist/upload/failed/</div>
+          <div class="dir-desc">
+            <strong>Arsip Gagal / Reprocess</strong><br>
+            File yang gagal diproses atau gagal callback ke Atlas agar dapat di-reprocess ulang oleh worker.
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px;">
+        <h4 style="font-size: 15px; margin-bottom: 8px;">Pola Penamaan Berkas Resmi</h4>
+        <ul style="font-size: 13.5px; color: var(--text-muted); list-style-position: inside; line-height: 1.8;">
+          <li><strong>SPK Final XML (ke spk/download):</strong> <code>SPK_FINAL_&lt;COMPANY&gt;_&lt;SPK_NUMBER&gt;_&lt;YYYYMMDDHHmmss&gt;.xml</code></li>
+          <li><strong>AP Due List Request (ke /apduelist/download):</strong> <code>AP_DUELIST_&lt;COMPANY&gt;_&lt;BILLING&gt;_&lt;YYYYMMDDHHmmss&gt;_&lt;TRX_ID&gt;.xml</code></li>
+          <li><strong>AP Due List Response (dari /apduelist/upload):</strong> <code>RESP_AP_&lt;STATUS&gt;_&lt;COMPANY&gt;_&lt;BILLING&gt;_&lt;YYYYMMDDHHmmss&gt;.xml</code></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Section 8: Action Items & Checklist Tim -->
+    <section class="doc-section" id="action-items">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title"><span class="section-number">08</span> Checklist Implementasi & Roadmap Tim Developer</h2>
+          <p class="section-desc">Daftar tindakan langsung bagi masing-masing squad engineer untuk roll-out versi 2.0.</p>
+        </div>
+      </div>
+
+      <div class="team-checklist-grid">
+        <div class="checklist-card">
+          <h4>📱 Tim Frontend (FE Portal)</h4>
+          <ul>
+            <li><input type="checkbox" checked disabled> Nonaktifkan flow submit SPK tunggal lama.</li>
+            <li><input type="checkbox"> Tambah tombol <strong>"Generate XML SPK"</strong> pada SPK approved (trigger <code>POST /api/v1/spk/final</code>).</li>
+            <li><input type="checkbox"> Ubah HTTP client call AP Due List dari <code>POST</code> ke <code>PUT /api/v1/ap-due-list</code>.</li>
+            <li><input type="checkbox"> Kirim header <code>X-Transaction-Id: UUID</code> pada setiap submit.</li>
+          </ul>
+        </div>
+
+        <div class="checklist-card">
+          <h4>⚙️ Tim Backend (Core Service)</h4>
+          <ul>
+            <li><input type="checkbox"> Buat controller <code>POST /api/v1/spk/final</code> mereturn <code>application/xml</code>.</li>
+            <li><input type="checkbox"> Buat service serialisasi XML SPK Final dengan 4 skenario.</li>
+            <li><input type="checkbox"> Ubah route controller AP Due List dari <code>@Post</code> ke <code>@Put('ap-due-list')</code>.</li>
+            <li><input type="checkbox"> Validasi $\sum \text{SPK\_GRAND\_TOTAL} == \text{TOTAL\_INVOICE\_AMOUNT}$.</li>
+          </ul>
+        </div>
+
+        <div class="checklist-card">
+          <h4>🌐 Tim Middleware (WSO2 MI)</h4>
+          <ul>
+            <li><input type="checkbox"> Update <code>SpkApi.xml</code>: Tambah resource <code>POST /final</code>.</li>
+            <li><input type="checkbox"> Konfigurasi pengiriman berkas XML SPK Final ke folder target <code>spk/download</code>.</li>
+            <li><input type="checkbox"> Ubah method <code>POST /duelist</code> menjadi <code>PUT /duelist</code> di <code>SpkApi.xml</code>.</li>
+            <li><input type="checkbox"> Pastikan <code>IdempotencyGuardSeq</code> menangani method <code>PUT</code>.</li>
+            <li><input type="checkbox"> Update OpenAPI spec <code>spk-service.yaml</code> & Postman collections.</li>
+          </ul>
+        </div>
+
+        <div class="checklist-card">
+          <h4>🏢 Tim SAP & QA</h4>
+          <ul>
+            <li><input type="checkbox"> Job SAP SPK membaca berkas XML SPK Final dari folder <code>spk/download</code>.</li>
+            <li><input type="checkbox"> Parser ABAP AP memproses XML <code>INVOICE_INBOUND_REQUEST</code> dari <code>/apduelist/download</code>.</li>
+            <li><input type="checkbox"> Test 4 skenario SPK Final (Eksternal/Internal × MTC/Body Repair).</li>
+            <li><input type="checkbox"> Test pengiriman multi-SPK kombinasi MTC & Body Repair.</li>
+            <li><input type="checkbox"> Test resubmit method <code>PUT</code> (Idempotency Replay verifikasi).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    <p><strong>PT Adi Sarana Armada Tbk (ASSA)</strong> • Architecture & Product Specification Guide v2.0</p>
+    <p style="margin-top: 4px; font-size: 12px;">Dokumen ini dipersiapkan oleh <strong>Nobi Sumariga</strong> bersama Tim Core Atlas & Middleware Engineering.</p>
+  </footer>
+
+  <!-- Mermaid.js for Dynamic Flow Diagram -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      securityLevel: 'loose',
+      flowchart: { curve: 'basis' }
+    });
+  </script>
+
+  <!-- Interactive Scripts -->
+  <script>
+    // Tab Switcher for Code Explorer
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.code-panel').forEach(panel => panel.classList.remove('active'));
+      document.querySelectorAll('.code-tab-btn').forEach(button => button.classList.remove('active'));
+      
+      const targetPanel = document.getElementById(tabId);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+        btn.classList.add('active');
+      }
+    }
+
+    // 1-Click Copy Code
+    function copyCode(btn) {
+      const activePanel = document.querySelector('.code-panel.active pre code');
+      if (activePanel) {
+        navigator.clipboard.writeText(activePanel.innerText).then(() => {
+          const originalText = btn.innerHTML;
+          btn.innerHTML = '✓ Disalin!';
+          btn.style.background = '#059669';
+          setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.background = '';
+          }, 2000);
+        });
+      }
+    }
+
+    // Dark Mode Toggle with Local Storage
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+
+    function applyTheme(isDark) {
+      if (isDark) {
+        document.body.classList.add('dark-theme');
+        themeIcon.innerText = '☀️';
+        themeText.innerText = 'Light Mode';
+      } else {
+        document.body.classList.remove('dark-theme');
+        themeIcon.innerText = '🌙';
+        themeText.innerText = 'Dark Mode';
+      }
+    }
+
+    // Load saved theme preference
+    const savedTheme = localStorage.getItem('assa-docs-theme');
+    if (savedTheme === 'dark') {
+      applyTheme(true);
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = !document.body.classList.contains('dark-theme');
+      applyTheme(isDark);
+      localStorage.setItem('assa-docs-theme', isDark ? 'dark' : 'light');
+    });
+
+    // Active Link on Scroll (ScrollSpy)
+    window.addEventListener('scroll', () => {
+      const sections = document.querySelectorAll('section.doc-section');
+      const navLinks = document.querySelectorAll('nav.quick-nav a');
+      let currentSection = '';
+
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 120;
+        if (window.pageYOffset >= sectionTop) {
+          currentSection = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${currentSection}`) {
+          link.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
