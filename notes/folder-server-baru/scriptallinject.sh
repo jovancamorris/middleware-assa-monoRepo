@@ -38,7 +38,6 @@ SERVICES=(
   "VehicleService|/api/vehicles|vehicle-service.yaml|vehicles"
   "VendorService|/api/vendors|vendor-service.yaml|vendors"
   "ApDueListService|/api/ap-due-list|ap-due-list.yaml|ap_due_list"
-  "PaymentsService|/api/payments|payments-service.yaml|payments"
   "ServiceRequestService|/api/service-requests|service-request-service.yaml|service_requests"
   "AuthService|/api/auth|auth-service.yaml|auth"
 )

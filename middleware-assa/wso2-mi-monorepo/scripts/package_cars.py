@@ -447,7 +447,7 @@ def update_payments_car():
     print("[7/7] Updating payments-service_1.0.0.car (AP Due List)...")
     pay_dir = os.path.join(REPO_ROOT, "integrations", "payments-service")
     car_src = os.path.join(pay_dir, "target", "payments-service_1.0.0.car")
-    if not os.path.exists(car_src) or "PaymentsAPI_1.0.0/PaymentsAPI-1.0.0.xml" not in zipfile.ZipFile(car_src).namelist():
+    if not os.path.exists(car_src):
         car_src = os.path.join(DIST_DIR, "payments-service_1.0.0.car")
     if not os.path.exists(car_src):
         return
@@ -457,6 +457,18 @@ def update_payments_car():
     os.makedirs(extract_dir, exist_ok=True)
     with zipfile.ZipFile(car_src, 'r') as z:
         z.extractall(extract_dir)
+
+    # Remove legacy Payments artifacts from CAR
+    for legacy_dir in [
+        "PaymentsAPI_1.0.0",
+        "PaymentsCreateSeq_1.0.0",
+        "PaymentsFtpEndpoint_1.0.0",
+        "metadata/PaymentsAPI_metadata_1.0.0",
+    ]:
+        legacy_path = os.path.join(extract_dir, legacy_dir)
+        if os.path.exists(legacy_path):
+            shutil.rmtree(legacy_path)
+            print(f"  -> Removed legacy {legacy_dir}")
 
     # 1. Add/Update ApDueListAPI
     api_src = os.path.join(pay_dir, "src/main/wso2mi/artifacts/apis/ApDueListAPI.xml")
@@ -551,6 +563,10 @@ def update_payments_car():
             tree = ET.parse(artifacts_xml_path)
             root = tree.getroot()
             main_art = root.find("artifact")
+            # Remove legacy dependencies
+            for d in list(main_art.findall("dependency")):
+                if d.attrib.get("artifact") in ["PaymentsAPI", "PaymentsCreateSeq", "PaymentsFtpEndpoint", "PaymentsAPI_metadata"]:
+                    main_art.remove(d)
             deps = [d.attrib.get("artifact") for d in main_art.findall("dependency")]
             for art_name in new_dependencies:
                 if art_name not in deps:

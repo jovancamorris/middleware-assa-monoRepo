@@ -48,14 +48,6 @@
     "scope": "ap_due_list"
   },
   {
-    "id": "payments-service",
-    "name": "Payment Due List",
-    "port": 8296,
-    "description": "Layanan posting payment accounting document XML -> FTP SAP.",
-    "specUrl": "/docs/openapi/payments-service.yaml",
-    "scope": "payments"
-  },
-  {
     "id": "auth-service",
     "name": "Auth Service",
     "port": 8297,

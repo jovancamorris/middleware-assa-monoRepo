@@ -75,10 +75,10 @@ grep -q "APIM_ADMIN_PASSWORD" .env && sed -i 's/^APIM_ADMIN_PASSWORD=.*/APIM_ADM
 grep -q "AUTH_APP_QA_SCOPES" .env || cat << 'EOF' >> .env
 
 # Application Registry Authorized Scopes
-AUTH_APP_A_SCOPES=branches,customers,vehicles,vendors,service_requests,spk,payments,employees
+AUTH_APP_A_SCOPES=branches,customers,vehicles,vendors,service_requests,spk,ap_due_list,employees
 AUTH_APP_B_SCOPES=vehicles
-AUTH_APP_QA_SCOPES=branches,customers,vehicles,vendors,service_requests,spk,payments,employees
-AUTH_APP_ATLAS_SCOPES=vendors,service_requests,spk
+AUTH_APP_QA_SCOPES=branches,customers,vehicles,vendors,service_requests,spk,ap_due_list,employees
+AUTH_APP_ATLAS_SCOPES=vendors,service_requests,spk,ap_due_list
 AUTH_APP_OMNICHANNEL_SCOPES=service_requests
 AUTH_APP_BARANTUM_SCOPES=service_requests
 EOF

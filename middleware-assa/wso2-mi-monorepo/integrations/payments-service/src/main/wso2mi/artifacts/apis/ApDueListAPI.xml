@@ -7,9 +7,9 @@
     <resource methods="POST" url-mapping="/create">
         <inSequence>
             <property name="api.endpoint" value="/api/ap-due-list/create" scope="default" type="STRING"/>
-            <!-- 1. Mandatory Token Authentication (Auth Guard with scope: ap_due_list or payments) -->
+            <!-- 1. Mandatory Token Authentication (Auth Guard with scope: ap_due_list) -->
             <sequence key="AuthGuardSeq"/>
-            <filter xpath="not(fn:contains($ctx:appScopes, 'ap_due_list')) and not(fn:contains($ctx:appScopes, 'payments')) and not(fn:contains($ctx:appScopes, '*'))">
+            <filter xpath="not(fn:contains($ctx:appScopes, 'ap_due_list')) and not(fn:contains($ctx:appScopes, '*'))">
                 <then>
                     <property name="ERROR_CODE" value="403" scope="default" type="STRING"/>
                     <property name="ERROR_MESSAGE" value="Forbidden" scope="default" type="STRING"/>
@@ -32,7 +32,7 @@
         <inSequence>
             <property name="api.endpoint" value="/api/ap-due-list/create" scope="default" type="STRING"/>
             <sequence key="AuthGuardSeq"/>
-            <filter xpath="not(fn:contains($ctx:appScopes, 'ap_due_list')) and not(fn:contains($ctx:appScopes, 'payments')) and not(fn:contains($ctx:appScopes, '*'))">
+            <filter xpath="not(fn:contains($ctx:appScopes, 'ap_due_list')) and not(fn:contains($ctx:appScopes, '*'))">
                 <then>
                     <property name="ERROR_CODE" value="403" scope="default" type="STRING"/>
                     <property name="ERROR_MESSAGE" value="Forbidden" scope="default" type="STRING"/>

@@ -261,9 +261,6 @@
     <!-- ================================================================= -->
     <property name="ftpHost" expression="get-property('env', 'FTP_APDUELIST_HOST')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:ftpHost) = 0">
-        <then><property name="ftpHost" expression="get-property('env', 'FTP_PAYMENTS_HOST')" scope="default" type="STRING"/></then>
-    </filter>
-    <filter xpath="string-length($ctx:ftpHost) = 0">
         <then><property name="ftpHost" expression="get-property('env', 'FTP_SAP_HOST')" scope="default" type="STRING"/></then>
     </filter>
     <filter xpath="string-length($ctx:ftpHost) = 0">
@@ -274,9 +271,6 @@
     </filter>
 
     <property name="ftpPort" expression="get-property('env', 'FTP_APDUELIST_PORT')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:ftpPort) = 0">
-        <then><property name="ftpPort" expression="get-property('env', 'FTP_PAYMENTS_PORT')" scope="default" type="STRING"/></then>
-    </filter>
     <filter xpath="string-length($ctx:ftpPort) = 0">
         <then><property name="ftpPort" expression="get-property('env', 'FTP_SAP_PORT')" scope="default" type="STRING"/></then>
     </filter>
@@ -292,9 +286,6 @@
 
     <property name="ftpUsername" expression="get-property('env', 'FTP_APDUELIST_USERNAME')" scope="default" type="STRING"/>
     <filter xpath="string-length($ctx:ftpUsername) = 0">
-        <then><property name="ftpUsername" expression="get-property('env', 'FTP_PAYMENTS_USERNAME')" scope="default" type="STRING"/></then>
-    </filter>
-    <filter xpath="string-length($ctx:ftpUsername) = 0">
         <then><property name="ftpUsername" expression="get-property('env', 'FTP_SAP_USERNAME')" scope="default" type="STRING"/></then>
     </filter>
     <filter xpath="string-length($ctx:ftpUsername) = 0">
@@ -305,9 +296,6 @@
     </filter>
 
     <property name="ftpPassword" expression="get-property('env', 'FTP_APDUELIST_PASSWORD')" scope="default" type="STRING"/>
-    <filter xpath="string-length($ctx:ftpPassword) = 0">
-        <then><property name="ftpPassword" expression="get-property('env', 'FTP_PAYMENTS_PASSWORD')" scope="default" type="STRING"/></then>
-    </filter>
     <filter xpath="string-length($ctx:ftpPassword) = 0">
         <then><property name="ftpPassword" expression="get-property('env', 'FTP_SAP_PASSWORD')" scope="default" type="STRING"/></then>
     </filter>

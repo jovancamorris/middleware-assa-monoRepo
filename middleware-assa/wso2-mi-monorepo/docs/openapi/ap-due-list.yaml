@@ -45,7 +45,6 @@ paths:
       security:
         - bearerAuth:
             - ap_due_list
-            - payments
       parameters:
         - name: X-Transaction-Id
           in: header

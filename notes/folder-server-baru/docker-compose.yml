@@ -70,10 +70,10 @@ services:
       # Batasi heap JVM MI. Sisa (~512m) untuk metaspace/thread/off-heap.
       JAVA_OPTS: ${MI_JAVA_OPTS:--Xms256m -Xmx512m}
       JVM_MEM_OPTS: ${MI_JVM_MEM_OPTS:--Xms256m -Xmx512m}
-      AUTH_APP_A_SCOPES: ${AUTH_APP_A_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,ap_due_list,employees}
+      AUTH_APP_A_SCOPES: ${AUTH_APP_A_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,ap_due_list,employees}
       AUTH_APP_B_SCOPES: ${AUTH_APP_B_SCOPES:-vehicles}
-      AUTH_APP_QA_SCOPES: ${AUTH_APP_QA_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,payments,ap_due_list,employees}
-      AUTH_APP_ATLAS_SCOPES: ${AUTH_APP_ATLAS_SCOPES:-vendors,service_requests,spk,payments,ap_due_list}
+      AUTH_APP_QA_SCOPES: ${AUTH_APP_QA_SCOPES:-branches,customers,vehicles,vendors,service_requests,spk,ap_due_list,employees}
+      AUTH_APP_ATLAS_SCOPES: ${AUTH_APP_ATLAS_SCOPES:-vendors,service_requests,spk,ap_due_list}
       AUTH_APP_OMNICHANNEL_SCOPES: ${AUTH_APP_OMNICHANNEL_SCOPES:-service_requests}
       AUTH_APP_BARANTUM_SCOPES: ${AUTH_APP_BARANTUM_SCOPES:-service_requests}
       FTP_APDUELIST_HOST: ${FTP_APDUELIST_HOST:-devqaxmlpool.assa.id}
