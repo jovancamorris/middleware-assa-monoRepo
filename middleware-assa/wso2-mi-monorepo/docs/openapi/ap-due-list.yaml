@@ -8,8 +8,8 @@ info:
     Sesuai dengan panduan arsitektur **`GUIDE_AP_DUE_LIST_XML_FTP.md`**:
     1. **Multi-SPK Invoice**: Satu lembar Invoice Vendor menaungi 1 hingga 50 Surat Perintah Kerja (SPK).
     2. **Otomasi Pemetaan Akun G/L SAP**:
-       - Jasa $\rightarrow$ `5000000007` (Beban Jasa Perbaikan & Pemeliharaan Armada)
-       - Part $\rightarrow$ `5000000008` (Beban Penggantian Sparepart / Bahan Perbaikan)
+       - Jasa → `5000000007` (Beban Jasa Perbaikan & Pemeliharaan Armada)
+       - Part → `5000000008` (Beban Penggantian Sparepart / Bahan Perbaikan)
     3. **Pertukaran Berkas FTP**:
        - Outbound Request XML `<INVOICE_INBOUND_REQUEST>` diunggah ke `/apduelist/download/`.
        - Inbound Poller mendeteksi berkas balikan SAP `<INVOICE_INBOUND_RESPONSE>` pada `/apduelist/upload/` dan mengarsipkannya ke `/apduelist/upload/success/` atau `/apduelist/upload/failed/`.
@@ -45,53 +45,6 @@ paths:
         **Format Penamaan Berkas XML**:
         `AP_DUELIST_<COMPANY_CODE>_<CLEAN_BILLING_NUMBER>_<YYYYMMDDHHmmss>_<TRANSACTION_ID>.xml`
         Contoh: `AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml`
-      security:
-        - bearerAuth:
-            - ap_due_list
-      parameters:
-        - name: X-Transaction-Id
-          in: header
-          required: true
-          description: Idempotency Key / UUID unik untuk mencegah duplikasi pengunggahan berkas XML
-          schema:
-            type: string
-            example: c5a1e2f8-2895-4eb8-a72a-19e9559c5d12
-        - name: X-Correlation-Id
-          in: header
-          required: false
-          description: Identifier untuk distributed tracing end-to-end
-          schema:
-            type: string
-            example: corr-20260630-143000
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ApDueListRequest'
-      responses:
-        '201':
-          $ref: '#/components/responses/Created'
-        '200':
-          $ref: '#/components/responses/IdempotentReplay'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '502':
-          $ref: '#/components/responses/BadGateway'
-
-    post:
-      tags:
-        - AP Due List
-      operationId: createApDueList
-      summary: Membuat dokumen AP Due List Multi-SPK (Fallback POST)
-      description: |
-        Fallback method POST untuk kompatibilitas ke belakang. Disarankan menggunakan method `PUT` sesuai standar v2.0.
       security:
         - bearerAuth:
             - ap_due_list
@@ -186,86 +139,19 @@ paths:
                       total_amount: 1000000
       responses:
         '201':
-          description: AP Due List berhasil divalidasi dan diunggah ke FTP SAP
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApDueListSuccessResponse'
-              example:
-                success: true
-                message: "AP Due List successfully generated and delivered to FTP"
-                billingNumber: "BIL/0001/ASL/2026"
-                fileName: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
-                transactionId: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
+          $ref: '#/components/responses/Created'
         '200':
-          description: Replay response untuk transaksi berulang yang telah berstatus SUCCESS
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApDueListSuccessResponse'
+          $ref: '#/components/responses/IdempotentReplay'
         '400':
-          description: Kesalahan validasi format, header kosong, atau ketidaksesuaian perhitungan matematika
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                subtotalMismatch:
-                  summary: Ketidaksesuaian subtotal
-                  value:
-                    error: "Bad Request"
-                    detail: "total_subtotal_amount does not match sum of SPK subtotals"
-                taxMismatch:
-                  summary: Ketidaksesuaian PPN
-                  value:
-                    error: "Bad Request"
-                    detail: "total_tax_amount does not match sum of SPK tax amounts"
-                grandTotalMismatch:
-                  summary: Ketidaksesuaian grand total
-                  value:
-                    error: "Bad Request"
-                    detail: "total_invoice_amount does not match subtotal + tax amount"
-                spkCountInvalid:
-                  summary: Jumlah SPK di luar batas (1-50)
-                  value:
-                    error: "Bad Request"
-                    detail: "spk_list must contain between 1 and 50 SPKs"
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Token otentikasi tidak disertakan atau kedaluwarsa
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Unauthorized"
-                detail: "Invalid or expired Bearer token"
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Client tidak memiliki izin scope `ap_due_list` atau `payments`
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Forbidden"
-                detail: "Insufficient scope permissions"
+          $ref: '#/components/responses/Forbidden'
         '409':
-          description: Transaksi dengan X-Transaction-Id sama sedang dalam proses
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Conflict"
-                detail: "Transaction is currently being processed"
+          $ref: '#/components/responses/Conflict'
         '502':
-          description: Server FTP SAP tidak dapat dihubungi atau timeout
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error: "Bad Gateway"
-                detail: "Failed to connect to SAP FTP server"
+          $ref: '#/components/responses/BadGateway'
 
   /api/v1/invoices/reconciliation:
     post:
@@ -615,3 +501,97 @@ components:
               reason:
                 type: string
                 example: "Nomor Faktur Pajak Duplikat"
+
+  responses:
+    Created:
+      description: AP Due List berhasil divalidasi dan diunggah ke FTP SAP
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApDueListSuccessResponse'
+          example:
+            success: true
+            message: "AP Due List successfully generated and delivered to FTP"
+            billingNumber: "BIL/0001/ASL/2026"
+            fileName: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
+            transactionId: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
+    IdempotentReplay:
+      description: Replay response untuk transaksi berulang yang telah berstatus SUCCESS
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApDueListSuccessResponse'
+          example:
+            success: true
+            message: "AP Due List previously processed (Idempotent replay)"
+            billingNumber: "BIL/0001/ASL/2026"
+            fileName: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
+            transactionId: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
+    BadRequest:
+      description: Kesalahan validasi format, header kosong, atau ketidaksesuaian perhitungan matematika
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            subtotalMismatch:
+              summary: Ketidaksesuaian subtotal
+              value:
+                error: "Bad Request"
+                detail: "total_subtotal_amount does not match sum of SPK subtotals"
+            taxMismatch:
+              summary: Ketidaksesuaian PPN
+              value:
+                error: "Bad Request"
+                detail: "total_tax_amount does not match sum of SPK tax amounts"
+            grandTotalMismatch:
+              summary: Ketidaksesuaian grand total
+              value:
+                error: "Bad Request"
+                detail: "total_invoice_amount does not match subtotal + tax amount"
+            itemTotalMismatch:
+              summary: Ketidaksesuaian total item SPK
+              value:
+                error: "Bad Request"
+                detail: "SPK subtotal does not match sum of item amounts"
+            spkCountInvalid:
+              summary: Jumlah SPK di luar batas (1-50)
+              value:
+                error: "Bad Request"
+                detail: "spk_list must contain between 1 and 50 SPKs"
+    Unauthorized:
+      description: Token otentikasi tidak disertakan atau kedaluwarsa
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Unauthorized"
+            detail: "Invalid or expired Bearer token"
+    Forbidden:
+      description: Client tidak memiliki izin scope `ap_due_list` atau `payments`
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Forbidden"
+            detail: "Insufficient scope permissions"
+    Conflict:
+      description: Transaksi dengan X-Transaction-Id sama sedang dalam proses
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Conflict"
+            detail: "Transaction is currently being processed"
+    BadGateway:
+      description: Server FTP SAP tidak dapat dihubungi atau timeout
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Bad Gateway"
+            detail: "Failed to connect to SAP FTP server"
