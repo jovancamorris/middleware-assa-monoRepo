@@ -22,7 +22,7 @@ DOCS_DIR="${DOCS_DIR:-/tmp/assa-openapi-docs}"
 if [ ! -d "$DOCS_DIR" ] || [ -z "$(ls -A "$DOCS_DIR" 2>/dev/null)" ]; then
     mkdir -p "$DOCS_DIR"
     echo "Downloading OpenAPI specs from $NGINX_DOCS_URL to $DOCS_DIR..."
-    for f in branch-service.yaml customer-service.yaml vehicle-service.yaml vendor-service.yaml spk-service.yaml payments-service.yaml service-request-service.yaml auth-service.yaml; do
+    for f in branch-service.yaml customer-service.yaml vehicle-service.yaml vendor-service.yaml ap-due-list.yaml service-request-service.yaml auth-service.yaml; do
         curl -s -f "$NGINX_DOCS_URL/$f" -o "$DOCS_DIR/$f" || true
     done
 fi
@@ -128,8 +128,7 @@ import_api "BranchService" "/api/branches" "$DOCS_DIR/branch-service.yaml"
 import_api "CustomerService" "/api/customers" "$DOCS_DIR/customer-service.yaml"
 import_api "VehicleService" "/api/vehicles" "$DOCS_DIR/vehicle-service.yaml"
 import_api "VendorService" "/api/vendors" "$DOCS_DIR/vendor-service.yaml"
-import_api "SpkService" "/api/spk" "$DOCS_DIR/spk-service.yaml"
-import_api "PaymentsService" "/api/payments" "$DOCS_DIR/payments-service.yaml"
+import_api "ApDueListService" "/api/ap-due-list" "$DOCS_DIR/ap-due-list.yaml"
 import_api "ServiceRequestService" "/api/service-requests" "$DOCS_DIR/service-request-service.yaml"
 import_api "AuthService" "/api/auth" "$DOCS_DIR/auth-service.yaml"
 

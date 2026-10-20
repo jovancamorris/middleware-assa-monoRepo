@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<endpoint name="AtlasReconciliationEndpoint" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- HTTP Endpoint for Invoice Status Reconciliation Callback to ATLAS -->
+    <!-- Destination URL: {uri.var.atlasReconciliationUrl}                 -->
+    <!-- Referensi: notes/GUIDE_AP_DUE_LIST_XML_FTP.md Bab 8.4            -->
+    <!-- ================================================================= -->
+    <http method="post" uri-template="{uri.var.atlasReconciliationUrl}">
+        <suspendOnFailure>
+            <initialDuration>1000</initialDuration>
+            <progressionFactor>2.0</progressionFactor>
+            <maximumDuration>10000</maximumDuration>
+        </suspendOnFailure>
+        <markForSuspension>
+            <retriesBeforeSuspension>2</retriesBeforeSuspension>
+            <retryDelay>1000</retryDelay>
+        </markForSuspension>
+        <timeout>
+            <duration>30000</duration>
+            <responseAction>fault</responseAction>
+        </timeout>
+    </http>
+</endpoint>

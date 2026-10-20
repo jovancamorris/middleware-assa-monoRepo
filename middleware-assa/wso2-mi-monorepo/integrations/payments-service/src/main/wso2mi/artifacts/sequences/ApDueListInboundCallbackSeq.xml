@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="ApDueListInboundCallbackSeq" onError="ApDueListInboundFaultSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <!-- ================================================================= -->
+    <!-- AP Due List Inbound Callback Sequence (SAP to ATLAS)              -->
+    <!-- Referensi: notes/GUIDE_AP_DUE_LIST_XML_FTP.md Bab 8               -->
+    <!-- ================================================================= -->
+
+    <!-- 1. Simpan Salinan Berkas XML Asli -->
+    <property name="originalXmlPayload" expression="$body/*" scope="default" type="STRING"/>
+
+    <!-- 2. Ekstrak Data Header dari XML <INVOICE_INBOUND_RESPONSE> -->
+    <property name="billingNumber" expression="//*[local-name()='BILLING_NUMBER']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:billingNumber) = 0">
+        <then><property name="billingNumber" expression="//*[local-name()='billing_number']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="invoiceNumber" expression="//*[local-name()='INVOICE_NUMBER']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:invoiceNumber) = 0">
+        <then><property name="invoiceNumber" expression="//*[local-name()='invoice_number']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="companyCode" expression="//*[local-name()='COMPANY_CODE']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:companyCode) = 0">
+        <then><property name="companyCode" expression="//*[local-name()='company_code']" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:companyCode) = 0">
+        <then><property name="companyCode" value="1000" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="status" expression="//*[local-name()='STATUS']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:status) = 0">
+        <then><property name="status" expression="//*[local-name()='status']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="sapDocNumber" expression="//*[local-name()='SAP_DOCUMENT_NUMBER']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:sapDocNumber) = 0">
+        <then><property name="sapDocNumber" expression="//*[local-name()='sap_document_number']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="fiscalYear" expression="//*[local-name()='FISCAL_YEAR']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:fiscalYear) = 0">
+        <then><property name="fiscalYear" expression="//*[local-name()='fiscal_year']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="currency" expression="//*[local-name()='CURRENCY']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:currency) = 0">
+        <then><property name="currency" expression="//*[local-name()='currency']" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:currency) = 0">
+        <then><property name="currency" value="IDR" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="totalInvoiceAmount" expression="//*[local-name()='TOTAL_INVOICE_AMOUNT']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:totalInvoiceAmount) = 0">
+        <then><property name="totalInvoiceAmount" expression="//*[local-name()='total_invoice_amount']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="postedDate" expression="//*[local-name()='POSTED_DATE']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:postedDate) = 0">
+        <then><property name="postedDate" expression="//*[local-name()='posted_date']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="processedTimestamp" expression="//*[local-name()='PROCESSED_TIMESTAMP']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:processedTimestamp) = 0">
+        <then><property name="processedTimestamp" expression="//*[local-name()='processed_timestamp']" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:processedTimestamp) = 0">
+        <then><property name="processedTimestamp" expression="get-property('SYSTEM_DATE', 'yyyy-MM-dd HH:mm:ss')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="message" expression="//*[local-name()='MESSAGE']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:message) = 0">
+        <then><property name="message" expression="//*[local-name()='message']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="errorCode" expression="//*[local-name()='ERROR_CODE']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:errorCode) = 0">
+        <then><property name="errorCode" expression="//*[local-name()='error_code']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <property name="errorMessage" expression="//*[local-name()='ERROR_MESSAGE']" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:errorMessage) = 0">
+        <then><property name="errorMessage" expression="//*[local-name()='error_message']" scope="default" type="STRING"/></then>
+    </filter>
+
+    <!-- 3. Validasi Mandatory: BILLING_NUMBER wajib ada -->
+    <filter xpath="string-length($ctx:billingNumber) = 0">
+        <then>
+            <property name="SET_ROLLBACK_ONLY" value="true" scope="axis2"/>
+            <property name="SET_ROLLBACK_ONLY" value="true" scope="default"/>
+            <log level="custom">
+                <property name="AP_RECON_ERROR" value="BILLING_NUMBER kosong pada file XML balikan SAP"/>
+            </log>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- 4. Idempotency Guard berbasis BILLING_NUMBER + PROCESSED_TIMESTAMP (Bab 8.3) -->
+    <property name="transactionId" expression="fn:concat('RECON-', $ctx:billingNumber, '-', $ctx:processedTimestamp)" scope="default" type="STRING"/>
+    <property name="existingStatus" value="" scope="default" type="STRING"/>
+    <dblookup>
+        <connection><pool>
+            <driver key="conf:/repository/assa/db/driver"/>
+            <url key="conf:/repository/assa/db/url"/>
+            <user key="conf:/repository/assa/db/username"/>
+            <password key="conf:/repository/assa/db/password"/>
+        </pool></connection>
+        <statement>
+            <sql>SELECT status FROM api_transaction WHERE transaction_id = ?</sql>
+            <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+            <result name="existingStatus" column="status"/>
+        </statement>
+    </dblookup>
+
+    <filter xpath="$ctx:existingStatus = 'SUCCESS'">
+        <then>
+            <log level="custom">
+                <property name="AP_RECON_REPLAY" expression="fn:concat('Reconciliation transaction ', $ctx:transactionId, ' already SUCCESS in DB. Skipping duplicate ATLAS callback.')"/>
+            </log>
+            <drop/>
+        </then>
+    </filter>
+
+    <!-- Catat transaksi awal ke api_transaction -->
+    <filter xpath="string-length($ctx:existingStatus) = 0">
+        <then>
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>INSERT INTO api_transaction (transaction_id, idempotency_key, endpoint, http_method, request_payload, status, attempt_count, max_attempts, retry_interval_seconds, created_at) VALUES (?, ?, '/api/v1/invoices/reconciliation', 'POST', ?, 'PROCESSING', 1, 3, 60, NOW())</sql>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                    <parameter expression="$ctx:originalXmlPayload" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+        </then>
+        <else>
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>UPDATE api_transaction SET status = 'PROCESSING', updated_at = NOW() WHERE transaction_id = ?</sql>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+        </else>
+    </filter>
+
+    <!-- 5. Script Mediator: Bentuk JSON Body Callback ke ATLAS (Bab 8.4) -->
+    <script language="js"><![CDATA[
+        var status = String(mc.getProperty("status") || "SUCCESS").trim().toUpperCase();
+        var billingNo = String(mc.getProperty("billingNumber") || "");
+        var invoiceNo = String(mc.getProperty("invoiceNumber") || "");
+        var companyCode = String(mc.getProperty("companyCode") || "1000");
+        var processedAt = String(mc.getProperty("processedTimestamp") || "");
+
+        var callbackObj = {
+            "billing_number": billingNo,
+            "invoice_number": invoiceNo,
+            "company_code": companyCode,
+            "status": status,
+            "processed_at": processedAt
+        };
+
+        if (status === "SUCCESS") {
+            callbackObj["sap_document_number"] = String(mc.getProperty("sapDocNumber") || "");
+            callbackObj["fiscal_year"] = String(mc.getProperty("fiscalYear") || "");
+            callbackObj["currency"] = String(mc.getProperty("currency") || "IDR");
+            var totAmt = mc.getProperty("totalInvoiceAmount");
+            callbackObj["total_invoice_amount"] = totAmt ? Number(totAmt) : 0;
+            callbackObj["posted_date"] = String(mc.getProperty("postedDate") || "");
+            callbackObj["message"] = String(mc.getProperty("message") || "Dokumen AP Invoice berhasil dibukukan di SAP");
+        } else {
+            callbackObj["error_code"] = String(mc.getProperty("errorCode") || "SAP_ERROR");
+            callbackObj["error_message"] = String(mc.getProperty("errorMessage") || "Dokumen AP Invoice ditolak oleh SAP");
+        }
+
+        // Ekstrak hasil per-SPK dari tag <SPK_RESULTS> jika ada
+        var spkResults = [];
+        try {
+            var xmlPayload = mc.getPayloadXML();
+            var spkNodes = xmlPayload.xpath("//*[local-name()='SPK_RESULTS']/*[local-name()='SPK']");
+            if (spkNodes) {
+                for (var i = 0; i < spkNodes.size(); i++) {
+                    var spkNode = spkNodes.get(i);
+                    var spkNoChild = spkNode.getFirstChildWithName(new javax.xml.namespace.QName("SPK_NUMBER")) || spkNode.getFirstChildWithName(new javax.xml.namespace.QName("spk_number"));
+                    var spkStatChild = spkNode.getFirstChildWithName(new javax.xml.namespace.QName("STATUS")) || spkNode.getFirstChildWithName(new javax.xml.namespace.QName("status"));
+                    var spkReasonChild = spkNode.getFirstChildWithName(new javax.xml.namespace.QName("REASON")) || spkNode.getFirstChildWithName(new javax.xml.namespace.QName("reason"));
+
+                    var spkItem = {
+                        "spk_number": spkNoChild ? spkNoChild.getText() : "",
+                        "status": spkStatChild ? spkStatChild.getText() : (status === "SUCCESS" ? "POSTED" : "REJECTED")
+                    };
+                    if (spkReasonChild && spkReasonChild.getText()) {
+                        spkItem["reason"] = spkReasonChild.getText();
+                    }
+                    spkResults.push(spkItem);
+                }
+            }
+        } catch (ex) {
+            // Abaikan jika tidak ada nodes SPK
+        }
+        callbackObj["spk_results"] = spkResults;
+
+        mc.setPayloadJSON(callbackObj);
+        mc.setProperty("reconciliationPayload", JSON.stringify(callbackObj));
+    ]]></script>
+
+    <!-- 6. Resolusi Target URL ATLAS Reconciliation Endpoint -->
+    <property name="atlasBaseUrl" expression="get-property('env', 'ATLAS_CORE_BASE_URL')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+        <then><property name="atlasBaseUrl" expression="get-property('env', 'SR_TARGET_ATLAS_BASE_URL')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+        <then><property name="atlasBaseUrl" expression="get-property('system', 'atlas.core.base.url')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+        <then><property name="atlasBaseUrl" expression="get-property('file', 'atlas.core.base.url')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasBaseUrl) = 0">
+        <then>
+            <property name="ERROR_CODE" value="500" scope="default" type="STRING"/>
+            <property name="ERROR_MESSAGE" value="Configuration Error" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="ATLAS core base URL is not configured in env, system, or file" scope="default" type="STRING"/>
+            <sequence key="ApDueListInboundFaultSeq"/>
+            <drop/>
+        </then>
+    </filter>
+    <property name="uri.var.atlasReconciliationUrl" expression="fn:concat($ctx:atlasBaseUrl, '/api/v1/invoices/reconciliation')" scope="default" type="STRING"/>
+
+    <!-- Token Autentikasi Internal ATLAS -->
+    <property name="atlasToken" expression="get-property('env', 'ATLAS_INTERNAL_APP_TOKEN')" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:atlasToken) = 0">
+        <then><property name="atlasToken" expression="get-property('env', 'AUTH_APP_ATLAS_TOKEN')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasToken) = 0">
+        <then><property name="atlasToken" expression="get-property('system', 'auth.app.app_atlas.token')" scope="default" type="STRING"/></then>
+    </filter>
+    <filter xpath="string-length($ctx:atlasToken) = 0">
+        <then><property name="atlasToken" expression="get-property('file', 'auth.app.app_atlas.token')" scope="default" type="STRING"/></then>
+    </filter>
+
+    <!-- 7. Headers Transport Callback -->
+    <property name="correlationId" expression="fn:concat('corr-recon-', get-property('SYSTEM_DATE', 'yyyyMMddHHmmssSSS'))" scope="default" type="STRING"/>
+    <header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/>
+    <filter xpath="string-length($ctx:atlasToken) &gt; 0">
+        <then><header name="Authorization" expression="fn:concat('Bearer ', $ctx:atlasToken)" scope="transport"/></then>
+    </filter>
+    <header name="Content-Type" value="application/json" scope="transport"/>
+    <property name="messageType" value="application/json" scope="axis2"/>
+    <property name="ContentType" value="application/json" scope="axis2"/>
+    <property name="HTTP_METHOD" value="POST" scope="axis2"/>
+    <property name="REST_URL_POSTFIX" action="remove" scope="axis2"/>
+
+    <log level="custom">
+        <property name="AP_RECON_CALLBACK_DISPATCH" expression="fn:concat('Target: ', $ctx:uri.var.atlasReconciliationUrl, ' | Payload: ', $ctx:reconciliationPayload)"/>
+    </log>
+
+    <!-- 8. Panggil Endpoint Callback ATLAS -->
+    <property name="callStartTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+    <call>
+        <endpoint key="AtlasReconciliationEndpoint"/>
+    </call>
+    <property name="callEndTime" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+
+    <property name="responseStatus" expression="$axis2:HTTP_SC" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:responseStatus) = 0">
+        <then><property name="responseStatus" value="200" scope="default" type="STRING"/></then>
+    </filter>
+    <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+    <filter xpath="string-length($ctx:responseBody) = 0">
+        <then><property name="responseBody" value="{}" scope="default" type="STRING"/></then>
+    </filter>
+
+    <log level="custom">
+        <property name="AP_RECON_CALLBACK_RESPONSE" expression="fn:concat('HTTP ', $ctx:responseStatus, ' | Body: ', $ctx:responseBody)"/>
+    </log>
+
+    <!-- 9. Evaluasi Respon: Jika HTTP 2xx -> SUCCESS, selain itu Rollback (Move to /failed/) -->
+    <filter xpath="number($ctx:responseStatus) &gt;= 200 and number($ctx:responseStatus) &lt; 300">
+        <then>
+            <!-- Sukses: Catat Status SUCCESS ke Database -->
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>UPDATE api_transaction SET status = 'SUCCESS', response_payload = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                    <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+            <log level="custom">
+                <property name="AP_RECON_SUCCESS" expression="fn:concat('Invoice ', $ctx:billingNumber, ' reconciliation finished successfully.')"/>
+            </log>
+        </then>
+        <else>
+            <!-- Gagal: Set Rollback agar VFS memindahkan berkas ke /apduelist/upload/failed/ -->
+            <dbreport>
+                <connection><pool>
+                    <driver key="conf:/repository/assa/db/driver"/>
+                    <url key="conf:/repository/assa/db/url"/>
+                    <user key="conf:/repository/assa/db/username"/>
+                    <password key="conf:/repository/assa/db/password"/>
+                </pool></connection>
+                <statement>
+                    <sql>UPDATE api_transaction SET status = 'FAILED', response_payload = ?, updated_at = NOW() WHERE transaction_id = ?</sql>
+                    <parameter expression="$ctx:responseBody" type="VARCHAR"/>
+                    <parameter expression="$ctx:transactionId" type="VARCHAR"/>
+                </statement>
+            </dbreport>
+            <property name="SET_ROLLBACK_ONLY" value="true" scope="axis2"/>
+            <property name="SET_ROLLBACK_ONLY" value="true" scope="default"/>
+            <log level="custom">
+                <property name="AP_RECON_FAILED" expression="fn:concat('Callback ATLAS returned HTTP ', $ctx:responseStatus, '. File moved to /failed/.')"/>
+            </log>
+            <drop/>
+        </else>
+    </filter>
+</sequence>

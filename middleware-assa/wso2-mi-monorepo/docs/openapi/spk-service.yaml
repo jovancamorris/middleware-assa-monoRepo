@@ -17,13 +17,77 @@ tags:
     description: Probe liveness dan readiness container
 
 paths:
-  /api/spk/duelist:
+  /api/spk/final:
     post:
       tags:
         - SPK
-      operationId: createSpkDuelist
-      summary: Menerbitkan dokumen SPK Due List (XML over FTP)
+      operationId: createSpkFinal
+      summary: Menerbitkan dan mengunggah dokumen XML SPK Final resmi ke FTP SAP (spk/download)
       description: |
+        Endpoint baru v2.0 untuk membentuk dokumen XML SPK Final resmi ber-namespace `xmlns="http://assa.id/atlas/spk/v1"`.
+        Mendukung 4 kombinasi skenario bisnis:
+        1. Eksternal + Maintenance (wajib SUB_CATEGORY: PB/PBTT/ADHOC, PARTY_INFO vendor)
+        2. Internal + Maintenance (wajib SUB_CATEGORY, PARTY_INFO internal PIC)
+        3. Eksternal + Body Repair (DILARANG ada tag SUB_CATEGORY, PARTY_INFO vendor, detail own_risk)
+        4. Internal + Body Repair (DILARANG ada tag SUB_CATEGORY, PARTY_INFO internal PIC)
+
+        File XML diunggah via FTP ke direktori target: `spk/download`.
+        Pola nama file: `SPK_FINAL_<COMPANY>_<SPK_NUMBER>_<YYYYMMDDHHmmss>.xml`
+      security:
+        - bearerAuth:
+            - spk
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/TransactionId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/ForwardedFor'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpkFinalRequest'
+      responses:
+        '201':
+          description: Dokumen SPK Final XML berhasil dibentuk dan diunggah ke FTP SAP (spk/download)
+          headers:
+            X-Transaction-Id:
+              schema:
+                type: string
+            X-Correlation-Id:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpkFinalSuccessResponse'
+        '200':
+          description: Idempotency Replay — transaksi SPK Final sudah pernah diproses sebelumnya
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpkFinalSuccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/spk/duelist:
+    put:
+      tags:
+        - SPK
+      operationId: updateSpkDuelist
+      summary: Memperbarui / mengirimkan dokumen SPK Due List (PUT — Idempotent Inbound Invoice)
+      description: |
+        **Migrasi v2.0**: Menggunakan HTTP Method `PUT` untuk penjaminan semantik idempotency dokumen tagihan vendor
+        dan pencegahan double-booking di SAP ERP (FB60/MIRO).
+
         Menerima data SPK (header dan baris rincian pekerjaan/parts), membentuk dokumen XML SPK,
         menyimpan data ke MariaDB, dan mengunggahnya ke server FTP Inbound SAP (`/spk`).
 
@@ -348,6 +412,217 @@ components:
         fileName:
           type: string
           example: SPK_20260924153000_SPK-TRX-20260924-001.xml
+
+    SpkFinalSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: SPK Final XML successfully generated and delivered to FTP
+        spkNumber:
+          type: string
+          example: SPK20261020-01
+        fileName:
+          type: string
+          example: SPK_FINAL_1000_SPK20261020-01_20261020113000.xml
+        transactionId:
+          type: string
+          example: TRX-SPK-FINAL-20261020-001
+        targetDirectory:
+          type: string
+          example: spk/download
+
+    SpkFinalRequest:
+      type: object
+      required:
+        - header
+        - line_items
+      properties:
+        header:
+          type: object
+          required:
+            - spk_number
+            - spk_type
+            - category
+          properties:
+            spk_number:
+              type: string
+              example: SPK20261020-01
+            sr_number:
+              type: string
+              example: SR20261019-0012
+            spk_type:
+              type: string
+              enum: [EKSTERNAL, INTERNAL]
+              example: EKSTERNAL
+            category:
+              type: string
+              enum: [MAINTENANCE, BODY_REPAIR]
+              example: MAINTENANCE
+            sub_category:
+              type: string
+              description: Wajib untuk MAINTENANCE (PB, PBTT, ADHOC). DILARANG ADA untuk BODY_REPAIR.
+              example: PB
+            status:
+              type: string
+              example: APPROVED
+            is_rework:
+              type: boolean
+              example: false
+            is_back_charge:
+              type: boolean
+              example: false
+            license_plate:
+              type: string
+              example: B 1234 ABC
+            branch_code:
+              type: string
+              example: '1201'
+            branch_name:
+              type: string
+              example: Cabang Jakarta Barat
+            company_code:
+              type: string
+              example: '1000'
+            start_service_at:
+              type: string
+              example: '2026-10-20T08:30:00Z'
+            end_service_at:
+              type: string
+              example: '2026-10-20T14:00:00Z'
+        party_info:
+          type: object
+          description: Berisi vendor info jika EKSTERNAL, atau workshop info jika INTERNAL.
+          properties:
+            vendor_code:
+              type: string
+              example: VEND-00192
+            vendor_name:
+              type: string
+              example: PT. Sumber Jaya Motor
+            vendor_tax_number:
+              type: string
+              example: 01.234.567.8-012.000
+            workshop_type:
+              type: string
+              example: INTERNAL_POOL
+            pic_service_code:
+              type: string
+              example: TS_POOL
+            pic_service_name:
+              type: string
+              example: Bambang Sudiro (Teknisi Senior)
+        category_detail:
+          type: object
+          properties:
+            maintenance_detail:
+              type: object
+              properties:
+                km_service:
+                  type: number
+                  example: 45200
+            body_repair_detail:
+              type: object
+              properties:
+                item_code:
+                  type: string
+                  example: own_risk
+                repair_type:
+                  type: string
+                  example: SEDANG
+                total_cost_amount:
+                  type: number
+                  example: 2800000
+                claim_number:
+                  type: string
+                  example: CLM-202610-0081
+                incident_chronology:
+                  type: string
+                  example: Tertabrak tiang parkir saat mundur di area kantor klien
+        tax_and_totals:
+          type: object
+          properties:
+            currency:
+              type: string
+              example: IDR
+            subtotal:
+              type: number
+              example: 2350000
+            ppn_amount:
+              type: number
+              example: 258500
+            grand_total:
+              type: number
+              example: 2608500
+        line_items:
+          type: array
+          items:
+            type: object
+            required:
+              - item_no
+              - component
+              - description
+              - qty
+              - unit_price
+              - total_amount
+            properties:
+              item_no:
+                type: integer
+                example: 1
+              item_group:
+                type: string
+                example: OH_ENGINE
+              item_type:
+                type: string
+                enum: [JASA, PART, BAN, BODY_REPAIR_PANEL]
+                example: JASA
+              component:
+                type: string
+                enum: [jasa, part]
+                example: jasa
+              gl_number:
+                type: string
+                description: Otomatis 5000000007 untuk jasa, 5000000008 untuk part/ban
+                example: '5000000007'
+              method:
+                type: string
+                example: REPAIR
+              description:
+                type: string
+                example: Jasa Tune Up & Pembersihan Throttle Body
+              qty:
+                type: number
+                example: 1
+              uom:
+                type: string
+                example: UNT
+              unit_price:
+                type: number
+                example: 350000
+              total_amount:
+                type: number
+                example: 350000
+              tire_metadata:
+                type: object
+                properties:
+                  position:
+                    type: string
+                    example: DEPAN_KANAN
+                  tire_type:
+                    type: string
+                    example: RADIAL
+                  brand:
+                    type: string
+                    example: Bridgestone
+                  size:
+                    type: string
+                    example: 185/65 R15
+                  tire_code:
+                    type: string
+                    example: BR-1856515-EC
 
   responses:
     BadRequest:

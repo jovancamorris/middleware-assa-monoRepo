@@ -1,0 +1,597 @@
+openapi: 3.0.3
+info:
+  title: ASSA AP Due List Service API (Multi-SPK Invoice XML over FTP)
+  description: |
+    Spesifikasi resmi API integrasi penagihan vendor servis armada (Accounts Payable / AP Due List) di lingkungan PT Adi Sarana Armada Tbk (ASSA).
+    Menggantikan `spk-service` (`/api/spk/duelist`) dan mentransformasikan `payments-service` (`Payment Due List`) menjadi **AP Due List**.
+
+    Sesuai dengan panduan arsitektur **`GUIDE_AP_DUE_LIST_XML_FTP.md`**:
+    1. **Multi-SPK Invoice**: Satu lembar Invoice Vendor menaungi 1 hingga 50 Surat Perintah Kerja (SPK).
+    2. **Otomasi Pemetaan Akun G/L SAP**:
+       - Jasa → `5000000007` (Beban Jasa Perbaikan & Pemeliharaan Armada)
+       - Part → `5000000008` (Beban Penggantian Sparepart / Bahan Perbaikan)
+    3. **Pertukaran Berkas FTP**:
+       - Outbound Request XML `<INVOICE_INBOUND_REQUEST>` diunggah ke `/apduelist/download/`.
+       - Inbound Poller mendeteksi berkas balikan SAP `<INVOICE_INBOUND_RESPONSE>` pada `/apduelist/upload/` dan mengarsipkannya ke `/apduelist/upload/success/` atau `/apduelist/upload/failed/`.
+    4. **Feedback Reconciliation ke ATLAS**:
+       - Middleware mengeksekusi HTTP POST Callback ke `POST /api/v1/invoices/reconciliation` untuk sinkronisasi status (`synced_to_sap` atau `rejected_by_sap`).
+  version: 1.0.0
+
+servers:
+  - url: /
+    description: Gateway URL configured by SWAGGER_SERVER_URL
+
+tags:
+  - name: AP Due List
+    description: Layanan pembuatan & pengunggahan AP Due List Multi-SPK Invoice ke SAP via FTP
+  - name: Reconciliation Callback
+    description: Kontrak callback rekonsiliasi status tagihan dari SAP ke ATLAS
+
+paths:
+  /api/ap-due-list/create:
+    put:
+      tags:
+        - AP Due List
+      operationId: updateApDueList
+      summary: Memperbarui / membuat dokumen AP Due List Multi-SPK (PUT — Idempotent Inbound Invoice)
+      description: |
+        **Standar v2.0**: Menggunakan HTTP Method `PUT` (`PUT /api/ap-due-list/create` atau `PUT /api/v1/ap-due-list`)
+        untuk menjamin semantik idempotency penggantian status invoice vendor dan pencegahan double-booking di SAP ERP (FB60/MIRO).
+
+        Menerima payload JSON Multi-SPK (1 s/d 50 SPK), melakukan validasi korelasi nominal subtotal, pajak, dan grand total,
+        memetakan akun G/L secara otomatis (jasa: 5000000007, part: 5000000008), membentuk dokumen XML `<INVOICE_INBOUND_REQUEST>`,
+        dan mengunggah file XML ke direktori FTP SAP `/apduelist/download/`.
+
+        **Format Penamaan Berkas XML**:
+        `AP_DUELIST_<COMPANY_CODE>_<CLEAN_BILLING_NUMBER>_<YYYYMMDDHHmmss>_<TRANSACTION_ID>.xml`
+        Contoh: `AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml`
+      security:
+        - bearerAuth:
+            - ap_due_list
+      parameters:
+        - name: X-Transaction-Id
+          in: header
+          required: true
+          description: Idempotency Key / UUID unik untuk mencegah duplikasi pengunggahan berkas XML
+          schema:
+            type: string
+            example: c5a1e2f8-2895-4eb8-a72a-19e9559c5d12
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          description: Identifier untuk distributed tracing end-to-end
+          schema:
+            type: string
+            example: corr-20260630-143000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApDueListRequest'
+            example:
+              header:
+                billing_number: "BIL/0001/ASL/2026"
+                invoice_number: "INV-VENDOR-2026-001"
+                invoice_date: "2026-06-30"
+                invoice_type: "spk"
+                memo: "Tagihan Servis Armada Periode Juni 2026"
+                vendor_code: "VEND-00192"
+                vendor_name: "PT. Sumber Berkat Abadi"
+                company_code: "1000"
+                tenant_id: "d9804e7c-8647-495d-b0ad-54378f8cb6ee"
+                tax_invoice_number: "010.000-26.00000001"
+                tax_invoice_date: "2026-06-30"
+                currency: "IDR"
+                total_subtotal_amount: 2500000
+                total_tax_amount: 275000
+                total_invoice_amount: 2775000
+              spk_list:
+                - spk_number: "SPK20260630-01"
+                  sr_number: "SR-202606-00012"
+                  license_plate: "B 1234 ABC"
+                  category: "maintenance"
+                  sub_category: "pb"
+                  spk_subtotal: 1200000
+                  spk_tax_amount: 132000
+                  spk_grand_total: 1332000
+                  items:
+                    - item_no: 1
+                      component: "jasa"
+                      item_name: "Jasa Tune Up & Ganti Filter"
+                      method: "repair"
+                      qty: 1
+                      uom: "UNT"
+                      unit_price: 200000
+                      total_amount: 200000
+                    - item_no: 2
+                      component: "part"
+                      item_name: "Oli Mesin Synthetic 4L"
+                      method: "ganti"
+                      qty: 1
+                      uom: "PC"
+                      unit_price: 1000000
+                      total_amount: 1000000
+                - spk_number: "SPK20260630-02"
+                  sr_number: "SR-202606-00015"
+                  license_plate: "B 5678 XYZ"
+                  category: "maintenance"
+                  sub_category: "adhoc"
+                  spk_subtotal: 1300000
+                  spk_tax_amount: 143000
+                  spk_grand_total: 1443000
+                  items:
+                    - item_no: 1
+                      component: "jasa"
+                      item_name: "Jasa Perbaikan Rem Depan"
+                      method: "repair"
+                      qty: 1
+                      uom: "UNT"
+                      unit_price: 300000
+                      total_amount: 300000
+                    - item_no: 2
+                      component: "part"
+                      item_name: "Brake Pad Set Depan"
+                      method: "ganti"
+                      qty: 1
+                      uom: "SET"
+                      unit_price: 1000000
+                      total_amount: 1000000
+      responses:
+        '201':
+          $ref: '#/components/responses/Created'
+        '200':
+          $ref: '#/components/responses/IdempotentReplay'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+
+  /api/v1/invoices/reconciliation:
+    post:
+      tags:
+        - Reconciliation Callback
+      operationId: invoiceReconciliationCallback
+      summary: Endpoint Callback di ATLAS untuk menerima pembaruan status pemrosesan dari SAP
+      description: |
+        Dipanggil secara internal oleh ASSA Middleware Inbound Poller setelah membaca berkas XML balikan `<INVOICE_INBOUND_RESPONSE>`
+        dari folder remote FTP SAP `/apduelist/upload/`.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: X-Correlation-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/AtlasReconciliationSuccessPayload'
+                - $ref: '#/components/schemas/AtlasReconciliationFailedPayload'
+      responses:
+        '200':
+          description: Status sinkronisasi invoice berhasil diperbarui di ATLAS
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  billing_number:
+                    type: string
+                    example: "BIL/0001/ASL/2026"
+                  invoice_status:
+                    type: string
+                    example: "synced_to_sap"
+                  message:
+                    type: string
+                    example: "Invoice reconciliation status updated successfully"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApDueListRequest:
+      type: object
+      required:
+        - header
+        - spk_list
+      properties:
+        header:
+          $ref: '#/components/schemas/InvoiceHeader'
+        spk_list:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/SpkItem'
+
+    InvoiceHeader:
+      type: object
+      required:
+        - billing_number
+        - invoice_number
+        - invoice_date
+        - invoice_type
+        - vendor_code
+        - vendor_name
+        - company_code
+        - tenant_id
+        - tax_invoice_number
+        - tax_invoice_date
+        - currency
+        - total_subtotal_amount
+        - total_tax_amount
+        - total_invoice_amount
+      properties:
+        billing_number:
+          type: string
+          example: "BIL/0001/ASL/2026"
+          description: Nomor billing resmi internal ATLAS
+        invoice_number:
+          type: string
+          example: "INV-VENDOR-2026-001"
+          description: Nomor invoice asli dari vendor
+        invoice_date:
+          type: string
+          format: date
+          example: "2026-06-30"
+          description: Tanggal invoice vendor (YYYY-MM-DD)
+        invoice_type:
+          type: string
+          enum: [spk]
+          example: "spk"
+        memo:
+          type: string
+          example: "Tagihan Servis Armada Periode Juni 2026"
+        vendor_code:
+          type: string
+          example: "VEND-00192"
+        vendor_name:
+          type: string
+          example: "PT. Sumber Berkat Abadi"
+        company_code:
+          type: string
+          example: "1000"
+        tenant_id:
+          type: string
+          example: "d9804e7c-8647-495d-b0ad-54378f8cb6ee"
+        tax_invoice_number:
+          type: string
+          pattern: '^\\d{3}\\.\\d{3}-\\d{2}\\.\\d{8}$'
+          example: "010.000-26.00000001"
+          description: Nomor Seri Faktur Pajak (NSFP) 16 digit
+        tax_invoice_date:
+          type: string
+          format: date
+          example: "2026-06-30"
+        currency:
+          type: string
+          enum: [IDR]
+          example: "IDR"
+        total_subtotal_amount:
+          type: integer
+          example: 2500000
+          description: Akumulasi DPP seluruh SPK
+        total_tax_amount:
+          type: integer
+          example: 275000
+          description: Akumulasi PPN seluruh SPK
+        total_invoice_amount:
+          type: integer
+          example: 2775000
+          description: Grand Total tagihan (Subtotal + Tax)
+
+    SpkItem:
+      type: object
+      required:
+        - spk_number
+        - sr_number
+        - license_plate
+        - category
+        - sub_category
+        - spk_subtotal
+        - spk_tax_amount
+        - spk_grand_total
+        - items
+      properties:
+        spk_number:
+          type: string
+          example: "SPK20260630-01"
+        sr_number:
+          type: string
+          example: "SR-202606-00012"
+        license_plate:
+          type: string
+          example: "B 1234 ABC"
+        category:
+          type: string
+          example: "maintenance"
+        sub_category:
+          type: string
+          example: "pb"
+        spk_subtotal:
+          type: integer
+          example: 1200000
+        spk_tax_amount:
+          type: integer
+          example: 132000
+        spk_grand_total:
+          type: integer
+          example: 1332000
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/WorkItem'
+
+    WorkItem:
+      type: object
+      required:
+        - item_no
+        - component
+        - item_name
+        - qty
+        - uom
+        - unit_price
+        - total_amount
+      properties:
+        item_no:
+          type: integer
+          example: 1
+        component:
+          type: string
+          enum: [jasa, part]
+          example: "jasa"
+          description: Komponen menentukan G/L Account SAP (jasa -> 5000000007, part -> 5000000008)
+        gl_number:
+          type: string
+          example: "5000000007"
+          description: Opsional; dipetakan otomatis oleh middleware jika tidak diisi
+        item_name:
+          type: string
+          example: "Jasa Tune Up & Ganti Filter"
+        method:
+          type: string
+          example: "repair"
+        qty:
+          type: number
+          example: 1
+        uom:
+          type: string
+          example: "UNT"
+        unit_price:
+          type: integer
+          example: 200000
+        total_amount:
+          type: integer
+          example: 200000
+
+    ApDueListSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "AP Due List successfully generated and delivered to FTP"
+        billingNumber:
+          type: string
+          example: "BIL/0001/ASL/2026"
+        fileName:
+          type: string
+          example: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
+        transactionId:
+          type: string
+          example: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Bad Request"
+        detail:
+          type: string
+          example: "total_invoice_amount does not match subtotal + tax amount"
+
+    AtlasReconciliationSuccessPayload:
+      type: object
+      properties:
+        billing_number:
+          type: string
+          example: "BIL/0001/ASL/2026"
+        invoice_number:
+          type: string
+          example: "INV-VENDOR-2026-001"
+        company_code:
+          type: string
+          example: "1000"
+        status:
+          type: string
+          enum: [SUCCESS]
+          example: "SUCCESS"
+        sap_document_number:
+          type: string
+          example: "1900001234"
+        fiscal_year:
+          type: string
+          example: "2026"
+        currency:
+          type: string
+          example: "IDR"
+        total_invoice_amount:
+          type: integer
+          example: 2775000
+        posted_date:
+          type: string
+          format: date
+          example: "2026-06-30"
+        processed_at:
+          type: string
+          example: "2026-06-30 15:10:22"
+        message:
+          type: string
+          example: "Dokumen AP Invoice berhasil dibukukan di SAP"
+        spk_results:
+          type: array
+          items:
+            type: object
+            properties:
+              spk_number:
+                type: string
+                example: "SPK20260630-01"
+              status:
+                type: string
+                example: "POSTED"
+
+    AtlasReconciliationFailedPayload:
+      type: object
+      properties:
+        billing_number:
+          type: string
+          example: "BIL/0001/ASL/2026"
+        invoice_number:
+          type: string
+          example: "INV-VENDOR-2026-001"
+        company_code:
+          type: string
+          example: "1000"
+        status:
+          type: string
+          enum: [FAILED]
+          example: "FAILED"
+        error_code:
+          type: string
+          example: "SAP_TAX_INVOICE_DUPLICATE"
+        error_message:
+          type: string
+          example: "Nomor Faktur Pajak 010.000-26.00000001 sudah pernah digunakan pada dokumen SAP 1900000881"
+        processed_at:
+          type: string
+          example: "2026-06-30 15:10:25"
+        spk_results:
+          type: array
+          items:
+            type: object
+            properties:
+              spk_number:
+                type: string
+                example: "SPK20260630-01"
+              status:
+                type: string
+                example: "REJECTED"
+              reason:
+                type: string
+                example: "Nomor Faktur Pajak Duplikat"
+
+  responses:
+    Created:
+      description: AP Due List berhasil divalidasi dan diunggah ke FTP SAP
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApDueListSuccessResponse'
+          example:
+            success: true
+            message: "AP Due List successfully generated and delivered to FTP"
+            billingNumber: "BIL/0001/ASL/2026"
+            fileName: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
+            transactionId: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
+    IdempotentReplay:
+      description: Replay response untuk transaksi berulang yang telah berstatus SUCCESS
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApDueListSuccessResponse'
+          example:
+            success: true
+            message: "AP Due List previously processed (Idempotent replay)"
+            billingNumber: "BIL/0001/ASL/2026"
+            fileName: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
+            transactionId: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
+    BadRequest:
+      description: Kesalahan validasi format, header kosong, atau ketidaksesuaian perhitungan matematika
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            subtotalMismatch:
+              summary: Ketidaksesuaian subtotal
+              value:
+                error: "Bad Request"
+                detail: "total_subtotal_amount does not match sum of SPK subtotals"
+            taxMismatch:
+              summary: Ketidaksesuaian PPN
+              value:
+                error: "Bad Request"
+                detail: "total_tax_amount does not match sum of SPK tax amounts"
+            grandTotalMismatch:
+              summary: Ketidaksesuaian grand total
+              value:
+                error: "Bad Request"
+                detail: "total_invoice_amount does not match subtotal + tax amount"
+            itemTotalMismatch:
+              summary: Ketidaksesuaian total item SPK
+              value:
+                error: "Bad Request"
+                detail: "SPK subtotal does not match sum of item amounts"
+            spkCountInvalid:
+              summary: Jumlah SPK di luar batas (1-50)
+              value:
+                error: "Bad Request"
+                detail: "spk_list must contain between 1 and 50 SPKs"
+    Unauthorized:
+      description: Token otentikasi tidak disertakan atau kedaluwarsa
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Unauthorized"
+            detail: "Invalid or expired Bearer token"
+    Forbidden:
+      description: Client tidak memiliki izin scope `ap_due_list` atau `payments`
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Forbidden"
+            detail: "Insufficient scope permissions"
+    Conflict:
+      description: Transaksi dengan X-Transaction-Id sama sedang dalam proses
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Conflict"
+            detail: "Transaction is currently being processed"
+    BadGateway:
+      description: Server FTP SAP tidak dapat dihubungi atau timeout
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "Bad Gateway"
+            detail: "Failed to connect to SAP FTP server"

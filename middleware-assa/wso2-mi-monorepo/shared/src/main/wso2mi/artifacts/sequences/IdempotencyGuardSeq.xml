@@ -43,7 +43,7 @@
         <then>
             <property name="ERROR_CODE" value="409" scope="default" type="STRING"/>
             <property name="ERROR_MESSAGE" value="Conflict" scope="default" type="STRING"/>
-            <property name="ERROR_DETAIL" expression="fn:concat('Transaction ', $ctx:transactionId, ' is already being processed.')" scope="default" type="STRING"/>
+            <property name="ERROR_DETAIL" value="Transaction is currently being processed" scope="default" type="STRING"/>
             <sequence key="ErrorResponseSeq"/>
             <drop/>
         </then>
