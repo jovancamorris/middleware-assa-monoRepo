@@ -152,7 +152,6 @@ services:
       FTP_SPK_HOST: ${FTP_SPK_HOST:-devqaxmlpool.assa.id}
       FTP_SPK_PORT: ${FTP_SPK_PORT:-21}
       FTP_SPK_TARGET: ${FTP_SPK_TARGET:-/duelist}
-      FTP_SPK_FINAL_TARGET: ${FTP_SPK_FINAL_TARGET:-spk/download}
       FTP_SPK_USERNAME: ${FTP_SPK_USERNAME:-middlewaredev}
       FTP_SPK_PASSWORD: ${FTP_SPK_PASSWORD:-}
 
@@ -222,11 +221,11 @@ services:
       - "8298:8290"
     environment:
       <<: *common-env
-      FTP_APDUELIST_HOST: ${FTP_APDUELIST_HOST:-devqaxmlpool.assa.id}
-      FTP_APDUELIST_PORT: ${FTP_APDUELIST_PORT:-21}
-      FTP_APDUELIST_TARGET: ${FTP_APDUELIST_TARGET:-/apduelist/download}
-      FTP_APDUELIST_USERNAME: ${FTP_APDUELIST_USERNAME:-middlewaredev}
-      FTP_APDUELIST_PASSWORD: "${FTP_APDUELIST_PASSWORD:-}"
+      FTP_SPK_HOST: ${FTP_SPK_HOST:-devqaxmlpool.assa.id}
+      FTP_SPK_PORT: ${FTP_SPK_PORT:-21}
+      FTP_SPK_FINAL_TARGET: ${FTP_SPK_FINAL_TARGET:-spk/download}
+      FTP_SPK_USERNAME: ${FTP_SPK_USERNAME:-middlewaredev}
+      FTP_SPK_PASSWORD: "${FTP_SPK_PASSWORD:-}"
 
   auth-service:
     build:

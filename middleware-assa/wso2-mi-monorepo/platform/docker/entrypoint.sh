@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# Render database connection values into MI registry resources. Must run before
-# MI starts so the `key` lookups in dblookup/dbreport resolve.
-sh /home/wso2carbon/render-registry-secrets.sh
+# Render database connection values and export inbound environment variables.
+# Must be sourced (.) so exported environment variables persist in the WSO2 MI JVM process.
+. /home/wso2carbon/render-registry-secrets.sh
 
 TARGET_HOST="${DB_HOST:-host.docker.internal}"
 TARGET_PORT="${DB_PORT:-3307}"

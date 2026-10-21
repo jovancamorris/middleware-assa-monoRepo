@@ -56,31 +56,54 @@
         <then>
             <property name="responseStatus" value="201" scope="default" type="STRING"/>
             <property name="errorMessage" value="None" scope="default" type="STRING"/>
-            <filter xpath="string-length($ctx:customSuccessResponse) &gt; 0">
+            <filter xpath="$ctx:spkFinalResponse = 'true'">
                 <then>
-                    <payloadFactory media-type="json">
-                        <format>$1</format>
-                        <args><arg evaluator="xml" expression="$ctx:customSuccessResponse"/></args>
-                    </payloadFactory>
+                    <script language="js"><![CDATA[
+                        var xml = String(mc.getProperty("SPK_FINAL_XML") || "");
+                        var om = org.apache.axiom.om.util.AXIOMUtil.stringToOM(xml);
+                        mc.setPayloadXML(om);
+                        mc.setProperty("responseBody", xml);
+                    ]]></script>
+                    <sequence key="DbRecordAttemptLogSeq"/>
+                    <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>
+                    <property name="responsePayload" expression="$ctx:responseBody" scope="default" type="STRING"/>
+                    <sequence key="DbRecordTransactionSeq"/>
+                    <property name="OUT_ONLY" value="false" scope="default"/>
+                    <property name="SC_ACCEPTED" value="false" scope="axis2"/>
+                    <property name="HTTP_SC" value="201" scope="axis2"/>
+                    <property name="messageType" value="application/xml" scope="axis2"/>
+                    <property name="ContentType" value="application/xml; charset=UTF-8" scope="axis2"/>
+                    <header name="Content-Disposition" expression="fn:concat('attachment; filename=&quot;', $ctx:spkFinalDownloadFileName, '&quot;')" scope="transport"/>
+                    <respond/>
                 </then>
                 <else>
-                    <payloadFactory media-type="json">
-                        <format>{"success": true, "message": "Payload accepted and delivered", "transactionId": "$1", "fileName": "$2"}</format>
-                        <args><arg evaluator="xml" expression="$ctx:transactionId"/><arg evaluator="xml" expression="$ctx:fileName"/></args>
-                    </payloadFactory>
+                    <filter xpath="string-length($ctx:customSuccessResponse) &gt; 0">
+                        <then>
+                            <payloadFactory media-type="json">
+                                <format>$1</format>
+                                <args><arg evaluator="xml" expression="$ctx:customSuccessResponse"/></args>
+                            </payloadFactory>
+                        </then>
+                        <else>
+                            <payloadFactory media-type="json">
+                                <format>{"success": true, "message": "Payload accepted and delivered", "transactionId": "$1", "fileName": "$2"}</format>
+                                <args><arg evaluator="xml" expression="$ctx:transactionId"/><arg evaluator="xml" expression="$ctx:fileName"/></args>
+                            </payloadFactory>
+                        </else>
+                    </filter>
+                    <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
+                    <sequence key="DbRecordAttemptLogSeq"/>
+                    <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>
+                    <property name="responsePayload" expression="$ctx:responseBody" scope="default" type="STRING"/>
+                    <sequence key="DbRecordTransactionSeq"/>
+                    <property name="OUT_ONLY" value="false" scope="default"/>
+                    <property name="SC_ACCEPTED" value="false" scope="axis2"/>
+                    <property name="HTTP_SC" value="201" scope="axis2"/>
+                    <property name="messageType" value="application/json" scope="axis2"/>
+                    <property name="ContentType" value="application/json" scope="axis2"/>
+                    <respond/>
                 </else>
             </filter>
-            <property name="responseBody" expression="json-eval($)" scope="default" type="STRING"/>
-            <sequence key="DbRecordAttemptLogSeq"/>
-            <property name="trxStatus" value="SUCCESS" scope="default" type="STRING"/>
-            <property name="responsePayload" expression="$ctx:responseBody" scope="default" type="STRING"/>
-            <sequence key="DbRecordTransactionSeq"/>
-            <property name="OUT_ONLY" value="false" scope="default"/>
-            <property name="SC_ACCEPTED" value="false" scope="axis2"/>
-            <property name="HTTP_SC" value="201" scope="axis2"/>
-            <property name="messageType" value="application/json" scope="axis2"/>
-            <property name="ContentType" value="application/json" scope="axis2"/>
-            <respond/>
         </then>
         <else>
             <property name="responseStatus" value="200" scope="default" type="STRING"/>

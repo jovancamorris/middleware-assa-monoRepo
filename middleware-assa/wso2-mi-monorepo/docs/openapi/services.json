@@ -51,9 +51,9 @@
     "id": "spk-final",
     "name": "SPK Final",
     "port": 8298,
-    "description": "POST AP Due List multi-SPK invoice submission through the SPK Final integrator.",
+    "description": "Generates, returns, and uploads SPK Final XML to SAP FTP (spk/download).",
     "specUrl": "/docs/openapi/spk-final-service.yaml",
-    "scope": "spk_final"
+    "scope": "spk"
   },
   {
     "id": "auth-service",

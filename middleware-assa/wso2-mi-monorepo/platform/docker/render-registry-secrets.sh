@@ -50,18 +50,24 @@ mkdir -p "$CONF_DIR"
 touch "$FILE_PROP"
 
 SAP_USER="${FTP_SAP_USERNAME:-middlewaredev}"
-SAP_PASS_ENC=$(printf '%s' "${FTP_SAP_PASSWORD:-}" | sed 's/#/%23/g')
+SAP_PASS_RAW="${FTP_SAP_PASSWORD:-}"
+SAP_PASS_ENC=$(printf '%s' "$SAP_PASS_RAW" | sed 's/#/%23/g')
 SAP_HOST="${FTP_SAP_HOST:-devqaxmlpool.assa.id}"
 SAP_PORT="${FTP_SAP_PORT:-21}"
 
-if [ -z "${FTP_VENDOR_INBOUND_FILE_URI:-}" ] && [ -n "$SAP_PASS_ENC" ]; then
-    FTP_VENDOR_INBOUND_FILE_URI="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload?vfs.passive=true"
-fi
-if [ -z "${FTP_VENDOR_INBOUND_MOVE_SUCCESS:-}" ] && [ -n "$SAP_PASS_ENC" ]; then
-    FTP_VENDOR_INBOUND_MOVE_SUCCESS="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload/success?vfs.passive=true"
-fi
-if [ -z "${FTP_VENDOR_INBOUND_MOVE_FAILED:-}" ] && [ -n "$SAP_PASS_ENC" ]; then
-    FTP_VENDOR_INBOUND_MOVE_FAILED="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload/failed?vfs.passive=true"
+if [ -z "${FTP_VENDOR_INBOUND_FILE_URI:-}" ]; then
+    if [ -n "$SAP_PASS_ENC" ]; then
+        FTP_VENDOR_INBOUND_FILE_URI="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload?vfs.passive=true"
+        FTP_VENDOR_INBOUND_MOVE_SUCCESS="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload/success?vfs.passive=true"
+        FTP_VENDOR_INBOUND_MOVE_FAILED="ftp://${SAP_USER}:${SAP_PASS_ENC}@${SAP_HOST}:${SAP_PORT}/vmd/upload/failed?vfs.passive=true"
+    else
+        FTP_VENDOR_INBOUND_FILE_URI="vfs:file:///home/wso2carbon/ftp_dummy/vmd/upload"
+        FTP_VENDOR_INBOUND_MOVE_SUCCESS="vfs:file:///home/wso2carbon/ftp_dummy/vmd/upload/success"
+        FTP_VENDOR_INBOUND_MOVE_FAILED="vfs:file:///home/wso2carbon/ftp_dummy/vmd/upload/failed"
+    fi
+else
+    FTP_VENDOR_INBOUND_MOVE_SUCCESS="${FTP_VENDOR_INBOUND_MOVE_SUCCESS:-vfs:file:///home/wso2carbon/ftp_dummy/vmd/upload/success}"
+    FTP_VENDOR_INBOUND_MOVE_FAILED="${FTP_VENDOR_INBOUND_MOVE_FAILED:-vfs:file:///home/wso2carbon/ftp_dummy/vmd/upload/failed}"
 fi
 
 AP_USER="${FTP_APDUELIST_USERNAME:-${FTP_SAP_USERNAME:-middlewaredev}}"
@@ -70,15 +76,33 @@ AP_PASS_ENC=$(printf '%s' "$AP_PASS_RAW" | sed 's/#/%23/g')
 AP_HOST="${FTP_APDUELIST_HOST:-${FTP_SAP_HOST:-devqaxmlpool.assa.id}}"
 AP_PORT="${FTP_APDUELIST_PORT:-${FTP_SAP_PORT:-21}}"
 
-if [ -z "${FTP_APDUELIST_INBOUND_FILE_URI:-}" ] && [ -n "$AP_PASS_ENC" ]; then
-    FTP_APDUELIST_INBOUND_FILE_URI="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload?vfs.passive=true"
+if [ -z "${FTP_APDUELIST_INBOUND_FILE_URI:-}" ]; then
+    if [ -n "$AP_PASS_ENC" ]; then
+        FTP_APDUELIST_INBOUND_FILE_URI="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload?vfs.passive=true"
+        FTP_APDUELIST_INBOUND_MOVE_SUCCESS="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload/success?vfs.passive=true"
+        FTP_APDUELIST_INBOUND_MOVE_FAILED="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload/failed?vfs.passive=true"
+    else
+        FTP_APDUELIST_INBOUND_FILE_URI="vfs:file:///home/wso2carbon/ftp_dummy/apduelist/upload"
+        FTP_APDUELIST_INBOUND_MOVE_SUCCESS="vfs:file:///home/wso2carbon/ftp_dummy/apduelist/upload/success"
+        FTP_APDUELIST_INBOUND_MOVE_FAILED="vfs:file:///home/wso2carbon/ftp_dummy/apduelist/upload/failed"
+    fi
+else
+    FTP_APDUELIST_INBOUND_MOVE_SUCCESS="${FTP_APDUELIST_INBOUND_MOVE_SUCCESS:-vfs:file:///home/wso2carbon/ftp_dummy/apduelist/upload/success}"
+    FTP_APDUELIST_INBOUND_MOVE_FAILED="${FTP_APDUELIST_INBOUND_MOVE_FAILED:-vfs:file:///home/wso2carbon/ftp_dummy/apduelist/upload/failed}"
 fi
-if [ -z "${FTP_APDUELIST_INBOUND_MOVE_SUCCESS:-}" ] && [ -n "$AP_PASS_ENC" ]; then
-    FTP_APDUELIST_INBOUND_MOVE_SUCCESS="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload/success?vfs.passive=true"
-fi
-if [ -z "${FTP_APDUELIST_INBOUND_MOVE_FAILED:-}" ] && [ -n "$AP_PASS_ENC" ]; then
-    FTP_APDUELIST_INBOUND_MOVE_FAILED="ftp://${AP_USER}:${AP_PASS_ENC}@${AP_HOST}:${AP_PORT}/apduelist/upload/failed?vfs.passive=true"
-fi
+
+# Create fallback directories in case local dummy VFS is used
+mkdir -p /home/wso2carbon/ftp_dummy/vmd/upload/success \
+         /home/wso2carbon/ftp_dummy/vmd/upload/failed \
+         /home/wso2carbon/ftp_dummy/apduelist/upload/success \
+         /home/wso2carbon/ftp_dummy/apduelist/upload/failed 2>/dev/null || true
+
+export FTP_VENDOR_INBOUND_FILE_URI
+export FTP_VENDOR_INBOUND_MOVE_SUCCESS
+export FTP_VENDOR_INBOUND_MOVE_FAILED
+export FTP_APDUELIST_INBOUND_FILE_URI
+export FTP_APDUELIST_INBOUND_MOVE_SUCCESS
+export FTP_APDUELIST_INBOUND_MOVE_FAILED
 
 for vfs_var in FTP_VENDOR_INBOUND_FILE_URI FTP_VENDOR_INBOUND_MOVE_SUCCESS FTP_VENDOR_INBOUND_MOVE_FAILED \
                FTP_APDUELIST_INBOUND_FILE_URI FTP_APDUELIST_INBOUND_MOVE_SUCCESS FTP_APDUELIST_INBOUND_MOVE_FAILED; do
@@ -88,4 +112,4 @@ for vfs_var in FTP_VENDOR_INBOUND_FILE_URI FTP_VENDOR_INBOUND_MOVE_SUCCESS FTP_V
         printf '%s=%s\n' "$vfs_var" "$vfs_val" >> "$FILE_PROP"
     fi
 done
-echo "[ENTRYPOINT] Inbound VFS URLs registered in $FILE_PROP"
+echo "[ENTRYPOINT] Inbound VFS URLs registered and exported (FTP_VENDOR_*, FTP_APDUELIST_*)"

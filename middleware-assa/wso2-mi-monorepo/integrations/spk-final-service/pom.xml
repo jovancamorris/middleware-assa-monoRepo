@@ -11,7 +11,7 @@
     <artifactId>spk-final-service</artifactId>
     <packaging>pom</packaging>
     <name>spk-final-service</name>
-    <description>SPK Final AP Due List POST integration</description>
+    <description>SPK Final XML generation and SAP FTP integration</description>
 
     <repositories>
         <repository>

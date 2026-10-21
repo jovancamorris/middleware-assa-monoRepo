@@ -2,9 +2,9 @@ openapi: 3.0.3
 info:
   title: SPK Final API
   description: |
-    POST integration for creating an AP Due List multi-SPK invoice through the SPK Final integrator.
-    The operation accepts the same JSON invoice payload as the AP Due List PUT operation, validates
-    and transforms it to `<INVOICE_INBOUND_REQUEST>`, then uploads the XML to SAP FTP `/apduelist/download/`.
+    Generates the official SPK Final XML document for the four external/internal and
+    maintenance/body-repair scenarios, uploads it to SAP FTP `spk/download`, and returns
+    the generated XML as a downloadable response. AP Due List invoices use the separate PUT API.
   version: 1.0.0
 
 servers:
@@ -13,7 +13,7 @@ servers:
 
 tags:
   - name: SPK Final
-    description: POST submission of a multi-SPK AP Due List invoice
+    description: Generate and deliver an SPK Final XML document
 
 paths:
   /api/spk-final/create:
@@ -21,18 +21,20 @@ paths:
       tags:
         - SPK Final
       operationId: createSpkFinal
-      summary: Create and upload an AP Due List invoice using POST
+      summary: Generate and upload an SPK Final XML document
       description: |
-        This POST route is hosted by the separate SPK Final integrator and requires the `spk_final`
-        application scope. The AP Due List PUT operation remains available at
-        `/api/ap-due-list/create` in the AP Due List service and continues to require `ap_due_list`.
+        Preserves the `/api/spk-final/create` route while implementing the SPK Final XML flow
+        documented for `POST /api/v1/spk/final`. Requires the `spk` scope. The generated
+        `<SPK_DOCUMENT xmlns="http://assa.id/atlas/spk/v1">` is uploaded under `spk/download`
+        and returned with `Content-Disposition: attachment`. AP Due List invoice submission
+        remains a separate PUT operation at `/api/ap-due-list/create`.
       security:
         - bearerAuth: []
       parameters:
         - name: X-Transaction-Id
           in: header
-          required: true
-          description: Stable transaction identifier used for idempotency and replay detection.
+          required: false
+          description: Stable transaction identifier for idempotency and replay detection. Generated when omitted.
           schema:
             type: string
             example: c5a1e2f8-2895-4eb8-a72a-19e9559c5d12
@@ -48,20 +50,31 @@ paths:
         content:
           application/json:
             schema:
-              $ref: './ap-due-list.yaml#/components/schemas/ApDueListRequest'
+              $ref: '#/components/schemas/SpkFinalRequest'
       responses:
         '201':
-          description: XML invoice successfully generated and uploaded to SAP FTP.
-          content:
-            application/json:
+          description: SPK Final XML successfully generated, uploaded, and returned as a download.
+          headers:
+            Content-Disposition:
               schema:
-                $ref: './ap-due-list.yaml#/components/schemas/ApDueListSuccessResponse'
+                type: string
+              example: attachment; filename="SPK-SPK20261020-01.xml"
+          content:
+            application/xml:
+              schema:
+                type: string
+                example: '<?xml version="1.0" encoding="UTF-8"?><SPK_DOCUMENT xmlns="http://assa.id/atlas/spk/v1">...</SPK_DOCUMENT>'
         '200':
-          description: Successful idempotency replay.
-          content:
-            application/json:
+          description: Successful idempotency replay of the generated XML.
+          headers:
+            Content-Disposition:
               schema:
-                $ref: './ap-due-list.yaml#/components/schemas/ApDueListSuccessResponse'
+                type: string
+              example: attachment; filename="SPK-SPK20261020-01.xml"
+          content:
+            application/xml:
+              schema:
+                type: string
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -82,6 +95,188 @@ components:
   schemas:
     ErrorResponse:
       $ref: './ap-due-list.yaml#/components/schemas/ErrorResponse'
+    SpkFinalRequest:
+      type: object
+      required: [header, line_items]
+      properties:
+        header:
+          type: object
+          required: [spk_number, spk_type, category, status, start_service_at, end_service_at]
+          properties:
+            spk_number:
+              type: string
+              example: SPK20261020-01
+            sr_number:
+              type: string
+              example: SR20261019-0012
+            spk_type:
+              type: string
+              enum: [EKSTERNAL, INTERNAL]
+              example: EKSTERNAL
+            category:
+              type: string
+              enum: [MAINTENANCE, BODY_REPAIR]
+              example: MAINTENANCE
+            sub_category:
+              type: string
+              description: Required for MAINTENANCE; must be omitted for BODY_REPAIR.
+              example: PB
+            status:
+              type: string
+              enum: [APPROVED]
+              example: APPROVED
+            is_rework:
+              type: boolean
+              example: false
+            is_back_charge:
+              type: boolean
+              example: false
+            license_plate:
+              type: string
+              example: B 1234 ABC
+            branch_code:
+              type: string
+              example: '1201'
+            branch_name:
+              type: string
+              example: Cabang Jakarta Barat
+            company_code:
+              type: string
+              example: '1000'
+            start_service_at:
+              type: string
+              format: date-time
+              pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$'
+              example: '2026-10-20T08:30:00Z'
+            end_service_at:
+              type: string
+              format: date-time
+              pattern: '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$'
+              example: '2026-10-20T14:00:00Z'
+        party_info:
+          type: object
+          description: Vendor data for EKSTERNAL, workshop/PIC data for INTERNAL.
+          properties:
+            vendor_code:
+              type: string
+              example: VEND-00192
+            vendor_name:
+              type: string
+              example: PT. Sumber Jaya Motor
+            vendor_tax_number:
+              type: string
+              example: 01.234.567.8-012.000
+            workshop_type:
+              type: string
+              example: INTERNAL_POOL
+            pic_service_code:
+              type: string
+              example: TS_POOL
+            pic_service_name:
+              type: string
+              example: Bambang Sudiro
+        category_detail:
+          type: object
+          properties:
+            maintenance_detail:
+              type: object
+              properties:
+                km_service:
+                  type: number
+                  example: 45200
+            body_repair_detail:
+              type: object
+              properties:
+                item_code:
+                  type: string
+                  example: own_risk
+                repair_type:
+                  type: string
+                  example: SEDANG
+                total_cost_amount:
+                  type: number
+                  example: 2800000
+                claim_number:
+                  type: string
+                  example: CLM-202610-0081
+                incident_chronology:
+                  type: string
+                  example: Tertabrak tiang parkir saat mundur
+        tax_and_totals:
+          type: object
+          properties:
+            currency:
+              type: string
+              example: IDR
+            subtotal:
+              type: number
+              example: 2350000
+            ppn_amount:
+              type: number
+              example: 258500
+            grand_total:
+              type: number
+              example: 2608500
+        line_items:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [item_no, component, description, qty, unit_price, total_amount]
+            properties:
+              item_no:
+                type: integer
+                example: 1
+              item_group:
+                type: string
+                example: OH_ENGINE
+              item_type:
+                type: string
+                enum: [JASA, PART, BAN, BODY_REPAIR_PANEL]
+                example: JASA
+              component:
+                type: string
+                enum: [jasa, part]
+                example: jasa
+              gl_number:
+                type: string
+                example: '5000000007'
+              method:
+                type: string
+                example: REPAIR
+              description:
+                type: string
+                example: Jasa Tune Up & Pembersihan Throttle Body
+              qty:
+                type: number
+                example: 1
+              uom:
+                type: string
+                example: UNT
+              unit_price:
+                type: number
+                example: 350000
+              total_amount:
+                type: number
+                example: 350000
+              tire_metadata:
+                type: object
+                properties:
+                  position:
+                    type: string
+                    example: DEPAN_KANAN
+                  tire_type:
+                    type: string
+                    example: RADIAL
+                  brand:
+                    type: string
+                    example: Bridgestone
+                  size:
+                    type: string
+                    example: 185/65 R15
+                  tire_code:
+                    type: string
+                    example: BR-1856515-EC
   responses:
     BadRequest:
       description: Request validation failed.
@@ -96,7 +291,7 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     Forbidden:
-      description: Token does not have the `spk_final` scope.
+      description: Token does not have the `spk` scope.
       content:
         application/json:
           schema:

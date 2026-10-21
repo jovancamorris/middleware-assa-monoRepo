@@ -29,6 +29,7 @@ $baseUrlCustomer = if ($env:BASE_URL1) { $env:BASE_URL1 } else { "http://localho
 $baseUrlVehicle = if ($env:BASE_URL2) { $env:BASE_URL2 } else { "http://localhost:8292" }
 $baseUrlVendor = if ($env:BASE_URL3) { $env:BASE_URL3 } else { "http://localhost:8293" }
 $baseUrlSpk = if ($env:BASE_URL4) { $env:BASE_URL4 } else { "http://localhost:8294" }
+$baseUrlSpkFinal = if ($env:BASE_URL8) { $env:BASE_URL8 } else { "http://localhost:8298" }
 $baseUrlServiceRequest = if ($env:BASE_URL5) { $env:BASE_URL5 } else { "http://localhost:8295" }
 $baseUrlAuth = if ($env:BASE_URL7) { $env:BASE_URL7 } else { "http://localhost:8297" }
 $baseUrl = $baseUrl.TrimEnd('/')
@@ -36,6 +37,7 @@ $baseUrlCustomer = $baseUrlCustomer.TrimEnd('/')
 $baseUrlVehicle = $baseUrlVehicle.TrimEnd('/')
 $baseUrlVendor = $baseUrlVendor.TrimEnd('/')
 $baseUrlSpk = $baseUrlSpk.TrimEnd('/')
+$baseUrlSpkFinal = $baseUrlSpkFinal.TrimEnd('/')
 $baseUrlServiceRequest = $baseUrlServiceRequest.TrimEnd('/')
 $baseUrlAuth = $baseUrlAuth.TrimEnd('/')
 $baseUri = [System.Uri]$baseUrl
@@ -407,6 +409,40 @@ $validSpkJson = @{
 } | ConvertTo-Json -Depth 10
 Run-Test -TestNumber "TEST 21" -TestName "SPK Duelist: Valid Payload + Total Validation ke FTP (Harus 201)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $validSpkJson -ExtraHeaders @{ "X-Transaction-Id" = $spkTrxId; "X-Forwarded-For" = "10.20.30.40"; "X-Validate-Total" = "true" } -ExpectedStatus 201
 Run-Test -TestNumber "TEST 22" -TestName "SPK Duelist: Idempotency Replay (Harus 200 replay)" -Url "$baseUrlSpk/api/spk/duelist" -Method "POST" -Token $tokenQA -Body $validSpkJson -ExtraHeaders @{ "X-Transaction-Id" = $spkTrxId; "X-Forwarded-For" = "10.20.30.40"; "X-Validate-Total" = "true" } -ExpectedStatus 200
+
+# SPK Final XML Generator Tests (GUIDE_FINAL.md)
+Run-Test -TestNumber "TEST 22A" -TestName "SPK Final: Tanpa Token (Harus 401)" -Url "$baseUrlSpkFinal/api/spk-final/create" -Method "POST" -Body "{}" -ExpectedStatus 401
+Run-Test -TestNumber "TEST 22B" -TestName "SPK Final: App B tanpa scope 'spk' (Harus 403)" -Url "$baseUrlSpkFinal/api/spk-final/create" -Method "POST" -Token $tokenAppB -Body "{}" -ExpectedStatus 403
+
+$invalidSpkFinalStatusJson = @{
+    header = @{
+        spk_number = "SPK20261020-01"
+        spk_type = "EKSTERNAL"
+        category = "MAINTENANCE"
+        sub_category = "PB"
+        status = "DRAFT"
+        start_service_at = "2026-10-20T08:30:00Z"
+        end_service_at = "2026-10-20T14:00:00Z"
+        vendor_code = "VEND-00192"
+    }
+    line_items = @(@{ description = "Jasa tune up"; qty = 1; price = 150000 })
+} | ConvertTo-Json -Depth 8
+Run-Test -TestNumber "TEST 22C" -TestName "SPK Final: status harus APPROVED (Harus 400)" -Url "$baseUrlSpkFinal/api/spk-final/create" -Method "POST" -Token $tokenQA -Body $invalidSpkFinalStatusJson -ExpectedStatus 400
+
+$invalidSpkFinalDateJson = @{
+    header = @{
+        spk_number = "SPK20261020-02"
+        spk_type = "EKSTERNAL"
+        category = "MAINTENANCE"
+        sub_category = "PB"
+        status = "APPROVED"
+        start_service_at = "2026-10-20 08:30:00"
+        end_service_at = "2026-10-20T14:00:00Z"
+        vendor_code = "VEND-00192"
+    }
+    line_items = @(@{ description = "Jasa tune up"; qty = 1; price = 150000 })
+} | ConvertTo-Json -Depth 8
+Run-Test -TestNumber "TEST 22D" -TestName "SPK Final: tanggal harus ISO 8601 UTC (Harus 400)" -Url "$baseUrlSpkFinal/api/spk-final/create" -Method "POST" -Token $tokenQA -Body $invalidSpkFinalDateJson -ExpectedStatus 400
 
 # Service Request (SR) Tests (GUIDE_SR.md)
 Run-Test -TestNumber "TEST 23" -TestName "Service Request: Tanpa Token (Harus 401)" -Url "$baseUrlServiceRequest/api/service-requests" -Method "POST" -Body "{}" -ExpectedStatus 401

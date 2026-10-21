@@ -1,22 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <api context="/api/spk" name="SpkAPI" xmlns="http://ws.apache.org/ns/synapse">
     <!-- ================================================================= -->
-    <!-- 1. Resource Baru: SPK Final (POST) — Generate XML SPK ke FTP SAP  -->
-    <!-- Referensi: notes/GUIDE_SPK_FINAL_XML_DAN_AP_DUE_LIST_PUT.md       -->
-    <!-- ================================================================= -->
-    <resource methods="POST" uri-template="/final">
-        <inSequence>
-            <property name="requiredScope" value="spk" scope="default" type="STRING"/>
-            <sequence key="AuthGuardSeq"/>
-            <sequence key="SpkFinalSeq"/>
-        </inSequence>
-        <faultSequence>
-            <sequence key="ErrorResponseSeq"/>
-        </faultSequence>
-    </resource>
-
-    <!-- ================================================================= -->
-    <!-- 2. Resource Terupdate: AP Due List (PUT) — Idempotent Submission  -->
+    <!-- AP Due List (PUT/POST) — Idempotent Submission                    -->
     <!-- Mendukung PUT (standar baru v2.0) dan fallback POST               -->
     <!-- ================================================================= -->
     <resource methods="PUT POST" uri-template="/duelist">

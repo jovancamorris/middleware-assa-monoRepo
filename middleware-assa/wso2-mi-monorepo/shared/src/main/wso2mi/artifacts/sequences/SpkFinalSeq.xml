@@ -2,15 +2,22 @@
 <sequence name="SpkFinalSeq" onError="ErrorResponseSeq" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
     <!-- ================================================================= -->
     <!-- SPK Final XML Generator & FTP Dispatcher Sequence                 -->
-    <!-- Referensi: notes/GUIDE_SPK_FINAL_XML_DAN_AP_DUE_LIST_PUT.md       -->
+    <!-- SPK Final generator used by the dedicated SPK Final API.           -->
     <!-- ================================================================= -->
-    <property name="api.endpoint" value="/api/spk/final" scope="default" type="STRING"/>
     <property name="originalPayload" expression="json-eval($)" scope="default" type="STRING"/>
     <property name="api.params" expression="$ctx:originalPayload" scope="default" type="STRING"/>
+    <property name="spkFinalResponse" value="true" scope="default" type="STRING"/>
 
-    <!-- 1. Audit & Idempotency Key Validation -->
+    <script language="js"><![CDATA[
+        var p = mc.getPayloadJSON() || {};
+        var h = p.header || p;
+        var spk = String(h.spk_number || h.spkNumber || h.noSpk || "");
+        var cleanSpk = spk.replace(/[^A-Za-z0-9_-]/g, "");
+        mc.setProperty("spkFinalDownloadFileName", "SPK-" + cleanSpk + ".xml");
+    ]]></script>
+
+    <!-- 1. Audit the incoming request -->
     <sequence key="LogRequestSeq"/>
-    <sequence key="IdempotencyGuardSeq"/>
 
     <!-- 2. Parse & Validate Payload (Supporting 4 Business Scenarios) -->
     <script language="js"><![CDATA[
@@ -38,7 +45,7 @@
             var licensePlate = h.license_plate || h.licensePlate || h.noPolisi || "";
             var startServiceAt = h.start_service_at || h.startServiceAt || "";
             var endServiceAt = h.end_service_at || h.endServiceAt || "";
-            var status = h.status || "APPROVED";
+            var status = String(h.status || "").toUpperCase();
             var isRework = h.is_rework === true || h.isRework === true ? "true" : "false";
             var isBackCharge = h.is_back_charge === true || h.isBackCharge === true ? "true" : "false";
 
@@ -49,6 +56,18 @@
                 validationError = "Field 'spk_type' must be either 'EKSTERNAL' or 'INTERNAL'";
             } else if (category !== "MAINTENANCE" && category !== "BODY_REPAIR") {
                 validationError = "Field 'category' must be either 'MAINTENANCE' or 'BODY_REPAIR'";
+            } else if (status !== "APPROVED") {
+                validationError = "Field 'status' must be 'APPROVED'";
+            }
+
+            // The guide requires both service timestamps in ISO 8601 UTC form.
+            if (!validationError) {
+                var utcTimestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/;
+                if (!utcTimestamp.test(String(startServiceAt)) || isNaN(Date.parse(startServiceAt))) {
+                    validationError = "Field 'start_service_at' must be an ISO 8601 UTC timestamp";
+                } else if (!utcTimestamp.test(String(endServiceAt)) || isNaN(Date.parse(endServiceAt))) {
+                    validationError = "Field 'end_service_at' must be an ISO 8601 UTC timestamp";
+                }
             }
 
             // Aturan Kategori: Sub-Category hanya boleh untuk MAINTENANCE
@@ -228,6 +247,7 @@
                 }
                 xml += '  </LINE_ITEMS>\n';
                 xml += '</SPK_DOCUMENT>';
+                mc.setProperty("SPK_FINAL_XML", xml);
 
                 try {
                     var om = org.apache.axiom.om.util.AXIOMUtil.stringToOM(xml);
@@ -252,12 +272,13 @@
         </then>
     </filter>
 
+    <!-- Only reserve an idempotency key after the request has passed validation. -->
+    <sequence key="IdempotencyGuardSeq"/>
+
     <!-- 4. Construct File Name & Response Properties -->
     <!-- Pola resmi: SPK_FINAL_<COMPANY>_<SPK_NUMBER>_<YYYYMMDDHHmmss>.xml -->
     <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
     <property name="fileName" expression="fn:concat('SPK_FINAL_', $ctx:cleanCompanyCode, '_', $ctx:cleanSpkNumber, '_', $ctx:fileTimestamp, '.xml')" scope="default" type="STRING"/>
-
-    <property name="customSuccessResponse" expression="fn:concat('{&quot;success&quot;:true,&quot;message&quot;:&quot;SPK Final XML successfully generated and delivered to FTP&quot;,&quot;spkNumber&quot;:&quot;', $ctx:spkNumber, '&quot;,&quot;fileName&quot;:&quot;', $ctx:fileName, '&quot;,&quot;transactionId&quot;:&quot;', $ctx:transactionId, '&quot;,&quot;targetDirectory&quot;:&quot;spk/download&quot;}')" scope="default" type="STRING"/>
 
     <!-- 5. Resolve Dynamic VFS FTP Destination (Target Folder: spk/download) -->
     <property name="ftpHost" expression="get-property('env', 'FTP_SPK_HOST')" scope="default" type="STRING"/>

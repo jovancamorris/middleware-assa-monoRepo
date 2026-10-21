@@ -123,6 +123,35 @@ def update_shared_car():
         os.makedirs(os.path.dirname(dest_adlep), exist_ok=True)
         shutil.copy2(src_adlep, dest_adlep)
         print("  -> Updated ApDueListFtpEndpoint-1.0.0.xml")
+
+    # SPK Final generation and SAP delivery are available in shared-artifacts.
+    spk_final_seq_src = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/sequences/SpkFinalSeq.xml")
+    spk_final_seq_dir = os.path.join(extract_dir, "SpkFinalSeq_1.0.0")
+    if os.path.exists(spk_final_seq_src):
+        os.makedirs(spk_final_seq_dir, exist_ok=True)
+        shutil.copy2(spk_final_seq_src, os.path.join(spk_final_seq_dir, "SpkFinalSeq-1.0.0.xml"))
+        with open(os.path.join(spk_final_seq_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="SpkFinalSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>SpkFinalSeq-1.0.0.xml</file></artifact>')
+
+    spk_ftp_endpoint_src = os.path.join(SHARED_DIR, "src/main/wso2mi/artifacts/endpoints/SpkFtpEndpoint.xml")
+    spk_ftp_endpoint_dir = os.path.join(extract_dir, "SpkFtpEndpoint_1.0.0")
+    if os.path.exists(spk_ftp_endpoint_src):
+        os.makedirs(spk_ftp_endpoint_dir, exist_ok=True)
+        shutil.copy2(spk_ftp_endpoint_src, os.path.join(spk_ftp_endpoint_dir, "SpkFtpEndpoint-1.0.0.xml"))
+        with open(os.path.join(spk_ftp_endpoint_dir, "artifact.xml"), "w", encoding="utf-8") as f:
+            f.write('<artifact name="SpkFtpEndpoint" version="1.0.0" type="synapse/endpoint" serverRole="EnterpriseIntegrator"><file>SpkFtpEndpoint-1.0.0.xml</file></artifact>')
+
+    for meta_file in ["artifacts.xml", "metadata.xml"]:
+        manifest_path = os.path.join(extract_dir, meta_file)
+        if os.path.exists(manifest_path):
+            tree = ET.parse(manifest_path)
+            main_artifact = tree.getroot().find("artifact")
+            dependencies = {d.attrib.get("artifact") for d in main_artifact.findall("dependency")}
+            for artifact_name in ["SpkFinalSeq", "SpkFtpEndpoint"]:
+                if artifact_name not in dependencies:
+                    elem = ET.SubElement(main_artifact, "dependency")
+                    elem.attrib = {"artifact": artifact_name, "version": "1.0.0", "include": "true", "serverRole": "EnterpriseIntegrator"}
+            tree.write(manifest_path, encoding="UTF-8", xml_declaration=True)
     
     # Fix database URLs for docker networking
     fix_db_urls(extract_dir)
@@ -574,7 +603,7 @@ def update_payments_car():
     print(f"  -> Generated {out_car}")
 
 def update_spk_car():
-    print("[8/8] Updating spk-service_1.0.0.car (SPK Final & AP Due List PUT)...")
+    print("[8/8] Updating spk-service_1.0.0.car (SPK Due List)...")
     spk_dir = os.path.join(REPO_ROOT, "integrations/spk-service")
     car_src = os.path.join(spk_dir, "target/spk-service_1.0.0.car")
     if not os.path.exists(car_src):
@@ -596,15 +625,11 @@ def update_spk_car():
         shutil.copy2(api_src, os.path.join(dest_dir, "SpkAPI-1.0.0.xml"))
         print("  -> Updated SpkAPI-1.0.0.xml")
 
-    # 2. Add/Update SpkFinalSeq
-    seq_final_src = os.path.join(spk_dir, "src/main/wso2mi/artifacts/sequences/SpkFinalSeq.xml")
-    if os.path.exists(seq_final_src):
-        dest_dir = os.path.join(extract_dir, "SpkFinalSeq_1.0.0")
-        os.makedirs(dest_dir, exist_ok=True)
-        shutil.copy2(seq_final_src, os.path.join(dest_dir, "SpkFinalSeq-1.0.0.xml"))
-        with open(os.path.join(dest_dir, "artifact.xml"), "w", encoding="utf-8") as f:
-            f.write('<artifact name="SpkFinalSeq" version="1.0.0" type="synapse/sequence" serverRole="EnterpriseIntegrator"><file>SpkFinalSeq-1.0.0.xml</file></artifact>')
-        print("  -> Added SpkFinalSeq-1.0.0.xml")
+    # SPK Final no longer belongs to this API package; remove stale artifacts.
+    for artifact_dir in ["SpkFinalSeq_1.0.0", "SpkFtpEndpoint_1.0.0"]:
+        stale_artifact_dir = os.path.join(extract_dir, artifact_dir)
+        if os.path.exists(stale_artifact_dir):
+            shutil.rmtree(stale_artifact_dir)
 
     # 3. Add/Update SpkDuelistSeq
     seq_duelist_src = os.path.join(spk_dir, "src/main/wso2mi/artifacts/sequences/SpkDuelistSeq.xml")
@@ -622,20 +647,15 @@ def update_spk_car():
         print("  -> Updated config.properties")
 
     # Update dependencies in artifacts.xml and metadata.xml
-    new_dependencies = [
-        "SpkFinalSeq"
-    ]
     for meta_file in ["artifacts.xml", "metadata.xml"]:
         artifacts_xml_path = os.path.join(extract_dir, meta_file)
         if os.path.exists(artifacts_xml_path):
             tree = ET.parse(artifacts_xml_path)
             root = tree.getroot()
             main_art = root.find("artifact")
-            deps = [d.attrib.get("artifact") for d in main_art.findall("dependency")]
-            for art_name in new_dependencies:
-                if art_name not in deps:
-                    elem = ET.SubElement(main_art, "dependency")
-                    elem.attrib = {"artifact": art_name, "version": "1.0.0", "include": "true", "serverRole": "EnterpriseIntegrator"}
+            for dependency in list(main_art.findall("dependency")):
+                if dependency.attrib.get("artifact") in ["SpkFinalSeq", "SpkFtpEndpoint"]:
+                    main_art.remove(dependency)
             tree.write(artifacts_xml_path, encoding="UTF-8", xml_declaration=True)
 
     fix_db_urls(extract_dir)

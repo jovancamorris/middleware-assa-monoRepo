@@ -30,13 +30,47 @@
         <then>
             <header name="X-Idempotent-Replay" value="true" scope="transport"/>
             <header name="X-Correlation-Id" expression="$ctx:correlationId" scope="transport"/>
-            <property name="messageType" value="application/json" scope="axis2"/>
-            <property name="ContentType" value="application/json" scope="axis2"/>
-            <filter xpath="string-length($ctx:cachedResponsePayload) &gt; 0">
-                <then><payloadFactory media-type="json"><format>$1</format><args><arg evaluator="xml" expression="$ctx:cachedResponsePayload"/></args></payloadFactory></then>
-                <else><payloadFactory media-type="json"><format>{"idempotent": true, "transaction_id": "$1", "status": "SUCCESS"}</format><args><arg evaluator="xml" expression="$ctx:transactionId"/></args></payloadFactory></else>
+            <filter xpath="$ctx:spkFinalResponse = 'true'">
+                <then>
+                    <script language="js"><![CDATA[
+                        var xml = String(mc.getProperty("cachedResponsePayload") || "");
+                        try {
+                            if (xml.indexOf("<SPK_DOCUMENT") < 0) {
+                                throw new Error("Cached response uses a different endpoint contract");
+                            }
+                            var om = org.apache.axiom.om.util.AXIOMUtil.stringToOM(xml);
+                            mc.setPayloadXML(om);
+                        } catch (e) {
+                            mc.setProperty("SPK_FINAL_CACHE_INVALID", "true");
+                        }
+                    ]]></script>
+                    <filter xpath="$ctx:SPK_FINAL_CACHE_INVALID = 'true'">
+                        <then>
+                            <property name="ERROR_CODE" value="409" scope="default" type="STRING"/>
+                            <property name="ERROR_MESSAGE" value="Conflict" scope="default" type="STRING"/>
+                            <property name="ERROR_DETAIL" value="Transaction ID was previously used with a different endpoint response format" scope="default" type="STRING"/>
+                            <sequence key="ErrorResponseSeq"/>
+                            <drop/>
+                        </then>
+                        <else>
+                            <header name="Content-Disposition" expression="fn:concat('attachment; filename=&quot;', $ctx:spkFinalDownloadFileName, '&quot;')" scope="transport"/>
+                            <property name="messageType" value="application/xml" scope="axis2"/>
+                            <property name="ContentType" value="application/xml; charset=UTF-8" scope="axis2"/>
+                            <property name="HTTP_SC" value="200" scope="axis2"/>
+                            <respond/>
+                        </else>
+                    </filter>
+                </then>
+                <else>
+                    <property name="messageType" value="application/json" scope="axis2"/>
+                    <property name="ContentType" value="application/json" scope="axis2"/>
+                    <filter xpath="string-length($ctx:cachedResponsePayload) &gt; 0">
+                        <then><payloadFactory media-type="json"><format>$1</format><args><arg evaluator="xml" expression="$ctx:cachedResponsePayload"/></args></payloadFactory></then>
+                        <else><payloadFactory media-type="json"><format>{"idempotent": true, "transaction_id": "$1", "status": "SUCCESS"}</format><args><arg evaluator="xml" expression="$ctx:transactionId"/></args></payloadFactory></else>
+                    </filter>
+                    <respond/>
+                </else>
             </filter>
-            <respond/>
         </then>
     </filter>
     <filter xpath="$ctx:existingStatus = 'PROCESSING'">
