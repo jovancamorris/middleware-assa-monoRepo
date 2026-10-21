@@ -512,9 +512,9 @@ Struktur folder remote pada server FTP SAP untuk domain AP Due List:
 
 #### A. Penamaan File Request dari Middleware (`/apduelist/download/`)
 ```text
-AP_DUELIST_<COMPANY_CODE>_<CLEAN_BILLING_NUMBER>_<YYYYMMDDHHmmss>_<TRANSACTION_ID>.xml
+INV-<INVOICE_NUMBER>-<YYYYMMDDHHMMSS>.xml
 ```
-*Contoh*: `AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml`
+*Contoh*: `INV-INV-VENDOR-2026-01-20261021144555.xml`
 
 #### B. Penamaan File Response dari SAP (`/apduelist/upload/`)
 ```text

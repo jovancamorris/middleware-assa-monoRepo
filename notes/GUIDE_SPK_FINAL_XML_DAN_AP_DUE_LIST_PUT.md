@@ -909,8 +909,8 @@ Untuk memisahkan siklus hidup transaksi antara **Penerbitan SPK Final** dan **Pe
    ```
 2. **AP Due List Inbound Request XML:**
    ```
-   AP_DUELIST_<COMPANY>_<BILLING_NUMBER>_<YYYYMMDDHHmmss>_<TRX_ID>.xml
-   Contoh: AP_DUELIST_1000_BIL0001ASL2026_20260630140000_c3e8a1.xml
+   INV-<INVOICE_NUMBER>-<YYYYMMDDHHMMSS>.xml
+   Contoh: INV-INV-VENDOR-2026-01-20261021144555.xml
    ```
 3. **AP Due List Balikan Response SAP:**
    ```

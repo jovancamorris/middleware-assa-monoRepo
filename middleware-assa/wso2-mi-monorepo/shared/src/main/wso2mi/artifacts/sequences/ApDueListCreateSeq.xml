@@ -241,21 +241,21 @@
     <sequence key="IdempotencyGuardSeq"/>
 
     <!-- ================================================================= -->
-    <!-- 4. Deterministic File Name Resolution (Bab 6.2)                   -->
-    <!-- Format: AP_DUELIST_<COMPANY_CODE>_<BILLING_NO>_<TIMESTAMP>_<TRX_ID>.xml -->
-    <!-- Contoh: AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml -->
+    <!-- 4. Deterministic File Name Resolution                             -->
+    <!-- Format: [INV]-[invoice_number]-[YYYYMMDDHHMMSS].xml               -->
+    <!-- Contoh: INV-INV-VENDOR-2026-01-20261021144555.xml                 -->
     <!-- ================================================================= -->
     <script language="js"><![CDATA[
-        var billingNo = String(mc.getProperty("billingNumber") || "BIL");
-        var cleanBilling = billingNo.replace(/\//g, "-").replace(/\s+/g, "_");
-        mc.setProperty("cleanBillingNumber", cleanBilling);
+        var invNo = String(mc.getProperty("invoiceNumber") || "INVOICE");
+        var cleanInv = invNo.replace(/\//g, "-").replace(/\s+/g, "_");
+        mc.setProperty("cleanInvoiceNumber", cleanInv);
     ]]></script>
 
     <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
-    <property name="fileName" expression="fn:concat('AP_DUELIST_', $ctx:companyCode, '_', $ctx:cleanBillingNumber, '_', $ctx:fileTimestamp, '_', $ctx:transactionId, '.xml')" scope="default" type="STRING"/>
+    <property name="fileName" expression="fn:concat('INV-', $ctx:cleanInvoiceNumber, '-', $ctx:fileTimestamp, '.xml')" scope="default" type="STRING"/>
 
     <!-- Response JSON yang Diharapkan (Bab 9) -->
-    <property name="customSuccessResponse" expression="fn:concat('{&quot;success&quot;:true,&quot;message&quot;:&quot;AP Due List successfully generated and delivered to FTP&quot;,&quot;billingNumber&quot;:&quot;', $ctx:billingNumber, '&quot;,&quot;fileName&quot;:&quot;', $ctx:fileName, '&quot;,&quot;transactionId&quot;:&quot;', $ctx:transactionId, '&quot;}')" scope="default" type="STRING"/>
+    <property name="customSuccessResponse" expression="fn:concat('{&quot;success&quot;:true,&quot;message&quot;:&quot;AP Due List successfully generated and delivered to FTP&quot;,&quot;billingNumber&quot;:&quot;', $ctx:billingNumber, '&quot;,&quot;invoiceNumber&quot;:&quot;', $ctx:invoiceNumber, '&quot;,&quot;fileName&quot;:&quot;', $ctx:fileName, '&quot;,&quot;transactionId&quot;:&quot;', $ctx:transactionId, '&quot;}')" scope="default" type="STRING"/>
 
     <!-- ================================================================= -->
     <!-- 5. Resolve Dynamic VFS FTP Destination ke /apduelist/download     -->

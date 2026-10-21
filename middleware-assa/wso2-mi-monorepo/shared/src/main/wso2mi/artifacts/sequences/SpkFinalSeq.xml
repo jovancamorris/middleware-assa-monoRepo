@@ -8,14 +8,6 @@
     <property name="api.params" expression="$ctx:originalPayload" scope="default" type="STRING"/>
     <property name="spkFinalResponse" value="true" scope="default" type="STRING"/>
 
-    <script language="js"><![CDATA[
-        var p = mc.getPayloadJSON() || {};
-        var h = p.header || p;
-        var spk = String(h.spk_number || h.spkNumber || h.noSpk || "");
-        var cleanSpk = spk.replace(/[^A-Za-z0-9_-]/g, "");
-        mc.setProperty("spkFinalDownloadFileName", "SPK-" + cleanSpk + ".xml");
-    ]]></script>
-
     <!-- 1. Audit the incoming request -->
     <sequence key="LogRequestSeq"/>
 
@@ -276,9 +268,10 @@
     <sequence key="IdempotencyGuardSeq"/>
 
     <!-- 4. Construct File Name & Response Properties -->
-    <!-- Pola resmi: SPK_FINAL_<COMPANY>_<SPK_NUMBER>_<YYYYMMDDHHmmss>.xml -->
-    <property name="fileTimestamp" expression="get-property('SYSTEM_DATE', 'yyyyMMddHHmmss')" scope="default" type="STRING"/>
-    <property name="fileName" expression="fn:concat('SPK_FINAL_', $ctx:cleanCompanyCode, '_', $ctx:cleanSpkNumber, '_', $ctx:fileTimestamp, '.xml')" scope="default" type="STRING"/>
+    <!-- Pola resmi: SPK-[SPK_NUMBER]-[epoch milliseconds].xml -->
+    <property name="fileTimestamp" expression="get-property('SYSTEM_TIME')" scope="default" type="STRING"/>
+    <property name="fileName" expression="fn:concat('SPK-', $ctx:cleanSpkNumber, '-', $ctx:fileTimestamp, '.xml')" scope="default" type="STRING"/>
+    <property name="spkFinalDownloadFileName" expression="$ctx:fileName" scope="default" type="STRING"/>
 
     <!-- 5. Resolve Dynamic VFS FTP Destination (Target Folder: spk/download) -->
     <property name="ftpHost" expression="get-property('env', 'FTP_SPK_HOST')" scope="default" type="STRING"/>

@@ -43,8 +43,8 @@ paths:
         dan mengunggah file XML ke direktori FTP SAP `/apduelist/download/`.
 
         **Format Penamaan Berkas XML**:
-        `AP_DUELIST_<COMPANY_CODE>_<CLEAN_BILLING_NUMBER>_<YYYYMMDDHHmmss>_<TRANSACTION_ID>.xml`
-        Contoh: `AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml`
+        `[INV]-[invoice_number]-[YYYYMMDDHHMMSS].xml`
+        Contoh: `INV-INV-VENDOR-2026-01-20261021144555.xml`
       security:
         - bearerAuth:
             - ap_due_list
@@ -397,7 +397,7 @@ components:
           example: "BIL/0001/ASL/2026"
         fileName:
           type: string
-          example: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
+          example: "INV-INV-VENDOR-2026-01-20261021144555.xml"
         transactionId:
           type: string
           example: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
@@ -513,7 +513,7 @@ components:
             success: true
             message: "AP Due List successfully generated and delivered to FTP"
             billingNumber: "BIL/0001/ASL/2026"
-            fileName: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
+            fileName: "INV-INV-VENDOR-2026-01-20261021144555.xml"
             transactionId: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
     IdempotentReplay:
       description: Replay response untuk transaksi berulang yang telah berstatus SUCCESS
@@ -525,7 +525,7 @@ components:
             success: true
             message: "AP Due List previously processed (Idempotent replay)"
             billingNumber: "BIL/0001/ASL/2026"
-            fileName: "AP_DUELIST_1000_BIL-0001-ASL-2026_20260630143000_c5a1e2f8.xml"
+            fileName: "INV-INV-VENDOR-2026-01-20261021144555.xml"
             transactionId: "c5a1e2f8-2895-4eb8-a72a-19e9559c5d12"
     BadRequest:
       description: Kesalahan validasi format, header kosong, atau ketidaksesuaian perhitungan matematika
